@@ -25,11 +25,13 @@
   import Editor from '$lib/components/editor/Editor.svelte';
   import Combobox from '$lib/components/Combobox.svelte';
   import FormMessage from '$lib/components/FormMessage.svelte';
+  import TopicTemplateForm from '$lib/components/forum/TopicTemplateForm.svelte';
+  import EyeSlashIcon from 'phosphor-svelte/lib/EyeSlash';
   import { api } from '$lib/api';
   import { createForm } from '$lib/form.svelte';
   import { formatNumber } from '$lib/format';
   import { cn } from '$lib/utils';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
 
   let { data } = $props();
   const ctx = $derived(data.ctx);
@@ -45,7 +47,13 @@
   let withPoll = $state(false);
   let poll = $state<PollDraft>(emptyPoll());
   let editor = $state<ReturnType<typeof Editor> | null>(null);
+  let answers = $state<Record<string, string | string[]>>({});
   const form = createForm();
+  // Konu şablonu: sorular sorulur; başlık şablonu varsa başlık da yanıtlardan oluşur
+  const tpl = $derived(ctx.template);
+  const useTpl = $derived(tpl.enabled && tpl.fields.length > 0);
+  const needsTitle = $derived(!useTpl || !tpl.titleTemplate);
+  const showBody = $derived(!useTpl || tpl.allowMessage);
 
   // Başlık, etiket ve anket taslağı da (mesaj gövdesi editörün kendi taslağında) tarayıcıda saklanır.
   const metaKey = $derived(`forum:new-topic-meta:${ctx.board.id}`);
@@ -93,8 +101,9 @@
     }
     const res = await form.submit(() =>
       api.post<{ topicId: number; slug: string; approved: boolean }>(`/api/boards/${ctx.board.id}/topics`, {
-        title,
-        body,
+        title: needsTitle ? title : '',
+        body: showBody ? body : '',
+        answers: useTpl ? $state.snapshot(answers) : undefined,
         prefixId,
         pinned,
         locked,
@@ -115,6 +124,7 @@
       /* yok */
     }
     if (!res.approved) toast.info(t('Konunuz moderatör onayından sonra yayınlanacak.'));
+    else if (ctx.privateTopics) toast.success(t('Konunuz açıldı; yalnızca siz ve yetkililer görebilir.'));
     else toast.success(t('Konunuz yayınlandı.'));
     await goto(`/t/${res.topicId}/${res.slug}`);
   }
@@ -122,7 +132,7 @@
   const tabBtn = 'relative flex items-center gap-2 px-4 py-3 text-sm font-semibold transition-colors';
 </script>
 
-<svelte:head><title>{t('Yeni konu')} · {ctx.board.name}</title></svelte:head>
+<svelte:head><title>{t('Yeni konu')} · {tc(ctx.board.name)}</title></svelte:head>
 
 <Breadcrumbs items={ctx.breadcrumbs} current={t('Yeni konu')} />
 
@@ -131,10 +141,15 @@
     <BoardIcon icon={ctx.board.icon} unread size={52} />
     <div class="min-w-0 flex-1">
       <h1 class="text-2xl font-extrabold tracking-tight">{t('Yeni konu aç')}</h1>
-      <p class="text-sm text-muted-foreground"><b class="text-foreground">{ctx.board.name}</b> {t('bölümüne yazıyorsun')}</p>
+      <p class="text-sm text-muted-foreground"><b class="text-foreground">{tc(ctx.board.name)}</b> {t('bölümüne yazıyorsun')}</p>
     </div>
   </header>
 
+  {#if ctx.privateTopics}
+    <div class="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary-soft/60 px-4 py-2.5 text-sm">
+      <EyeSlashIcon class="size-4 shrink-0" />{t('Bu bölümdeki konular gizlidir: açtığın konuyu yalnızca sen ve yetkililer görebilir.')}
+    </div>
+  {/if}
   {#if ctx.board.requireApprovalTopics}
     <div class="flex items-center gap-2 rounded-lg border border-warning/40 bg-warning/10 px-4 py-2.5 text-sm">
       <InfoIcon class="size-4 shrink-0" />{t('Bu bölümde yeni konular moderatör onayından sonra yayınlanır.')}
@@ -175,7 +190,7 @@
                 />
               </div>
             {/if}
-            <div class="grid content-start gap-2">
+            {#if needsTitle}<div class="grid content-start gap-2">
               <div class="flex items-center gap-2">
                 <label for="title" class="text-sm font-semibold">{t('Başlık')}</label>
                 <span class="text-[10px] font-bold tracking-wider text-destructive uppercase">{t('Gerekli')}</span>
@@ -183,8 +198,10 @@
               </div>
               <Input id="title" bind:value={title} maxlength={titleMax} placeholder={t('Konunu kısaca ve açıklayıcı bir şekilde özetle')} required autofocus class="h-11 text-base font-medium" aria-invalid={!!form.error('title')} />
               {#if form.error('title')}<p class="text-xs text-destructive">{form.error('title')}</p>{/if}
-            </div>
+            </div>{:else if form.error('title')}<p class="text-xs text-destructive">{form.error('title')}</p>{/if}
           </div>
+
+          {#if useTpl}<TopicTemplateForm template={tpl} bind:answers errors={form.errors} />{/if}
 
           {#if ctx.tagging.enabled}
             <div class="grid gap-2">
@@ -197,10 +214,10 @@
             </div>
           {/if}
 
-          <div class="grid gap-2">
+          <div class={cn('grid gap-2', !showBody && 'hidden')}>
             <div class="flex items-center gap-2">
-              <label for="body" class="text-sm font-semibold">{t('Mesaj')}</label>
-              <span class="text-[10px] font-bold tracking-wider text-destructive uppercase">{t('Gerekli')}</span>
+              <label for="body" class="text-sm font-semibold">{useTpl ? t('Ek mesaj') : t('Mesaj')}</label>
+              {#if useTpl}<span class="text-xs text-muted-foreground">{t('İsteğe bağlı')}</span>{:else}<span class="text-[10px] font-bold tracking-wider text-destructive uppercase">{t('Gerekli')}</span>{/if}
             </div>
             <Editor
               bind:this={editor}
@@ -241,7 +258,7 @@
         {#if ctx.can.lock}<label class="flex items-center gap-2 text-sm"><Switch bind:checked={locked} /><LockIcon class="size-4 text-muted-foreground" />{t('Kilitli aç')}</label>{/if}
         <div class="ml-auto flex items-center gap-2">
           <Button variant="ghost" href="/f/{ctx.board.id}/{ctx.board.slug}">{t('Vazgeç')}</Button>
-          <Button type="submit" size="lg" disabled={form.submitting || !title.trim()} title={t('Gönder (Ctrl+Enter)')}>
+          <Button type="submit" size="lg" disabled={form.submitting || (needsTitle && !title.trim())} title={t('Gönder (Ctrl+Enter)')}>
             {#if form.submitting}<LoaderIcon class="animate-spin" />{t('Gönderiliyor…')}{:else}<SendIcon weight="fill" />{t('Konuyu aç')}{/if}
           </Button>
         </div>
@@ -254,11 +271,11 @@
         <div class="flex items-center gap-3 border-b px-4 py-3">
           <BoardIcon icon={ctx.board.icon} size={36} />
           <div class="min-w-0">
-            <p class="truncate font-bold">{ctx.board.name}</p>
+            <p class="truncate font-bold">{tc(ctx.board.name)}</p>
             <p class="text-xs text-muted-foreground">{t('{n} konu', { n: formatNumber(ctx.board.topicCount) })} · {t('{n} mesaj', { n: formatNumber(ctx.board.postCount) })}</p>
           </div>
         </div>
-        {#if ctx.board.description}<p class="px-4 py-3 text-sm text-muted-foreground">{ctx.board.description}</p>{/if}
+        {#if ctx.board.description}<p class="px-4 py-3 text-sm text-muted-foreground">{tc(ctx.board.description)}</p>{/if}
         {#if ctx.board.moderators.users.length || ctx.board.moderators.groups.length}
           <div class="border-t px-4 py-3"><ModeratorList moderators={ctx.board.moderators} compact /></div>
         {/if}

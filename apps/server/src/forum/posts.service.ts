@@ -3,7 +3,9 @@ import {
   bbcodeToDoc,
   bbcodeToText,
   docToBBCode,
+  parseTopicTemplate,
   slugify,
+  type TopicTemplate,
   type PostRevisionItem,
   type createTopicSchema,
   type editPostSchema,
@@ -112,7 +114,48 @@ export class PostsService {
     return { body: text, html: rendered.html, mentions: rendered.mentions, quotedPosts: rendered.quotedPosts };
   }
 
+  /**
+   * Konu şablonu: yanıtları doğrular; başlığı (başlık şablonu varsa) ve soru–yanıt biçimli mesajı üretir.
+   * Üyenin yazdığı serbest mesaj (izin verildiyse) yanıtların altına eklenir.
+   */
+  private applyTemplate(tpl: TopicTemplate, answers: Record<string, string | string[]>, title: string, body: string, displayName: string): { title: string; body: string } {
+    const values = new Map<string, string>();
+    const blocks: string[] = [];
+    for (const f of tpl.fields) {
+      const raw = answers[f.id];
+      const key = `answers.${f.id}`;
+      if (f.type === 'checkbox') {
+        const list = [...new Set(Array.isArray(raw) ? raw : raw ? [raw] : [])].filter((o) => f.options.includes(o));
+        if (f.required && !list.length) throw Errors.field(key, 'Bu soru zorunlu.');
+        values.set(f.id, list.join(', '));
+        if (list.length) blocks.push(`[b]${f.label}[/b]\n[list]\n${list.map((o) => `[*]${o}`).join('\n')}\n[/list]`);
+        continue;
+      }
+      const v = (Array.isArray(raw) ? raw.join(', ') : (raw ?? '')).replace(/\r\n?/g, '\n').trim();
+      if (f.required && !v) throw Errors.field(key, 'Bu soru zorunlu.');
+      if (v) {
+        if ((f.type === 'select' || f.type === 'radio') && !f.options.includes(v)) throw Errors.field(key, 'Geçersiz seçim.');
+        if (f.type === 'number' && !/^-?\d+(?:[.,]\d+)?$/.test(v)) throw Errors.field(key, 'Bir sayı girin.');
+        if (f.type === 'url' && !/^https?:\/\/\S+$/i.test(v)) throw Errors.field(key, 'Geçerli bir adres girin (https://…).');
+        if (f.type !== 'textarea' && v.length > 500) throw Errors.field(key, 'Yanıt çok uzun.');
+        blocks.push(`[b]${f.label}[/b]\n${f.type === 'url' ? `[url]${v}[/url]` : v}`);
+      }
+      values.set(f.id, f.type === 'textarea' ? v.replace(/\s+/g, ' ') : v);
+    }
+    let finalTitle = title.trim();
+    if (tpl.titleTemplate) {
+      finalTitle = tpl.titleTemplate
+        .replace(/\{(\w+)\}/g, (m, id: string) => (id === 'user' ? displayName : values.has(id) ? values.get(id)! : m))
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+    const extra = tpl.allowMessage ? body.trim() : '';
+    const out = [blocks.join('\n\n'), extra].filter(Boolean).join('\n\n[hr]\n\n');
+    return { title: finalTitle, body: out };
+  }
+
   private checkTitle(title: string): string {
+    if (title.trim().length < 3) throw Errors.field('title', 'Başlık en az 3 karakter olmalı.');
     const max = this.settings.get('forum.titleMaxLength');
     if (title.length > max) throw Errors.field('title', `Başlık en fazla ${max} karakter olabilir.`);
     return title;
@@ -210,6 +253,8 @@ export class PostsService {
           is_pinned: !!input.pinned,
           is_locked: !!input.locked,
           is_approved: input.approved,
+          // "Konular gizli" bölümlerinde her konu yalnızca yazarına ve yetkililere görünür
+          is_hidden: input.board.private_topics === 1,
           created_at: now,
           updated_at: now,
         })
@@ -250,9 +295,12 @@ export class PostsService {
     if (access.board.type !== 'forum') throw Errors.badRequest('Bu bölüme konu açılamaz.');
     if (!access.can.createTopic) throw Errors.forbidden('Bu bölümde konu açma yetkiniz yok.');
     const user = await this.assertCanPost(viewer, access);
-    const title = this.checkTitle(input.title);
+    const tpl = parseTopicTemplate(access.board.topic_template_json);
+    const filled = tpl.enabled ? this.applyTemplate(tpl, input.answers ?? {}, input.title, input.body, user.display_name) : { title: input.title, body: input.body };
+    const max = this.settings.get('forum.titleMaxLength');
+    const title = this.checkTitle(tpl.enabled && tpl.titleTemplate && filled.title.length > max ? `${filled.title.slice(0, max - 1)}…` : filled.title);
     const prefixId = await this.checkPrefix(boardId, input.prefixId);
-    const body = this.prepareBody(input.body);
+    const body = this.prepareBody(filled.body);
     const approved = !this.needsApproval(viewer, access, 'topic');
     if (input.poll) {
       if (!access.can.poll) throw Errors.forbidden('Bu bölümde anket ekleme yetkiniz yok.');
@@ -281,11 +329,12 @@ export class PostsService {
       if (input.subscribe) await this.extras.setSubscribed(user.id, topicId, true);
     });
     this.lastPostAt.set(user.id, this.clock.now());
-    if (approved) {
+    // Gizli konular dışarıya (bahsetme bildirimleri, webhook'lar) duyurulmaz
+    if (approved && access.board.private_topics !== 1) {
       this.db.afterCommit(() => this.notifyPost(viewer, postId, topicId, title, access.board, body, []));
       this.events.emit('topic.created', { topicId, postId, userId: user.id, boardId: access.board.id });
     }
-    return { topicId, postId, slug: topicSlug(title), approved };
+    return { topicId, postId, slug: topicSlug(title), approved, hidden: access.board.private_topics === 1 };
   }
 
   async reply(viewer: RequestViewer, topicId: number, bodyInput: string) {
@@ -390,6 +439,8 @@ export class PostsService {
     const own = !!viewer.user && topic.user_id === viewer.user.id;
     if (topic.deleted_at && !access.can.viewDeleted) throw Errors.notFound('Konu bulunamadı.');
     if (!topic.is_approved && !own && !access.can.approve) throw Errors.notFound('Konu bulunamadı.');
+    // Gizli konu: yalnızca yazarı ve onay yetkisi olanlar görür
+    if (topic.is_hidden && !own && !access.can.approve) throw Errors.notFound('Konu bulunamadı.');
   }
 
   /** Görüntüleyenin görebildiği mesaj (yoksa 404). */

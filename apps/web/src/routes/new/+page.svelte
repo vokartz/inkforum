@@ -5,7 +5,7 @@
   import BoardIcon from '$lib/components/forum/BoardIcon.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
   import { formatCompact } from '$lib/format';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
 
   let { data } = $props();
   let q = $state('');
@@ -17,8 +17,8 @@
         ...c,
         boards: c.boards
           .flatMap((b) => [
-            ...(postable.has(b.id) ? [{ id: b.id, name: b.name, description: b.description, icon: b.icon, topics: b.topicCount, parent: null as string | null }] : []),
-            ...b.children.filter((ch) => postable.has(ch.id)).map((ch) => ({ id: ch.id, name: ch.name, description: '', icon: b.icon, topics: null as number | null, parent: b.name })),
+            ...(postable.has(b.id) ? [{ id: b.id, name: tc(b.name), description: tc(b.description), icon: b.icon, topics: b.topicCount, parent: null as string | null }] : []),
+            ...b.children.filter((ch) => postable.has(ch.id)).map((ch) => ({ id: ch.id, name: tc(ch.name), description: '', icon: b.icon, topics: null as number | null, parent: tc(b.name) })),
           ])
           .filter((b) => !needle || `${b.name} ${b.description} ${b.parent ?? ''}`.toLocaleLowerCase('tr-TR').includes(needle)),
       }))
@@ -43,7 +43,7 @@
   <div class="grid gap-7">
     {#each cats as c (c.id)}
       <section>
-        <h2 class="mb-2.5 text-xs font-bold tracking-wider text-muted-foreground uppercase">{c.name}</h2>
+        <h2 class="mb-2.5 text-xs font-bold tracking-wider text-muted-foreground uppercase">{tc(c.name)}</h2>
         <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {#each c.boards as b (b.id)}
             <a href="/f/{b.id}/new" class="group flex items-start gap-3.5 rounded-xl border bg-card p-4 transition-all hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-card">

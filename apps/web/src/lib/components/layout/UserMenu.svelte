@@ -12,6 +12,8 @@
   import MoonIcon from 'phosphor-svelte/lib/Moon';
   import CaretDownIcon from 'phosphor-svelte/lib/CaretDown';
   import EnvelopeIcon from 'phosphor-svelte/lib/EnvelopeSimple';
+  import QueueIcon from 'phosphor-svelte/lib/ListChecks';
+  import { counters } from '$lib/counters.svelte';
   import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
   import { api } from '$lib/api';
   import { can, profileUrl } from '$lib/viewer';
@@ -55,7 +57,10 @@
     aria-label={t('Hesap menüsü')}
     data-part="user-menu"
   >
-    <UserAvatar user={user} size={variant === 'named' ? 32 : 36} />
+    <span class="relative">
+      <UserAvatar user={user} size={variant === 'named' ? 32 : 36} />
+      {#if counters.modQueue > 0}<span class="absolute -top-0.5 -right-0.5 size-3 rounded-full border-2 border-background bg-warning" aria-label={t('Onay bekleyen içerik var')}></span>{/if}
+    </span>
     {#if variant === 'named'}
       <span class="hidden max-w-36 truncate text-sm font-bold md:block">{user.displayName}</span>
       <CaretDownIcon class="hidden size-3.5 opacity-70 md:block" weight="bold" />
@@ -80,6 +85,13 @@
     <DropdownMenu.Item onSelect={toggleTheme} closeOnSelect={false}>
       {#if theme.resolved === 'dark'}<SunIcon />{t('Açık moda geç')}{:else}<MoonIcon />{t('Koyu moda geç')}{/if}
     </DropdownMenu.Item>
+    {#if can(viewer, 'mod.post.approve') || counters.modQueue > 0}
+      <DropdownMenu.Separator />
+      <DropdownMenu.Item onSelect={() => goto('/mod/queue')}>
+        <QueueIcon />{t('Onay kuyruğu')}
+        {#if counters.modQueue > 0}<span class="ml-auto rounded-full bg-warning px-1.5 text-xs font-bold text-black tabular-nums">{counters.modQueue > 99 ? '99+' : counters.modQueue}</span>{/if}
+      </DropdownMenu.Item>
+    {/if}
     {#if can(viewer, 'admin.access')}
       <DropdownMenu.Separator />
       <DropdownMenu.Item onSelect={() => goto('/admin')}><ShieldIcon />{t('Yönetim paneli')}</DropdownMenu.Item>

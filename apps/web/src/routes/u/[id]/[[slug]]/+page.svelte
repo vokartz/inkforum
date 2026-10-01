@@ -1,7 +1,9 @@
 <script lang="ts">
   import { tierName } from '$lib/tiers';
   import EnvelopeIcon from 'phosphor-svelte/lib/EnvelopeSimple';
-  import { invalidateAll } from '$app/navigation';
+  import { goto, invalidateAll } from '$app/navigation';
+  import DotsIcon from 'phosphor-svelte/lib/DotsThree';
+  import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
   import type { Paginated, UnreadTopicItem } from '@forum/shared';
   import CalendarIcon from 'phosphor-svelte/lib/CalendarBlank';
   import MapPinIcon from 'phosphor-svelte/lib/MapPin';
@@ -102,21 +104,6 @@
   <!-- Üst bölüm: kapak, avatar, isim, istatistikler -->
   <section data-part="profile-header" class="overflow-hidden rounded-2xl border bg-card shadow-card">
     <ProfileCover cover={p.cover} color={u.color} canEdit={isOwn && p.can.cover} maxKb={Number(data.viewer.settings['profile.coverMaxKb'] ?? 4096)}>
-      {#snippet actions()}
-        {#if isOwn}
-          <Button href="/settings/account" size="sm" variant="secondary" class="bg-black/45 text-white backdrop-blur hover:bg-black/60"><SettingsIcon />{t('Hesap ayarları')}</Button>
-          <Button href="/settings/profile" size="sm" variant="secondary" class="bg-black/45 text-white backdrop-blur hover:bg-black/60"><PencilIcon />{t('Profili düzenle')}</Button>
-        {/if}
-        {#if !isOwn && data.viewer.user && data.viewer.permissions.includes('messages.send')}
-          <Button href="/messages/new?to={u.id}" size="sm" variant="secondary" class="bg-black/45 text-white backdrop-blur hover:bg-black/60"><EnvelopeIcon />{t('Mesaj gönder')}</Button>
-        {/if}
-        {#if p.can.warn}
-          <Button size="sm" variant="secondary" class="bg-black/45 text-white backdrop-blur hover:bg-black/60" onclick={() => (warnOpen = true)}><TriangleAlertIcon />{t('Uyar')}</Button>
-        {/if}
-        {#if p.can.manage}
-          <Button href="/admin/users/{u.id}" size="sm" variant="secondary" class="bg-black/45 text-white backdrop-blur hover:bg-black/60"><ShieldIcon />{t('Yönet')}</Button>
-        {/if}
-      {/snippet}
     </ProfileCover>
 
     <div class="relative flex flex-col gap-4 px-5 pb-4 sm:flex-row sm:items-end sm:px-6">
@@ -140,6 +127,26 @@
           <span>@{u.username}</span>
           {#if u.customTitle}<span>· {u.customTitle}</span>{/if}
         </div>
+      </div>
+      <!-- İşlemler: birincil düğme + diğerleri "⋯" menüsünde (kapak fotoğrafının üstü boş kalır) -->
+      <div class="flex shrink-0 items-center gap-2 sm:pb-1" data-part="profile-actions">
+        {#if isOwn}
+          <Button href="/settings/profile" size="sm"><PencilIcon />{t('Profili düzenle')}</Button>
+        {:else if data.viewer.user && data.viewer.permissions.includes('messages.send')}
+          <Button href="/messages/new?to={u.id}" size="sm"><EnvelopeIcon />{t('Mesaj gönder')}</Button>
+        {/if}
+        {#if isOwn || p.can.warn || p.can.manage}
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger>
+              {#snippet child({ props })}<Button {...props} size="icon-sm" variant="outline" aria-label={t('Diğer işlemler')}><DotsIcon weight="bold" /></Button>{/snippet}
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Content align="end" class="w-52">
+              {#if isOwn}<DropdownMenu.Item onSelect={() => goto('/settings/account')}><SettingsIcon />{t('Hesap ayarları')}</DropdownMenu.Item>{/if}
+              {#if p.can.warn}<DropdownMenu.Item onSelect={() => (warnOpen = true)}><TriangleAlertIcon />{t('Uyar')}</DropdownMenu.Item>{/if}
+              {#if p.can.manage}<DropdownMenu.Item onSelect={() => goto(`/admin/users/${u.id}`)}><ShieldIcon />{t('Yönetimde aç')}</DropdownMenu.Item>{/if}
+            </DropdownMenu.Content>
+          </DropdownMenu.Root>
+        {/if}
       </div>
     </div>
 
@@ -317,7 +324,7 @@
               <article class="overflow-hidden rounded-2xl border bg-card shadow-card">
                 <header class="flex flex-wrap items-center gap-x-2 border-b bg-panel-header px-4 py-2 text-sm">
                   <a href="/p/{m.postId}" class="font-semibold hover:text-highlight">{m.topic.title}</a>
-                  <span class="text-xs text-muted-foreground">{m.isFirst ? t('konusunu açtı') : t('konusuna yanıt verdi')} · {m.board.name} · <TimeAgo ms={m.createdAt} /></span>
+                  <span class="text-xs text-muted-foreground">{m.isFirst ? t('konusunu açtı') : t('konusuna yanıt verdi')} · {tc(m.board.name)} · <TimeAgo ms={m.createdAt} /></span>
                 </header>
                 <div class="prose-forum relative max-h-56 overflow-hidden px-4 py-3 text-sm">
                   {@html m.html}

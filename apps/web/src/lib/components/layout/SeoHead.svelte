@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { SeoMeta } from '@forum/shared';
   import { page } from '$app/state';
+  import { localeTag } from '$lib/i18n.svelte';
 
   /**
    * Arama motoru ve paylaşım etiketleri. Sayfa yükleyicilerinin döndürdüğü `seo` alanı ile
@@ -20,7 +21,17 @@
   const pageNo = $derived(page.url.searchParams.get('page'));
   const canonical = $derived(`${origin}${path}${!seo.canonical && pageNo && /^\d+$/.test(pageNo) && pageNo !== '1' ? `?page=${pageNo}` : ''}`);
   const ogImagesOn = $derived(settings['seo.ogImages'] !== false);
-  const image = $derived(seo.image ? abs(seo.image) : ogImagesOn ? `${origin}/api/og/site.png` : abs(String(settings['appearance.bannerUrl'] || settings['appearance.logoUrl'] || '/brand/inkforum-icon-512.png')));
+  // Her sayfanın kendi paylaşım kartı (Discord, X, WhatsApp…): sunucu adresten başlığı çözer
+  const generated = $derived(!seo.image && ogImagesOn);
+  const image = $derived(
+    seo.image
+      ? abs(seo.image)
+      : ogImagesOn
+        ? `${origin}/api/og/page.png?path=${encodeURIComponent(page.url.pathname)}`
+        : abs(String(settings['appearance.bannerUrl'] || settings['appearance.logoUrl'] || '/brand/inkforum-icon-512.png')),
+  );
+  const ogGenerated = $derived(generated || /\/api\/og\//.test(image));
+  const ogLocale = $derived(localeTag().replace('-', '_'));
   const large = $derived(seo.largeImage ?? (ogImagesOn || !!settings['appearance.bannerUrl']));
   const indexingOff = $derived(settings['seo.indexing'] === false);
   const noindex = $derived(indexingOff || seo.noindex === true || page.status >= 400);
@@ -47,12 +58,13 @@
   {#if description}<meta name="description" content={description} />{/if}
   {#if noindex}<meta name="robots" content="noindex, nofollow" />{:else}<link rel="canonical" href={canonical} />{/if}
   <meta property="og:site_name" content={siteName} />
-  <meta property="og:locale" content="tr_TR" />
+  <meta property="og:locale" content={ogLocale} />
   <meta property="og:type" content={seo.type ?? 'website'} />
   <meta property="og:title" content={title} />
   {#if description}<meta property="og:description" content={description} />{/if}
   <meta property="og:url" content={canonical} />
   <meta property="og:image" content={image} />
+  {#if ogGenerated}<meta property="og:image:type" content="image/png" /><meta property="og:image:width" content="1200" /><meta property="og:image:height" content="630" />{/if}
   {#if seo.imageAlt}<meta property="og:image:alt" content={seo.imageAlt} />{/if}
   {#if seo.type === 'article'}
     {#if seo.publishedTime}<meta property="article:published_time" content={new Date(seo.publishedTime).toISOString()} />{/if}

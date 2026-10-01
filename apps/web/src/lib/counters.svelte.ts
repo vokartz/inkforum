@@ -7,11 +7,13 @@ import type { MeCounters } from '@forum/shared';
 class Counters {
   notifications = $state(0);
   messages = $state(0);
+  modQueue = $state(0);
   private timer: ReturnType<typeof setInterval> | null = null;
 
   set(values: Partial<MeCounters>) {
     if (values.notifications !== undefined) this.notifications = values.notifications;
     if (values.messages !== undefined) this.messages = values.messages;
+    if (values.modQueue !== undefined) this.modQueue = values.modQueue;
   }
 
   async refresh() {
@@ -26,6 +28,7 @@ class Counters {
   /** Üyeler için sorgulamayı başlatır; dönen fonksiyon durdurur. */
   start(intervalMs = 45_000): () => void {
     const onVisible = () => document.visibilityState === 'visible' && void this.refresh();
+    void this.refresh();
     this.timer = setInterval(() => document.visibilityState === 'visible' && void this.refresh(), intervalMs);
     document.addEventListener('visibilitychange', onVisible);
     return () => {

@@ -18,7 +18,7 @@
   import UserPlusIcon from 'phosphor-svelte/lib/UserPlus';
   import ArrowBendIcon from 'phosphor-svelte/lib/ArrowBendDownRight';
   import { cn } from '$lib/utils';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
 
   import type { ForumIndexData } from '$lib/forum-index';
   import type { Viewer } from '@forum/shared';
@@ -112,7 +112,7 @@
     <div class={cn('grid min-w-0 grid-cols-[minmax(0,1fr)] content-start', classic ? 'gap-2.5' : 'gap-6')}>
       {#each forum.categories as cat, i (cat.id)}
         <div class="animate-rise" style="--i:{i}">
-          <CategorySection id={cat.id} name={cat.name} description={cat.description} collapsible={cat.isCollapsible} background={cat.background} count={cat.boards.length}>
+          <CategorySection id={cat.id} name={tc(cat.name)} description={tc(cat.description)} collapsible={cat.isCollapsible} background={cat.background} count={cat.boards.length}>
             {#each cat.boards as board (board.id)}
               <BoardRow {board} />
             {/each}
@@ -171,7 +171,7 @@
       <Dialog.Description>{t('Konunu açmak istediğin bölümü seç.')}</Dialog.Description>
     </Dialog.Header>
     <Combobox
-      options={forum.postableBoards.map((b) => ({ value: b.id, label: b.name, group: b.category }))}
+      options={forum.postableBoards.map((b) => ({ value: b.id, label: tc(b.name), group: tc(b.category) }))}
       bind:value={pickBoard}
       placeholder={t('Bölüm seç')}
       searchPlaceholder={t('Bölüm ara…')}

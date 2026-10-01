@@ -60,4 +60,6 @@ export const conversationInviteSchema = z.object({
 export interface MeCounters {
   notifications: number;
   messages: number;
+  /** Onay bekleyen konu/mesaj (yalnızca onaylayabildiği bölümler; diğer üyelerde 0) */
+  modQueue: number;
 }

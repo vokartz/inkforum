@@ -82,6 +82,12 @@ export class SeoController {
     this.sendImage(res, png);
   }
 
+  @Get('og/page.png')
+  @RateLimit({ limit: 60, windowMs: MINUTE })
+  async pageImage(@Query('path') path: string | undefined, @Res() res: Response) {
+    this.sendImage(res, await this.seo.pageImage(typeof path === 'string' ? path : '/'));
+  }
+
   @Get('og/site.png')
   async siteImage(@Res() res: Response) {
     this.sendImage(res, await this.seo.siteImage());

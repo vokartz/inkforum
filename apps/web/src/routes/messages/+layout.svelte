@@ -23,14 +23,29 @@
     return data.inbox.items.filter((c) => `${title(c)} ${c.participants.map((p) => p.displayName).join(' ')}`.toLocaleLowerCase('tr-TR').includes(q));
   });
   const pages = $derived(Math.max(1, Math.ceil(data.inbox.total / data.inbox.perPage)));
+  // Hiç konuşma yokken iki boş panel yerine tek bir karşılama ekranı gösterilir
+  const empty = $derived(!inConversation && data.inbox.total === 0);
 </script>
 
 <svelte:head><title>{t('Mesajlar')}</title></svelte:head>
 
-<div class="grid h-[calc(100dvh-11rem)] min-h-[32rem] overflow-hidden rounded-xl border bg-card lg:grid-cols-[22rem_minmax(0,1fr)]" data-part="messenger">
+{#if empty}
+  <section class="relative overflow-hidden rounded-2xl border bg-card shadow-card" data-part="messenger-empty">
+    <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(60rem_20rem_at_50%_-10%,color-mix(in_oklch,var(--primary)_14%,transparent),transparent)]"></div>
+    <div class="relative grid justify-items-center gap-4 px-6 py-16 text-center sm:py-20">
+      <span class="flex size-16 items-center justify-center rounded-2xl bg-primary-soft text-primary ring-1 ring-primary/20"><ChatsIcon class="size-8" weight="duotone" /></span>
+      <div class="grid gap-1.5">
+        <h1 class="text-2xl font-extrabold tracking-tight">{t('Özel mesajlar')}</h1>
+        <p class="mx-auto max-w-md text-sm text-muted-foreground">{t('Henüz bir konuşman yok. Bir üyeye ya da birkaç üyeye birlikte yazabilirsin; mesajları yalnızca katılımcılar görür.')}</p>
+      </div>
+      <Button href="/messages/new" size="lg"><NotePencilIcon />{t('Yeni mesaj yaz')}</Button>
+    </div>
+  </section>
+{:else}
+<div class="grid h-[min(calc(100dvh-12rem),56rem)] min-h-[30rem] overflow-hidden rounded-2xl border bg-card shadow-card lg:grid-cols-[21rem_minmax(0,1fr)]" data-part="messenger">
   <!-- Konuşma listesi -->
   <aside class={cn('flex min-h-0 flex-col border-r', inConversation && 'hidden lg:flex')} data-part="inbox">
-    <header class="flex items-center gap-2 border-b px-4 py-3">
+    <header class="flex items-center gap-2 border-b bg-panel-header px-4 py-3">
       <h1 class="flex-1 text-lg font-extrabold">{t('Mesajlar')}</h1>
       <Button href="/messages/new" size="sm"><NotePencilIcon />{t('Yeni mesaj')}</Button>
     </header>
@@ -88,3 +103,4 @@
     {@render children()}
   </section>
 </div>
+{/if}

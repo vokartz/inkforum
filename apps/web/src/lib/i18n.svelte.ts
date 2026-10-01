@@ -12,6 +12,10 @@ import { FALLBACK_LOCALE, LOCALE_INFO, SOURCE_LOCALE, isLocale, translate, withF
 // Yalnızca seçilen dilin kataloğu indirilir (her dil ayrı parça)
 const loaders = import.meta.glob<{ default: Catalog }>('../../../../packages/shared/i18n/*.json');
 const catalogs = new Map<Locale, Catalog>();
+// Kurulum dilinde oluşturulmuş varsayılan içerik (ör. İngilizce kurulan forumdaki "Announcements"):
+// çeviri → Türkçe kaynak anahtar eşlemesiyle ziyaretçinin diline çevrilir (tc)
+const reverse = new Map<Locale, Map<string, string>>();
+let contentLocale: Locale = SOURCE_LOCALE;
 
 class I18nState {
   locale = $state<Locale>(SOURCE_LOCALE);
@@ -28,7 +32,17 @@ async function fetchCatalog(locale: Locale): Promise<Catalog | undefined> {
   }
 }
 
-export async function loadCatalog(locale: Locale): Promise<void> {
+/** `content`: forumun varsayılan dili (örnek içerik bu dilde oluşturulur) */
+export async function loadCatalog(locale: Locale, content?: unknown): Promise<void> {
+  if (isLocale(content) && content !== SOURCE_LOCALE) {
+    contentLocale = content;
+    if (!reverse.has(content)) {
+      const raw = await fetchCatalog(content);
+      const map = new Map<string, string>();
+      for (const [k, v] of Object.entries(raw ?? {})) if (v && v !== k && !map.has(v)) map.set(v, k);
+      reverse.set(content, map);
+    }
+  } else if (isLocale(content)) contentLocale = SOURCE_LOCALE;
   if (locale === SOURCE_LOCALE || catalogs.has(locale)) return;
   if (locale === FALLBACK_LOCALE) {
     const c = await fetchCatalog(locale);
@@ -58,8 +72,10 @@ export function t(source: string, params?: TParams): string {
 export function tc(text: string | null | undefined): string {
   if (!text) return text ?? '';
   const l = i18n.locale;
-  if (l === SOURCE_LOCALE) return text;
-  return catalogs.get(l)?.[text] || text;
+  // Forumun kurulum dilindeki varsayılan metin → Türkçe kaynak anahtar
+  const source = contentLocale !== SOURCE_LOCALE ? reverse.get(contentLocale)?.get(text) : undefined;
+  if (l === SOURCE_LOCALE) return source ?? text;
+  return catalogs.get(l)?.[source ?? text] || text;
 }
 
 /** Intl için dil etiketi (ör. "en-US") */

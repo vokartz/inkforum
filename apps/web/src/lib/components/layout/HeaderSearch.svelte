@@ -7,7 +7,7 @@
   import MessageSquareTextIcon from 'phosphor-svelte/lib/ChatText';
   import { api } from '$lib/api';
   import { cn } from '$lib/utils';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
   import UserAvatar from '../UserAvatar.svelte';
 
   let { class: className }: { class?: string } = $props();
@@ -104,7 +104,7 @@
             <MessageSquareTextIcon class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
             <span class="min-w-0">
               <span class="block truncate font-medium">{topic.title}</span>
-              <span class="block truncate text-xs text-muted-foreground">{topic.board.name} · {t('{n} yanıt', { n: topic.replyCount })}</span>
+              <span class="block truncate text-xs text-muted-foreground">{tc(topic.board.name)} · {t('{n} yanıt', { n: topic.replyCount })}</span>
             </span>
           </a>
         {/each}

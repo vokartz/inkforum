@@ -22,7 +22,7 @@
   import EmptyState from '$lib/components/EmptyState.svelte';
   import { formatCompact, formatNumber } from '$lib/format';
   import { cn } from '$lib/utils';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
 
   let { data } = $props();
   const sp = $derived(page.url.searchParams);
@@ -138,7 +138,7 @@
     <p class="flex items-center gap-2 text-sm font-bold"><FunnelIcon class="size-4" />{t('Filtreler')}</p>
     <div class="grid gap-1.5">
       <span class="text-xs font-semibold text-muted-foreground">{t('Bölüm')}</span>
-      <Combobox options={data.boards.map((b) => ({ value: b.id, label: b.name, group: b.group }))} bind:value={board} placeholder={t('Tüm bölümler')} clearable onchange={() => submit()} />
+      <Combobox options={data.boards.map((b) => ({ value: b.id, label: tc(b.name), group: tc(b.group) }))} bind:value={board} placeholder={t('Tüm bölümler')} clearable onchange={() => submit()} />
     </div>
     <label class="grid gap-1.5"><span class="text-xs font-semibold text-muted-foreground">{t('Etiket')}</span><Input bind:value={tag} placeholder={t('#etiket')} onchange={() => submit()} /></label>
     <label class="grid gap-1.5"><span class="text-xs font-semibold text-muted-foreground">{t('Yazar')}</span><Input bind:value={author} placeholder={t('Kullanıcı adı')} onchange={() => submit()} /></label>
@@ -188,7 +188,7 @@
             <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
               <span class="flex items-center gap-1.5"><UserAvatar user={topic.author ?? { displayName: topic.authorName, avatarUrl: null }} size={18} />{#if topic.author}<UserName user={topic.author} class="text-xs" />{:else}{topic.authorName}{/if}</span>
               <TimeAgo ms={topic.createdAt} />
-              <a href="/f/{topic.board.id}/{topic.board.slug}" class="hover:text-foreground hover:underline">{topic.board.name}</a>
+              <a href="/f/{topic.board.id}/{topic.board.slug}" class="hover:text-foreground hover:underline">{tc(topic.board.name)}</a>
               <span class="flex items-center gap-1"><ChatsIcon class="size-3.5" />{formatCompact(topic.replyCount)}</span>
               <span class="flex items-center gap-1"><EyeIcon class="size-3.5" />{formatCompact(topic.viewCount)}</span>
               {#if topic.tags.length}<TagChips tags={topic.tags} size="xs" />{/if}
@@ -204,7 +204,7 @@
               <UserAvatar user={p.author ?? { displayName: p.authorName, avatarUrl: null }} size={32} />
               <div class="grid min-w-0 flex-1">
                 <a href="/p/{p.postId}" class="truncate text-sm font-bold hover:text-highlight">{p.isFirst ? '' : `${t('Yanıt:')} `}{p.topicTitle}</a>
-                <span class="text-xs text-muted-foreground">{#if p.author}<UserName user={p.author} class="text-xs" />{:else}{p.authorName}{/if} · <TimeAgo ms={p.createdAt} /> · {p.board.name}</span>
+                <span class="text-xs text-muted-foreground">{#if p.author}<UserName user={p.author} class="text-xs" />{:else}{p.authorName}{/if} · <TimeAgo ms={p.createdAt} /> · {tc(p.board.name)}</span>
               </div>
             </div>
             <p class="text-sm leading-relaxed">{@html hl(p.excerpt)}</p>

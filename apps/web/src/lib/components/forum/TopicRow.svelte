@@ -6,6 +6,7 @@
   import StarIcon from 'phosphor-svelte/lib/Star';
   import ArrowRightIcon from 'phosphor-svelte/lib/ArrowRight';
   import EyeOffIcon from 'phosphor-svelte/lib/EyeSlash';
+  import HiddenIcon from 'phosphor-svelte/lib/LockKey';
   import Trash2Icon from 'phosphor-svelte/lib/Trash';
   import UserAvatar from '../UserAvatar.svelte';
   import UserName from '../UserName.svelte';
@@ -16,7 +17,7 @@
   import LastPost from './LastPost.svelte';
   import { formatCompact } from '$lib/format';
   import { cn } from '$lib/utils';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
 
   interface Props {
     topic: TopicListItem;
@@ -56,6 +57,7 @@
       {#if topic.isLocked && !topic.isMoved}<LockIcon class="size-3.5 shrink-0 text-muted-foreground" aria-label={t('Kilitli')} />{/if}
       {#if topic.hot && !topic.isMoved}<FlameIcon class="size-3.5 shrink-0 text-orange-500" aria-label={t('Popüler')} />{/if}
       {#if topic.hasPoll && !topic.isMoved}<ChartIcon class="size-3.5 shrink-0 text-primary" aria-label={t('Anket')} />{/if}
+      {#if topic.isHidden}<HiddenIcon class="size-3.5 shrink-0 text-warning" aria-label={t('Gizli konu')} />{/if}
       {#if !topic.isApproved}<EyeOffIcon class="size-3.5 shrink-0 text-destructive" aria-label={t('Onay bekliyor')} />{/if}
       {#if topic.isDeleted}<Trash2Icon class="size-3.5 shrink-0 text-destructive" aria-label={t('Silinmiş')} />{/if}
       {#if topic.prefix}<PrefixBadge prefix={topic.prefix} />{/if}
@@ -71,7 +73,7 @@
       <TimeAgo ms={topic.createdAt} />
       {#if board}
         <span>·</span>
-        <a href="/f/{board.id}/{board.slug}" class="hover:text-foreground hover:underline">{board.name}</a>
+        <a href="/f/{board.id}/{board.slug}" class="hover:text-foreground hover:underline">{tc(board.name)}</a>
       {/if}
       {#if pageLinks.length}
         <span class="ml-1 flex items-center gap-0.5" aria-label={t('Sayfalar')}>

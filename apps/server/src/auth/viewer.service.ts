@@ -154,7 +154,8 @@ export class ViewerService {
         twoFactorSetupRequired: compliance.twoFactorSetupRequired,
         ban,
       },
-      settings: this.i18n.localizeSettings(this.settings.publicSettings(), viewer.locale ?? this.i18n.defaultLocale()),
+      // i18n.defaultLocale: kurulumdan önce DEFAULT_LOCALE ortam değişkeni de hesaba katılır (örnek içerik bu dilde)
+      settings: { ...this.i18n.localizeSettings(this.settings.publicSettings(), viewer.locale ?? this.i18n.defaultLocale()), 'i18n.defaultLocale': this.i18n.defaultLocale() },
       locale: viewer.locale ?? this.i18n.defaultLocale(),
       now,
     };

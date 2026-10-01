@@ -151,6 +151,8 @@ for (const f of ['LICENSE', 'CHANGELOG.md', 'CHANGELOG_tr.md']) if (existsSync(j
 cpSync(join(root, '.env.example'), join(out, '.env.example'));
 // Arayüz ve e-posta çevirileri (sunucu I18nService bunları <kök>/i18n klasöründen okur)
 cpSync(join(root, 'packages/shared/i18n'), join(out, 'i18n'), { recursive: true });
+// Paylaşım görselleri (Open Graph) için yazı tipi: işletim sisteminde font olmasa da metin doğru çizilir
+cpSync(join(root, 'apps/server/assets/fonts'), join(out, 'fonts'), { recursive: true });
 
 if (args.has('--with-modules')) {
   console.log('  … npm install --omit=dev');

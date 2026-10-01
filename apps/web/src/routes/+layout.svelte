@@ -157,7 +157,8 @@
 <SeoHead settings={s} />
 
 <svelte:head>
-  <meta name="theme-color" content={theme.resolved === 'dark' ? '#0f1219' : '#f6f7fb'} />
+  <!-- Vurgu rengi: mobil tarayıcı çubuğu ve Discord / Slack gömme kartının kenar rengi -->
+  <meta name="theme-color" content={/^#[0-9a-fA-F]{6}$/.test(accent) ? accent : theme.resolved === 'dark' ? '#0f1219' : '#f6f7fb'} />
   {#if accentCss}{@html `<style>${accentCss}</style>`}{/if}
   {#if !isAdminArea && !isEmbed}
     {#if customCss}{@html customCss}{/if}

@@ -11,7 +11,7 @@
   import * as Dialog from '$lib/components/ui/dialog';
   import { api } from '$lib/api';
   import { cn } from '$lib/utils';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
   import UserAvatar from '../UserAvatar.svelte';
 
   let { open = $bindable(false) }: { open?: boolean } = $props();
@@ -179,7 +179,7 @@
               <span class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"><ChatTextIcon class="size-4" /></span>
               <span class="min-w-0 flex-1">
                 <span class="block truncate font-semibold">{topic.title}</span>
-                <span class="block truncate text-xs text-muted-foreground">{topic.board.name} · {t('{n} yanıt', { n: topic.replyCount })}</span>
+                <span class="block truncate text-xs text-muted-foreground">{tc(topic.board.name)} · {t('{n} yanıt', { n: topic.replyCount })}</span>
               </span>
               {#if active === i}<ArrowIcon class="size-4 text-muted-foreground" />{/if}
             </button>

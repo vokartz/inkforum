@@ -3,7 +3,7 @@
   import EyeIcon from 'phosphor-svelte/lib/Eye';
   import ArrowSquareOutIcon from 'phosphor-svelte/lib/ArrowSquareOut';
   import { formatDate, formatCompact } from '$lib/format';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
 
   let { data } = $props();
   const c = $derived(data.card);
@@ -17,7 +17,7 @@
     {#if c.forum.icon}<img src={c.forum.icon} alt="" class="size-6 rounded-md" />{/if}
     <a href={c.forum.url} target="_blank" rel="noopener" class="truncate text-sm font-bold hover:underline">{c.forum.name}</a>
     <span class="text-muted-foreground">·</span>
-    <a href={c.board.url} target="_blank" rel="noopener" class="truncate text-sm text-muted-foreground hover:underline">{c.board.name}</a>
+    <a href={c.board.url} target="_blank" rel="noopener" class="truncate text-sm text-muted-foreground hover:underline">{tc(c.board.name)}</a>
   </header>
   <a href={c.url} target="_blank" rel="noopener" class="group grid gap-1.5">
     <h1 class="line-clamp-2 text-lg leading-snug font-extrabold group-hover:underline">{c.title}</h1>

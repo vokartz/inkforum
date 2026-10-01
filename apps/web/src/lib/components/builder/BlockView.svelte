@@ -309,7 +309,7 @@
       <div class="grid gap-3 text-left md:grid-cols-2 xl:grid-cols-3">
         {#each b.topics ?? [] as t, i (t.topicId)}
           <a href="/t/{t.topicId}/{t.slug}" class={cn('group grid gap-3 rounded-xl border p-4 transition-[border-color,transform] duration-300 hover:-translate-y-0.5', onDark ? 'border-white/15 bg-white/5 hover:border-white/30' : 'bg-card hover:border-primary/40')} use:reveal={rv(i * 60)}>
-            <span class={cn('w-fit rounded-md px-2 py-0.5 text-[11px] font-bold', onDark ? 'bg-white/10' : 'bg-primary-soft text-highlight')}>{t.board.name}</span>
+            <span class={cn('w-fit rounded-md px-2 py-0.5 text-[11px] font-bold', onDark ? 'bg-white/10' : 'bg-primary-soft text-highlight')}>{tc(t.board.name)}</span>
             <span class="line-clamp-2 font-bold leading-snug group-hover:underline">{t.title}</span>
             {#if t.excerpt}<span class={cn('line-clamp-2 text-sm', onDark ? 'text-white/70' : 'text-muted-foreground')}>{t.excerpt}</span>{/if}
             <span class={cn('mt-auto flex items-center gap-2 text-xs', onDark ? 'text-white/70' : 'text-muted-foreground')}>

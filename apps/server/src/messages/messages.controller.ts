@@ -6,6 +6,7 @@ import { RateLimit, RequireAuth } from '../common/decorators.js';
 import { CurrentViewer, type RequestViewer } from '../common/request-context.js';
 import { MINUTE } from '../common/clock.js';
 import { MessagesService } from './messages.service.js';
+import { ModQueueService } from '../forum/mod-queue.service.js';
 
 const pageQuery = z.object({ page: z.coerce.number().int().min(1).max(10_000).default(1) });
 const detailQuery = z.object({ page: z.union([z.literal('last'), z.coerce.number().int().min(1)]).default('last') });
@@ -13,7 +14,10 @@ const detailQuery = z.object({ page: z.union([z.literal('last'), z.coerce.number
 @Controller()
 @RequireAuth()
 export class MessagesController {
-  constructor(private readonly messages: MessagesService) {}
+  constructor(
+    private readonly messages: MessagesService,
+    private readonly queue: ModQueueService,
+  ) {}
 
   @Get('messages')
   list(@Query() q: unknown, @CurrentViewer() v: RequestViewer) {
@@ -64,6 +68,6 @@ export class MessagesController {
   /** Üst çubuktaki sayaçlar (düzenli aralıkla sorgulanır). */
   @Get('me/counters')
   async counters(@CurrentViewer() v: RequestViewer): Promise<MeCounters> {
-    return { notifications: v.user!.unread_notifications, messages: await this.messages.unreadCount(v.user!.id) };
+    return { notifications: v.user!.unread_notifications, messages: await this.messages.unreadCount(v.user!.id), modQueue: await this.queue.count(v) };
   }
 }

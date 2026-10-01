@@ -142,6 +142,8 @@ export interface TopicListItem {
   isLocked: boolean;
   isFeatured: boolean;
   isApproved: boolean;
+  /** Gizli konu: yalnızca yazarı ve yetkililer görür */
+  isHidden: boolean;
   isDeleted: boolean;
   isMoved: boolean;
   movedToTopicId: number | null;
@@ -258,6 +260,8 @@ export interface TopicDetail {
   isLocked: boolean;
   isFeatured: boolean;
   isApproved: boolean;
+  /** Gizli konu: yalnızca yazarı ve yetkililer görür */
+  isHidden: boolean;
   isDeleted: boolean;
   firstPostId: number | null;
   lastPostId: number | null;
@@ -329,6 +333,10 @@ export interface NewTopicContext {
   /** Sık kullanılan etiketler (öneri) */
   popularTags: TopicTag[];
   pollMaxOptions: number;
+  /** Bölümün konu şablonu (enabled=false ise normal form) */
+  template: TopicTemplate;
+  /** "Konular gizli" bölümü: açılan konu yalnızca yazarına ve yetkililere görünür */
+  privateTopics: boolean;
 }
 
 // ---------- Yönetim ----------
@@ -348,6 +356,8 @@ export interface AdminBoard {
   countPosts: boolean;
   requireApprovalTopics: boolean;
   requireApprovalPosts: boolean;
+  privateTopics: boolean;
+  topicTemplate: TopicTemplate;
   isHidden: boolean;
   sortOrder: number;
   topicCount: number;
@@ -388,9 +398,68 @@ export const topicTitleSchema = z
 
 export const postBodySchema = z.string().max(200_000, 'Mesaj çok uzun.');
 
+// ---------- Konu şablonu (yeni konu açarken sorulan sorular) ----------
+
+export const TOPIC_FIELD_TYPES = ['text', 'textarea', 'number', 'url', 'select', 'radio', 'checkbox'] as const;
+export type TopicFieldType = (typeof TOPIC_FIELD_TYPES)[number];
+
+export const topicTemplateFieldSchema = z.object({
+  /** Başlık şablonunda {id} olarak kullanılır */
+  id: z.string().trim().regex(/^[a-z0-9_]{1,32}$/, 'Alan kimliği küçük harf, rakam ve _ olmalı.'),
+  label: z.string().trim().min(1, 'Soru gerekli.').max(150),
+  hint: z.string().trim().max(300).default(''),
+  type: z.enum(TOPIC_FIELD_TYPES).default('text'),
+  required: z.boolean().default(false),
+  /** Seçmeli sorular için seçenekler */
+  options: z.array(z.string().trim().min(1).max(100)).max(30).default([]),
+  placeholder: z.string().trim().max(150).default(''),
+});
+export type TopicTemplateField = z.output<typeof topicTemplateFieldSchema>;
+
+export const topicTemplateSchema = z
+  .object({
+    enabled: z.boolean().default(false),
+    /** Formun üstünde gösterilen açıklama */
+    intro: z.string().trim().max(2000).default(''),
+    /** Boşsa üye başlığı kendisi yazar; örn. "{nick} — Yetkili başvurusu" */
+    titleTemplate: z.string().trim().max(150).default(''),
+    fields: z.array(topicTemplateFieldSchema).max(30).default([]),
+    /** Sorulardan sonra serbest mesaj alanı */
+    allowMessage: z.boolean().default(true),
+  })
+  .superRefine((v, ctx) => {
+    const ids = new Set<string>();
+    v.fields.forEach((f, i) => {
+      if (ids.has(f.id)) ctx.addIssue({ code: 'custom', path: ['fields', i, 'id'], message: 'Alan kimlikleri benzersiz olmalı.' });
+      ids.add(f.id);
+      if ((f.type === 'select' || f.type === 'radio' || f.type === 'checkbox') && !f.options.length) {
+        ctx.addIssue({ code: 'custom', path: ['fields', i, 'options'], message: 'Seçmeli sorular için en az bir seçenek ekleyin.' });
+      }
+    });
+  });
+export type TopicTemplate = z.output<typeof topicTemplateSchema>;
+
+export const EMPTY_TOPIC_TEMPLATE: TopicTemplate = { enabled: false, intro: '', titleTemplate: '', fields: [], allowMessage: true };
+
+/** Veritabanındaki JSON'dan güvenli şablon (bozuksa boş) */
+export function parseTopicTemplate(json: string | null | undefined): TopicTemplate {
+  if (!json) return EMPTY_TOPIC_TEMPLATE;
+  try {
+    const r = topicTemplateSchema.safeParse(JSON.parse(json));
+    return r.success ? r.data : EMPTY_TOPIC_TEMPLATE;
+  } catch {
+    return EMPTY_TOPIC_TEMPLATE;
+  }
+}
+
+export const topicAnswersSchema = z.record(z.string().max(32), z.union([z.string().max(10_000), z.array(z.string().max(100)).max(30)]));
+
 export const createTopicSchema = z.object({
-  title: topicTitleSchema,
+  /** Şablonda başlık şablonu varsa sunucu üretir; boş gönderilebilir */
+  title: z.string().trim().max(150, 'Başlık çok uzun.'),
   body: postBodySchema,
+  /** Konu şablonu yanıtları (alan kimliği → yanıt) */
+  answers: topicAnswersSchema.optional(),
   prefixId: z.number().int().positive().nullable().default(null),
   pinned: z.boolean().optional(),
   locked: z.boolean().optional(),
@@ -458,6 +527,8 @@ export const boardInputSchema = z
     countPosts: z.boolean().default(true),
     requireApprovalTopics: z.boolean().default(false),
     requireApprovalPosts: z.boolean().default(false),
+    privateTopics: z.boolean().default(false),
+    topicTemplate: topicTemplateSchema.default(EMPTY_TOPIC_TEMPLATE),
     isHidden: z.boolean().default(false),
   })
   .superRefine((v, ctx) => {
@@ -494,3 +565,28 @@ export const boardModeratorsSchema = z.object({
   userIds: z.array(z.number().int().positive()).max(50).default([]),
   groupIds: z.array(z.number().int().positive()).max(50).default([]),
 });
+
+// ---------- Onay kuyruğu ----------
+
+export interface ModQueueItem {
+  postId: number;
+  topicId: number;
+  topicTitle: string;
+  topicSlug: string;
+  /** Konunun ilk mesajı mı (onay = konu onayı, ret = konu silinir) */
+  isTopic: boolean;
+  /** Konu gizli mi (yalnızca yazarı ve yetkililer görür) */
+  isHidden: boolean;
+  board: { id: number; name: string; slug: string };
+  author: UserSummary | null;
+  authorName: string;
+  excerpt: string;
+  createdAt: number;
+}
+
+export interface ModQueuePage {
+  items: ModQueueItem[];
+  total: number;
+  page: number;
+  perPage: number;
+}

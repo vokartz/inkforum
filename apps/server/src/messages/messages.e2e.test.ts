@@ -36,7 +36,7 @@ describe('private messages', () => {
     expect(list.body.items[0]).toMatchObject({ id: convId, title: 'Merhaba', unread: true, participantCount: 2 });
     expect(list.body.items[0].participants[0].username).toBe('MesajAli');
     // Gönderen için okunmamış değil
-    expect((await ali.get('/api/me/counters')).body).toEqual({ notifications: 0, messages: 0 });
+    expect((await ali.get('/api/me/counters')).body).toEqual({ notifications: 0, messages: 0, modQueue: 0 });
   });
 
   it('marks read on open and allows replies', async () => {

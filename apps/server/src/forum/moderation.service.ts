@@ -9,7 +9,7 @@ import { ForumAccessService, type BoardAccess } from './forum-access.service.js'
 import { ForumCountersService } from './forum-counters.service.js';
 import { PostsService, topicSlug } from './posts.service.js';
 
-export type TopicFlag = 'pin' | 'unpin' | 'lock' | 'unlock' | 'feature' | 'unfeature';
+export type TopicFlag = 'pin' | 'unpin' | 'lock' | 'unlock' | 'feature' | 'unfeature' | 'hide' | 'unhide';
 
 /** Konu moderasyonu: sabitleme, kilitleme, öne çıkarma, taşıma, birleştirme, silme, onay. */
 @Injectable()
@@ -38,17 +38,23 @@ export class ModerationService {
     const { topic, access } = await this.load(viewer, topicId);
     const own = !!viewer.user && topic.user_id === viewer.user.id;
     const allowed =
-      flag === 'pin' || flag === 'unpin' || flag === 'feature' || flag === 'unfeature'
-        ? access.can.pin
-        : access.can.lock || (own && access.perms.has('topic.lock.own'));
+      flag === 'hide' || flag === 'unhide'
+        ? access.can.approve
+        : flag === 'pin' || flag === 'unpin' || flag === 'feature' || flag === 'unfeature'
+          ? access.can.pin
+          : access.can.lock || (own && access.perms.has('topic.lock.own'));
     if (!allowed) throw Errors.forbidden();
     const patch =
-      flag === 'pin' || flag === 'unpin'
-        ? { is_pinned: flag === 'pin' ? 1 : 0 }
-        : flag === 'lock' || flag === 'unlock'
-          ? { is_locked: flag === 'lock' ? 1 : 0 }
-          : { is_featured: flag === 'feature' ? 1 : 0 };
+      flag === 'hide' || flag === 'unhide'
+        ? { is_hidden: flag === 'hide' ? 1 : 0 }
+        : flag === 'pin' || flag === 'unpin'
+          ? { is_pinned: flag === 'pin' ? 1 : 0 }
+          : flag === 'lock' || flag === 'unlock'
+            ? { is_locked: flag === 'lock' ? 1 : 0 }
+            : { is_featured: flag === 'feature' ? 1 : 0 };
     await this.db.q.updateTable('topics').set(patch).where('id', '=', topicId).execute();
+    // Gizlilik değişince bölümün "son mesaj" bilgisi yeniden hesaplanır
+    if (flag === 'hide' || flag === 'unhide') await this.counters.recountBoard(topic.board_id);
     await this.log(viewer, `topic.${flag}`, topicId);
   }
 

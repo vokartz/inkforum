@@ -127,7 +127,7 @@
           <DropdownMenu.Trigger>
             {#snippet child({ props })}
               <Button {...props} size="sm" variant="secondary" class="bg-black/45 text-white backdrop-blur hover:bg-black/60">
-                {#if uploading}<LoaderIcon class="animate-spin" />{:else}<ImageIcon />{/if}{t('Kapak fotoğrafı')}<ChevronDownIcon />
+                {#if uploading}<LoaderIcon class="animate-spin" />{:else}<ImageIcon />{/if}<span class="hidden sm:inline">{t('Kapak fotoğrafı')}</span><ChevronDownIcon />
               </Button>
             {/snippet}
           </DropdownMenu.Trigger>

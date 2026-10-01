@@ -17,6 +17,7 @@
   import Trash2Icon from 'phosphor-svelte/lib/Trash';
   import RotateCcwIcon from 'phosphor-svelte/lib/ArrowCounterClockwise';
   import ShieldCheckIcon from 'phosphor-svelte/lib/ShieldCheck';
+  import HiddenIcon from 'phosphor-svelte/lib/LockKey';
   import QuoteIcon from 'phosphor-svelte/lib/Quotes';
   import ReplyIcon from 'phosphor-svelte/lib/ArrowBendUpLeft';
   import SendIcon from 'phosphor-svelte/lib/PaperPlaneRight';
@@ -54,7 +55,7 @@
   import { api, errorMessage } from '$lib/api';
   import { confirmAction } from '$lib/confirm.svelte';
   import { formatNumber, formatDateTime } from '$lib/format';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
 
   let { data } = $props();
   const tv = $derived(data.topic);
@@ -417,6 +418,11 @@
         </DropdownMenu.Trigger>
         <DropdownMenu.Content align="end" class="w-56">
           {#if tv.can.approve && !topic.isApproved}<DropdownMenu.Item onSelect={() => mod('approve', t('Konu onaylandı.'))}><ShieldCheckIcon />{t('Konuyu onayla')}</DropdownMenu.Item>{/if}
+          {#if tv.can.approve}
+            <DropdownMenu.Item onSelect={() => mod(topic.isHidden ? 'unhide' : 'hide', topic.isHidden ? t('Konu herkese görünür yapıldı.') : t('Konu gizlendi; yalnızca yazarı ve yetkililer görebilir.'))}>
+              {#if topic.isHidden}<EyeIcon />{t('Herkese göster')}{:else}<HiddenIcon />{t('Konuyu gizle')}{/if}
+            </DropdownMenu.Item>
+          {/if}
           {#if tv.can.pin}
             <DropdownMenu.Item onSelect={() => mod(topic.isPinned ? 'unpin' : 'pin', topic.isPinned ? t('Sabitleme kaldırıldı.') : t('Konu sabitlendi.'))}>
               <PinIcon />{topic.isPinned ? t('Sabitlemeyi kaldır') : t('Sabitle')}
@@ -462,6 +468,8 @@
   <div class="mb-4 flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-sm text-destructive"><Trash2Icon class="size-4" />{t('Bu konu silinmiş; yalnızca yetkililer görebilir.')}</div>
 {:else if !topic.isApproved}
   <div class="mb-4 flex items-center gap-2 rounded-xl border border-warning/40 bg-warning/10 px-4 py-2.5 text-sm"><InfoIcon class="size-4" />{t('Bu konu moderatör onayı bekliyor.')}</div>
+{:else if topic.isHidden}
+  <div class="mb-4 flex items-center gap-2 rounded-xl border border-warning/40 bg-warning/10 px-4 py-2.5 text-sm" data-part="hidden-notice"><HiddenIcon class="size-4" />{t('Gizli konu: yalnızca yazarı ve yetkililer görebilir.')}</div>
 {:else if topic.isLocked}
   <div class="mb-4 flex items-center gap-2 rounded-xl border bg-muted/50 px-4 py-2.5 text-sm" data-part="locked-notice">
     <LockIcon class="size-4 text-muted-foreground" />{t('Bu konu kilitlendi; yeni yanıt yazılamaz.')}{#if tv.can.replyLocked}<span class="text-muted-foreground"> {t('Moderatör olarak yine de yanıt yazabilirsin.')}</span>{/if}
@@ -542,7 +550,7 @@
   <nav class="mt-6 grid gap-3 sm:grid-cols-2" aria-label={t('Konu gezinmesi')} data-part="topic-nav">
     <a href="/f/{related.board.id}/{related.board.slug}" class="group flex items-center gap-3 rounded-xl border bg-card p-4 transition-colors hover:border-primary">
       <ArrowLeftIcon class="size-5 text-muted-foreground transition-transform group-hover:-translate-x-0.5" />
-      <span class="grid min-w-0"><span class="text-xs text-muted-foreground">{t('Konu listesine dön')}</span><span class="truncate font-semibold">{related.board.name}</span></span>
+      <span class="grid min-w-0"><span class="text-xs text-muted-foreground">{t('Konu listesine dön')}</span><span class="truncate font-semibold">{tc(related.board.name)}</span></span>
     </a>
     {#if related.nextUnread}
       <a href="/t/{related.nextUnread.id}/{related.nextUnread.slug}?page=unread" class="group flex items-center justify-end gap-3 rounded-xl border bg-card p-4 text-right transition-colors hover:border-primary">

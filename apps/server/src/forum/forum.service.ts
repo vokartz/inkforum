@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { sql, type ExpressionBuilder } from 'kysely';
 import {
   bbcodeExcerpt,
+  parseTopicTemplate,
   bbcodeToText,
   canonicalName,
   type SearchQuery,
@@ -136,6 +137,7 @@ export class ForumService {
       .where('t.last_post_at', '>', floor)
       .where('t.deleted_at', 'is', null)
       .where('t.is_approved', '=', 1)
+      .where('t.is_hidden', '=', 0)
       .where('t.moved_to_topic_id', 'is', null)
       .where((eb) => eb.or([eb('r.read_at', 'is', null), eb('t.last_post_at', '>', eb.ref('r.read_at'))]))
       .where((eb) => eb.or([eb('b.read_at', 'is', null), eb('t.last_post_at', '>', eb.ref('b.read_at'))]))
@@ -330,6 +332,7 @@ export class ForumService {
       .where('board_id', 'in', ids)
       .where('deleted_at', 'is', null)
       .where('is_approved', '=', 1)
+      .where('is_hidden', '=', 0)
       .where('moved_to_topic_id', 'is', null)
       .orderBy('last_post_at', 'desc')
       .limit(Math.min(limit, 20))
@@ -388,6 +391,7 @@ export class ForumService {
     if (!access.can.approve) {
       const uid = viewer.user?.id ?? 0;
       q = q.where((eb: any) => eb.or([eb('topics.is_approved', '=', 1), eb('topics.user_id', '=', uid)]));
+      q = q.where((eb: any) => eb.or([eb('topics.is_hidden', '=', 0), eb('topics.user_id', '=', uid)]));
     }
     return q;
   }
@@ -416,6 +420,7 @@ export class ForumService {
         isLocked: r.is_locked === 1,
         isFeatured: r.is_featured === 1,
         isApproved: r.is_approved === 1,
+        isHidden: r.is_hidden === 1,
         isDeleted: !!r.deleted_at,
         isMoved: !!r.moved_to_topic_id,
         movedToTopicId: r.moved_to_topic_id,
@@ -500,6 +505,8 @@ export class ForumService {
       tagging: this.extras.tagging(),
       popularTags: this.extras.tagging().enabled ? await this.extras.popularTags() : [],
       pollMaxOptions: this.settings.get('forum.pollMaxOptions'),
+      template: parseTopicTemplate(access.board.topic_template_json),
+      privateTopics: access.board.private_topics === 1,
     };
   }
 
@@ -681,6 +688,7 @@ export class ForumService {
         isLocked: topic.is_locked === 1,
         isFeatured: topic.is_featured === 1,
         isApproved: topic.is_approved === 1,
+        isHidden: topic.is_hidden === 1,
         isDeleted: !!topic.deleted_at,
         firstPostId: topic.first_post_id,
         lastPostId: topic.last_post_id,
@@ -745,6 +753,7 @@ export class ForumService {
         .where('topics.last_post_at', '>', floor)
         .where('topics.deleted_at', 'is', null)
         .where('topics.is_approved', '=', 1)
+        .where('topics.is_hidden', '=', 0)
         .where('topics.moved_to_topic_id', 'is', null)
         .where((eb) => eb.or([eb('r.read_at', 'is', null), eb('topics.last_post_at', '>', eb.ref('r.read_at'))]))
         .where((eb) => eb.or([eb('b.read_at', 'is', null), eb('topics.last_post_at', '>', eb.ref('b.read_at'))]));
@@ -811,6 +820,7 @@ export class ForumService {
         .where('topics.board_id', 'in', [...visible.keys()])
         .where('topics.deleted_at', 'is', null)
         .where('topics.is_approved', '=', 1)
+        .where('topics.is_hidden', '=', 0)
         .where('topics.moved_to_topic_id', 'is', null);
     const [rows, total] = await Promise.all([
       base().selectAll('topics').orderBy('topics.id', 'desc').limit(perPage).offset((page - 1) * perPage).execute(),
@@ -845,6 +855,7 @@ export class ForumService {
         .where('topics.board_id', 'in', [...visible.keys()])
         .where('topics.deleted_at', 'is', null)
         .where('topics.is_approved', '=', 1)
+        .where('topics.is_hidden', '=', 0)
         .where('topics.moved_to_topic_id', 'is', null);
     const [rows, total] = await Promise.all([
       base().selectAll('topics').orderBy('topics.last_post_at', 'desc').limit(perPage).offset((page - 1) * perPage).execute(),
@@ -892,6 +903,7 @@ export class ForumService {
         .where('topics.board_id', 'in', boardIds)
         .where('topics.deleted_at', 'is', null)
         .where('topics.is_approved', '=', 1)
+        .where('topics.is_hidden', '=', 0)
         .where('topics.moved_to_topic_id', 'is', null)
         .where('topics.id', '!=', topic.id);
 
@@ -977,7 +989,8 @@ export class ForumService {
         .where('posts.deleted_at', 'is', null)
         .where('posts.is_approved', '=', 1)
         .where('topics.deleted_at', 'is', null)
-        .where('topics.is_approved', '=', 1);
+        .where('topics.is_approved', '=', 1)
+        .where('topics.is_hidden', '=', 0);
     const [rows, total] = await Promise.all([
       base()
         .select(['posts.id', 'posts.body_html', 'posts.created_at', 'posts.board_id', 'topics.id as topic_id', 'topics.title', 'topics.slug', 'topics.first_post_id'])
@@ -1089,7 +1102,8 @@ export class ForumService {
           .where('p.deleted_at', 'is', null)
           .where('p.is_approved', '=', 1)
           .where('t.deleted_at', 'is', null)
-          .where('t.is_approved', '=', 1);
+          .where('t.is_approved', '=', 1)
+          .where('t.is_hidden', '=', 0);
         if (userId) q = q.where('p.user_id', '=', userId);
         if (cutoff) q = q.where('p.created_at', '>=', cutoff);
         if (tagId) q = q.where((eb) => eb.exists(eb.selectFrom('topic_tags').select('topic_tags.topic_id').whereRef('topic_tags.topic_id', '=', 't.id').where('topic_tags.tag_id', '=', tagId)));
@@ -1133,6 +1147,7 @@ export class ForumService {
         .where('t.board_id', 'in', boardIds)
         .where('t.deleted_at', 'is', null)
         .where('t.is_approved', '=', 1)
+        .where('t.is_hidden', '=', 0)
         .where('t.moved_to_topic_id', 'is', null);
       if (userId) q = q.where('t.user_id', '=', userId);
       if (cutoff) q = q.where('t.created_at', '>=', cutoff);

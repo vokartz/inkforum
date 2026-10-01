@@ -12,6 +12,7 @@ import { UsersService } from '../users/users.service.js';
 import { WikiService } from '../wiki/wiki.service.js';
 import { PoliciesService } from '../policies/policies.service.js';
 import { StorageService } from '../storage/storage.service.js';
+import { I18nService } from '../i18n/i18n.service.js';
 import { can, type RequestViewer } from '../common/request-context.js';
 
 export interface SitemapUrl {
@@ -70,6 +71,7 @@ export class SeoService {
     private readonly wiki: WikiService,
     private readonly policies: PoliciesService,
     private readonly storage: StorageService,
+    private readonly i18n: I18nService,
   ) {}
 
   private url(path: string): string {
@@ -133,6 +135,7 @@ export class SeoService {
       .where('board_id', 'in', ids)
       .where('deleted_at', 'is', null)
       .where('is_approved', '=', 1)
+      .where('is_hidden', '=', 0)
       .where('moved_to_topic_id', 'is', null)
       .executeTakeFirst();
     return { topicPages: Math.ceil(Number(r?.n ?? 0) / TOPICS_PER_SITEMAP) };
@@ -176,6 +179,7 @@ export class SeoService {
       .where('board_id', 'in', ids)
       .where('deleted_at', 'is', null)
       .where('is_approved', '=', 1)
+      .where('is_hidden', '=', 0)
       .where('moved_to_topic_id', 'is', null)
       .orderBy('id', 'desc')
       .limit(TOPICS_PER_SITEMAP)
@@ -188,7 +192,7 @@ export class SeoService {
 
   /** Misafirin görebildiği konu için kart verisi; göremiyorsa null */
   async topicEmbed(id: number): Promise<TopicEmbed | null> {
-    const t = await this.db.q.selectFrom('topics').selectAll().where('id', '=', id).where('deleted_at', 'is', null).where('is_approved', '=', 1).executeTakeFirst();
+    const t = await this.db.q.selectFrom('topics').selectAll().where('id', '=', id).where('deleted_at', 'is', null).where('is_approved', '=', 1).where('is_hidden', '=', 0).executeTakeFirst();
     if (!t) return null;
     const board = await this.access.access(await this.guest(), t.board_id);
     if (!board) return null;
@@ -269,14 +273,92 @@ export class SeoService {
     if (!sharp) return null;
     const card = await this.topicEmbed(id);
     if (!card) return null;
+    // Görsel herkese aynıdır: forumun varsayılan dilinde
+    const locale = this.i18n.defaultLocale();
     const svg = this.cardSvg({
       kicker: card.board.name,
       title: card.title,
-      meta: `${card.author.name}  ·  ${card.replyCount} yanıt  ·  ${card.viewCount} görüntülenme`,
+      meta: [card.author.name, this.i18n.t(locale, '{n} yanıt', { n: card.replyCount }), this.i18n.t(locale, '{n} görüntülenme', { n: card.viewCount })].join('  ·  '),
       forum: card.forum.name,
       accent: card.forum.accent,
     });
     return this.render(sharp, svg, `t${id}`);
+  }
+
+  /**
+   * Her sayfa için paylaşım kartı (Discord, X, WhatsApp…): adresten herkese açık başlık çözülür.
+   * Yalnızca veritabanındaki görünür içerik kullanılır; tanınmayan adresler site kartını alır.
+   */
+  async pageImage(rawPath: string): Promise<Buffer | null> {
+    if (!this.settings.get('seo.ogImages')) return null;
+    const path = `/${String(rawPath || '/').split(/[?#]/)[0]!.replace(/^\/+/, '').slice(0, 300)}`;
+    const topic = /^\/t\/(\d+)(?:\/|$)/.exec(path);
+    if (topic) return this.topicImage(Number(topic[1]));
+    const card = await this.pageCard(path);
+    if (!card) return this.siteImage();
+    const sharp = await this.storage.loadSharp();
+    if (!sharp) return null;
+    const name = String(this.settings.get('general.forumName'));
+    const svg = this.cardSvg({ kicker: card.kicker, title: card.title, meta: card.meta ?? '', forum: name, accent: String(this.settings.get('appearance.accentColor') ?? '#7b61ff') });
+    return this.render(sharp, svg, `p${createHash('sha1').update(path).digest('hex').slice(0, 10)}`);
+  }
+
+  private async pageCard(path: string): Promise<{ kicker: string; title: string; meta?: string } | null> {
+    const locale = this.i18n.defaultLocale();
+    const tr = (text: string, params?: Record<string, string | number>) => this.i18n.t(locale, text, params);
+    const host = new URL(this.config.appUrl).host;
+    const settings = this.settings.all() as Record<string, unknown>;
+    const guest = await this.guest();
+    let m: RegExpExecArray | null;
+    if ((m = /^\/f\/(\d+)(?:\/|$)/.exec(path))) {
+      const boards = await this.access.visibleBoards(guest);
+      const b = boards.get(Number(m[1]))?.board;
+      if (!b || b.is_hidden) return null;
+      return { kicker: host, title: b.name, meta: b.description ?? '' };
+    }
+    if ((m = /^\/u\/(\d+)(?:\/|$)/.exec(path))) {
+      if (!can(guest, 'profile.view')) return null;
+      const u = await this.db.q.selectFrom('users').select(['display_name', 'post_count']).where('id', '=', Number(m[1])).where('status', '=', 'active').executeTakeFirst();
+      if (!u) return null;
+      return { kicker: tr('Üye profili'), title: u.display_name, meta: tr('{n} mesaj', { n: u.post_count }) };
+    }
+    if ((m = /^\/pages\/([\w-]+)$/.exec(path))) {
+      const pg = await this.db.q
+        .selectFrom('custom_pages')
+        .select(['title', 'meta_description'])
+        .where('slug', '=', m[1]!.toLowerCase())
+        .where('is_published', '=', 1)
+        .where('visibility', 'in', ['all', 'guests'])
+        .executeTakeFirst();
+      return pg ? { kicker: host, title: pg.title, meta: pg.meta_description ?? '' } : null;
+    }
+    if ((m = /^\/wiki\/(.+)$/.exec(path)) && pluginEnabled(settings, 'wiki') && can(guest, 'wiki.view')) {
+      const wikiPath = decodeURIComponent(m[1]!);
+      const pg = (await this.wiki.sitemap()).find((p) => p.path === wikiPath);
+      return pg ? { kicker: String(settings['wiki.name'] || 'Wiki'), title: pg.title } : null;
+    }
+    if ((m = /^\/tags\/([^/]+)$/.exec(path))) return { kicker: tr('Etiket'), title: `#${decodeURIComponent(m[1]!).slice(0, 60)}` };
+    if ((m = /^\/policies\/([\w-]+)$/.exec(path))) {
+      const pol = (await this.policies.published()).find((p) => p.key === m![1]);
+      return pol ? { kicker: host, title: tr(pol.title) } : null;
+    }
+    const STATIC: Record<string, string> = {
+      '/forum': 'Forum',
+      '/members': 'Üyeler',
+      '/groups': 'Gruplar',
+      '/online': 'Çevrimiçi',
+      '/search': 'Arama',
+      '/achievements': 'Başarılar',
+      '/applications': 'Başvurular',
+      '/tickets': 'Destek',
+      '/developers': 'Geliştirici belgeleri',
+      '/cookies': 'Çerezler',
+      '/register': 'Kayıt ol',
+      '/login': 'Giriş yap',
+    };
+    if (path === '/wiki' && pluginEnabled(settings, 'wiki')) return { kicker: host, title: String(settings['wiki.name'] || 'Wiki'), meta: tr(String(settings['wiki.description'] ?? '')) };
+    if (STATIC[path]) return { kicker: host, title: tr(STATIC[path]), meta: String(settings['general.forumDescription'] ?? '').slice(0, 110) };
+    return null;
   }
 
   /** Site geneli kart (ana sayfa, bölümler) */
@@ -296,7 +378,8 @@ export class SeoService {
   }
 
   private async render(sharp: NonNullable<Awaited<ReturnType<StorageService['loadSharp']>>>, svg: string, key: string): Promise<Buffer | null> {
-    const hash = createHash('sha1').update(svg).digest('hex').slice(0, 16);
+    // OG_RENDER: yazı tipi / çizim değişince eski (bozuk) önbellek görselleri kullanılmasın
+    const hash = createHash('sha1').update(`${OG_RENDER}:${svg}`).digest('hex').slice(0, 16);
     const dir = join(this.config.storageDir, 'cache', 'og');
     const file = join(dir, `${key}-${hash}.png`);
     if (existsSync(file)) return readFileSync(file);
@@ -326,7 +409,7 @@ export class SeoService {
 <rect width="1200" height="630" fill="url(#b)"/>
 <rect width="1200" height="630" fill="url(#g)"/>
 <rect x="80" y="84" width="64" height="8" rx="4" fill="${accent}"/>
-<g font-family="Roboto, 'DejaVu Sans', 'Noto Sans', Arial, sans-serif">
+<g font-family="'DejaVu Sans', 'Noto Sans', 'Noto Sans CJK SC', 'WenQuanYi Zen Hei', sans-serif">
 <text x="80" y="140" font-size="30" font-weight="600" fill="#ffffff" fill-opacity="0.7">${esc(truncate(c.kicker, 50))}</text>
 ${title}
 <text x="80" y="520" font-size="28" fill="#ffffff" fill-opacity="0.72">${esc(truncate(c.meta, 70))}</text>
@@ -335,6 +418,9 @@ ${title}
 </svg>`;
   }
 }
+
+/** Paylaşım görseli çizim sürümü (önbellek anahtarına girer) */
+const OG_RENDER = 2;
 
 function truncate(s: string, n: number): string {
   return s.length > n ? `${s.slice(0, n - 1)}…` : s;

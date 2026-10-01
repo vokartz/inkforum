@@ -8,7 +8,7 @@
   import { formatCompact, formatDateTime, formatNumber } from '$lib/format';
   import { page } from '$app/state';
   import UserName from '../UserName.svelte';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
 
   let { board }: { board: BoardSummary } = $props();
 
@@ -27,9 +27,9 @@
         <BoardIcon icon={board.icon} unread={board.unread} redirect={board.type === 'redirect'} size={34} />
       </a>
       <div class="smf-cell-2 min-w-0 px-3 py-2.5">
-        <a {href} class="text-[15px] font-bold text-link hover:underline" data-sveltekit-preload-data={preload}>{board.name}</a>
+        <a {href} class="text-[15px] font-bold text-link hover:underline" data-sveltekit-preload-data={preload}>{tc(board.name)}</a>
         {#if external}<ArrowSquareOutIcon class="ml-1 inline size-3.5 text-muted-foreground" />{/if}
-        {#if board.description}<p class="text-[13px] leading-snug">{board.description}</p>{/if}
+        {#if board.description}<p class="text-[13px] leading-snug">{tc(board.description)}</p>{/if}
         {#if board.type === 'redirect'}<p class="text-xs text-muted-foreground">{t('{n} yönlendirme', { n: formatNumber(board.redirectClicks) })}</p>{/if}
         <ModeratorList moderators={board.moderators} compact class="mt-0.5" />
         {#if board.children.length}
@@ -39,7 +39,7 @@
               <a
                 href={c.type === 'redirect' ? `/go/${c.id}` : `/f/${c.id}/${c.slug}`}
                 class="text-[var(--smf-text)] hover:underline {c.unread ? 'font-bold' : ''}"
-                data-sveltekit-preload-data={c.type === 'redirect' ? 'off' : undefined}>{c.name}</a
+                data-sveltekit-preload-data={c.type === 'redirect' ? 'off' : undefined}>{tc(c.name)}</a
               >{#if i < board.children.length - 1},{/if}
             {/each}
           </p>
@@ -78,10 +78,10 @@
 
     <div class="min-w-0">
       <h3 class="flex items-center gap-1.5">
-        <a {href} class="text-[15px] leading-tight font-bold transition-colors hover:text-highlight" data-sveltekit-preload-data={preload}>{board.name}</a>
+        <a {href} class="text-[15px] leading-tight font-bold transition-colors hover:text-highlight" data-sveltekit-preload-data={preload}>{tc(board.name)}</a>
         {#if external}<ArrowSquareOutIcon class="size-3.5 text-muted-foreground" />{/if}
       </h3>
-      {#if board.description}<p class="mt-0.5 line-clamp-2 text-[13px] leading-relaxed text-muted-foreground">{board.description}</p>{/if}
+      {#if board.description}<p class="mt-0.5 line-clamp-2 text-[13px] leading-relaxed text-muted-foreground">{tc(board.description)}</p>{/if}
       {#if board.type === 'redirect'}
         <p class="mt-0.5 text-xs text-muted-foreground">{t('{n} yönlendirme', { n: formatNumber(board.redirectClicks) })}</p>
       {/if}
@@ -97,7 +97,7 @@
               <a
                 href={c.type === 'redirect' ? `/go/${c.id}` : `/f/${c.id}/${c.slug}`}
                 class="font-semibold transition-colors hover:text-highlight {c.unread ? 'text-foreground' : 'text-muted-foreground'}"
-                data-sveltekit-preload-data={c.type === 'redirect' ? 'off' : undefined}>{c.name}</a
+                data-sveltekit-preload-data={c.type === 'redirect' ? 'off' : undefined}>{tc(c.name)}</a
               >
             </li>
           {/each}

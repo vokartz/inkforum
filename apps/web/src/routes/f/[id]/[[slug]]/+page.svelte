@@ -19,7 +19,7 @@
   import EmptyState from '$lib/components/EmptyState.svelte';
   import { api, errorMessage } from '$lib/api';
   import { formatNumber } from '$lib/format';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
 
   let { data } = $props();
   const b = $derived(data.board);
@@ -57,9 +57,9 @@
   }
 </script>
 
-<svelte:head><title>{b.board.name} · {viewer.settings['general.forumName']}</title></svelte:head>
+<svelte:head><title>{tc(b.board.name)} · {viewer.settings['general.forumName']}</title></svelte:head>
 
-<Breadcrumbs items={b.breadcrumbs.slice(0, -1)} current={b.board.name} />
+<Breadcrumbs items={b.breadcrumbs.slice(0, -1)} current={tc(b.board.name)} />
 
 {#snippet actions(onCover: boolean)}
   <div class="flex flex-wrap items-center gap-2">
@@ -85,8 +85,8 @@
       <div class="absolute inset-x-0 bottom-0 flex flex-wrap items-end gap-4 p-4 sm:p-6">
         <BoardIcon icon={b.board.icon} size={60} class="shadow-lg ring-2 ring-white/20" />
         <div class="min-w-0 flex-1 text-white">
-          <h1 class="text-2xl font-extrabold tracking-tight drop-shadow sm:text-3xl">{b.board.name}</h1>
-          {#if b.board.description}<p class="mt-1 max-w-2xl text-sm text-white/85">{b.board.description}</p>{/if}
+          <h1 class="text-2xl font-extrabold tracking-tight drop-shadow sm:text-3xl">{tc(b.board.name)}</h1>
+          {#if b.board.description}<p class="mt-1 max-w-2xl text-sm text-white/85">{tc(b.board.description)}</p>{/if}
         </div>
         {@render actions(true)}
       </div>
@@ -101,8 +101,8 @@
   <header data-part="board-header" class="mb-6 flex animate-in flex-wrap items-start gap-4 duration-300 fade-in-0">
     <BoardIcon icon={b.board.icon} unread size={56} />
     <div class="min-w-0 flex-1">
-      <h1 class="text-2xl font-semibold tracking-tight">{b.board.name}</h1>
-      {#if b.board.description}<p class="mt-1 text-sm text-muted-foreground">{b.board.description}</p>{/if}
+      <h1 class="text-2xl font-semibold tracking-tight">{tc(b.board.name)}</h1>
+      {#if b.board.description}<p class="mt-1 text-sm text-muted-foreground">{tc(b.board.description)}</p>{/if}
       <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
         <span><strong class="text-foreground tabular-nums">{formatNumber(b.board.topicCount)}</strong> {t('konu')}</span>
         <span><strong class="text-foreground tabular-nums">{formatNumber(b.board.postCount)}</strong> {t('mesaj')}</span>

@@ -36,6 +36,8 @@ import { ForumAdminService } from './forum/forum-admin.service.js';
 import { ForumSeedService } from './forum/forum-seed.service.js';
 import { ForumController } from './forum/forum.controller.js';
 import { ForumModController } from './forum/forum-mod.controller.js';
+import { ModQueueController } from './forum/mod-queue.controller.js';
+import { ModQueueService } from './forum/mod-queue.service.js';
 import { AdminForumController } from './forum/admin-forum.controller.js';
 import { AdminEmbedsController } from './forum/admin-embeds.controller.js';
 import { AppearanceService } from './appearance/appearance.service.js';
@@ -105,6 +107,7 @@ export class AppModule {
         AdminAchievementsController,
         ForumController,
         ForumModController,
+        ModQueueController,
         AdminForumController,
         AdminEmbedsController,
         AppearanceController,
@@ -138,6 +141,7 @@ export class AppModule {
         PostRenderService,
         PostsService,
         ModerationService,
+        ModQueueService,
         TopicViewsService,
         ForumService,
         ForumAdminService,

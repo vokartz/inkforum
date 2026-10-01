@@ -590,6 +590,8 @@ export interface BoardsTable {
   count_posts: Flag;
   require_approval_topics: Flag;
   require_approval_posts: Flag;
+  private_topics: Flag;
+  topic_template_json: Def<string>;
   is_hidden: Flag;
   sort_order: Def<number>;
   topic_count: Def<number>;
@@ -640,6 +642,7 @@ export interface TopicsTable {
   is_locked: Flag;
   is_featured: Flag;
   is_approved: Flag;
+  is_hidden: Flag;
   moved_to_topic_id: number | null;
   deleted_at: number | null;
   deleted_by: number | null;

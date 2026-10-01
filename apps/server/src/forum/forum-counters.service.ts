@@ -70,6 +70,8 @@ export class ForumCountersService {
         .where('board_id', '=', boardId)
         .where('deleted_at', 'is', null)
         .where('is_approved', '=', 1)
+        // Gizli konular bölümün "son mesaj" bilgisinde görünmez
+        .where('is_hidden', '=', 0)
         .where('moved_to_topic_id', 'is', null)
         .orderBy('last_post_at', 'desc')
         .limit(1)

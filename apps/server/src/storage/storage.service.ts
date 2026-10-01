@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { mkdirSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, unlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { FilePurpose, Row } from '@forum/db';
@@ -43,9 +43,39 @@ export class StorageService {
     return file ? `/uploads/${file.path}` : null;
   }
 
+  /**
+   * SVG'deki metinler (paylaşım görselleri) fontconfig ile çizilir. Docker (Alpine) imajında sistem fontu yoktur;
+   * yazılar kutucuk olarak görünmesin diye uygulamayla gelen DejaVu Sans fontları da taranır.
+   */
+  private configureFonts(): void {
+    if (process.env.FONTCONFIG_FILE) return;
+    const fontsDir = [join(this.config.root, 'fonts'), join(this.config.root, 'apps/server/assets/fonts')].find((d) => existsSync(d));
+    if (!fontsDir) return;
+    try {
+      const dir = join(this.config.storageDir, 'cache', 'fontconfig');
+      mkdirSync(dir, { recursive: true });
+      const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+      const conf = `<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+<fontconfig>
+  <dir>${esc(fontsDir)}</dir>
+  <dir>/usr/share/fonts</dir>
+  <dir>/usr/local/share/fonts</dir>
+  <cachedir>${esc(dir)}</cachedir>
+</fontconfig>
+`;
+      const file = join(dir, 'fonts.conf');
+      writeFileSync(file, conf);
+      process.env.FONTCONFIG_FILE = file;
+    } catch (err) {
+      this.logger.warn(`Yazı tipi yapılandırılamadı: ${String(err)}`);
+    }
+  }
+
   async loadSharp(): Promise<SharpFactory | null> {
     if (this.sharp !== undefined) return this.sharp;
     if (this.config.imageDriver === 'passthrough') return (this.sharp = null);
+    this.configureFonts();
     try {
       const name = 'sharp';
       const mod = (await import(name)) as { default: SharpFactory & { concurrency(n: number): void; cache(v: boolean): void } };

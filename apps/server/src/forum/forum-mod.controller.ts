@@ -6,7 +6,7 @@ import { RequireAuth } from '../common/decorators.js';
 import { CurrentViewer, type RequestViewer } from '../common/request-context.js';
 import { ModerationService, type TopicFlag } from './moderation.service.js';
 
-const flagSchema = z.enum(['pin', 'unpin', 'lock', 'unlock', 'feature', 'unfeature']);
+const flagSchema = z.enum(['pin', 'unpin', 'lock', 'unlock', 'feature', 'unfeature', 'hide', 'unhide']);
 const editTopicSchema = z.object({
   title: topicTitleSchema.optional(),
   prefixId: z.number().int().positive().nullable().optional(),

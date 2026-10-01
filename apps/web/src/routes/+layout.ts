@@ -20,7 +20,7 @@ const OPEN = [
 export const load: LayoutLoad = async ({ data, url }) => {
   const { viewer } = data;
   // Seçili dilin kataloğu çizimden önce hazır olmalı (t() eşzamanlıdır)
-  await loadCatalog(viewer.locale);
+  await loadCatalog(viewer.locale, viewer.settings['i18n.defaultLocale']);
   const path = url.pathname;
   const open = OPEN.some((re) => re.test(path));
 

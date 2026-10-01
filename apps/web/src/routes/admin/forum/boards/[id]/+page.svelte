@@ -3,7 +3,7 @@
   import { goto, invalidate } from '$app/navigation';
   import { page } from '$app/state';
   import { toast } from 'svelte-sonner';
-  import type { IconNode, Paginated, UserSummary } from '@forum/shared';
+  import { EMPTY_TOPIC_TEMPLATE, type IconNode, type Paginated, type TopicTemplate, type UserSummary } from '@forum/shared';
   import ArrowLeftIcon from 'phosphor-svelte/lib/ArrowLeft';
   import SaveIcon from 'phosphor-svelte/lib/FloppyDisk';
   import LoaderIcon from 'phosphor-svelte/lib/CircleNotch';
@@ -22,6 +22,7 @@
   import IconPicker from '$lib/components/IconPicker.svelte';
   import BoardIcon from '$lib/components/forum/BoardIcon.svelte';
   import Editor from '$lib/components/editor/Editor.svelte';
+  import TopicTemplateEditor from '$lib/components/admin/TopicTemplateEditor.svelte';
   import { api } from '$lib/api';
   import { createForm } from '$lib/form.svelte';
   import { t, tc } from '$lib/i18n.svelte';
@@ -47,6 +48,8 @@
   let approvalTopics = $state(false);
   let approvalPosts = $state(false);
   let isHidden = $state(false);
+  let privateTopics = $state(false);
+  let template = $state<TopicTemplate>(structuredClone(EMPTY_TOPIC_TEMPLATE));
   let about = $state('');
   let cover = $state<string | null>(null);
   let coverBusy = $state(false);
@@ -76,6 +79,8 @@
     approvalTopics = b.requireApprovalTopics;
     approvalPosts = b.requireApprovalPosts;
     isHidden = b.isHidden;
+    privateTopics = b.privateTopics;
+    template = structuredClone(b.topicTemplate);
     about = b.about;
     cover = b.cover;
     modUsers = b.moderators.filter((m) => m.user).map((m) => m.user!.id);
@@ -143,6 +148,8 @@
       requireApprovalTopics: approvalTopics,
       requireApprovalPosts: approvalPosts,
       isHidden,
+      privateTopics,
+      topicTemplate: $state.snapshot(template),
       about,
     };
     const res = await form.submit(
@@ -353,11 +360,22 @@
               <label class="flex items-start gap-3 text-sm"><Switch bind:checked={countPosts} class="mt-0.5" /><span>{t('Mesajlar üyelerin mesaj sayısına eklensin')}<span class="block text-xs text-muted-foreground">{t('Kapatırsanız (ör. oyun/spam bölümleri) rütbelere etki etmez.')}</span></span></label>
               <label class="flex items-start gap-3 text-sm"><Switch bind:checked={approvalTopics} class="mt-0.5" /><span>{t('Yeni konular onaydan sonra yayınlansın')}</span></label>
               <label class="flex items-start gap-3 text-sm"><Switch bind:checked={approvalPosts} class="mt-0.5" /><span>{t('Yanıtlar onaydan sonra yayınlansın')}</span></label>
+              <label class="flex items-start gap-3 text-sm"><Switch bind:checked={privateTopics} class="mt-0.5" /><span>{t('Konular gizli olsun')}<span class="block text-xs text-muted-foreground">{t('Her konuyu yalnızca açan üye ve yetkililer görür (başvuru, şikâyet, destek bölümleri için).')}</span></span></label>
             </div>
           {/if}
           <label class="flex items-start gap-3 text-sm"><Switch bind:checked={isHidden} class="mt-0.5" /><span>{t('Ana sayfada gizle')}<span class="block text-xs text-muted-foreground">{t('Bölüm listede görünmez ama bağlantıyla erişilebilir (moderatörler görür).')}</span></span></label>
         </Card.Content>
       </Card.Root>
+
+      {#if type === 'forum'}
+        <Card.Root>
+          <Card.Header>
+            <Card.Title class="text-base">{t('Konu şablonu')}</Card.Title>
+            <Card.Description>{t('Bu bölümde konu açılırken sorulacak sorular. Seçmeli sorular, zorunlu alanlar ve otomatik başlık desteklenir.')}</Card.Description>
+          </Card.Header>
+          <Card.Content><TopicTemplateEditor bind:value={template} errors={form.errors} /></Card.Content>
+        </Card.Root>
+      {/if}
     </div>
 
     <aside class="grid content-start gap-6 lg:sticky lg:top-6">

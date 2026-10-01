@@ -22,6 +22,7 @@ import * as m0020 from './0020_tickets.js';
 import * as m0021 from './0021_language.js';
 import * as m0022 from './0022_import.js';
 import * as m0023 from './0023_quote_i18n.js';
+import * as m0024 from './0024_topic_moderation.js';
 
 /** Statik liste: paketlenmiş (bundle) sunucuda da dosya sistemi taraması gerekmez. */
 export const migrations: Record<string, Migration> = {
@@ -48,6 +49,7 @@ export const migrations: Record<string, Migration> = {
   '0021_language': m0021,
   '0022_import': m0022,
   '0023_quote_i18n': m0023,
+  '0024_topic_moderation': m0024,
 };
 
 export const migrationProvider: MigrationProvider = {
