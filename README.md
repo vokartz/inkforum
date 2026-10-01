@@ -72,6 +72,10 @@ Add `docker-compose.yml` (or the `ghcr.io/vokartz/inkforum` image) to your platf
 the site address is taken from the platform (Coolify) or detected in the setup wizard, and the secret keys are generated
 and stored in the `storage` volume. If the platform provides its own reverse proxy, keep `TRUST_PROXY=uniquelocal` and don't enable the `https` (Caddy) profile.
 
+**One-click updates on Coolify:** with `docker-compose.yml` the bundled `updater` service installs updates. If you added
+only the image, use the image tag `latest` and enter the resource's **Deploy Webhook** URL and an API token with the
+`deploy` permission under **Admin → Updates → Update with Coolify**.
+
 ### Requirements
 
 | | Minimum | Recommended |
@@ -174,7 +178,8 @@ Prefer the command line?
 cd /opt/inkforum && docker compose pull && docker compose up -d
 ```
 
-Database changes are applied automatically on start.
+Database changes are applied automatically on start. Migrations only add tables and columns — your data is kept — and
+a database backup (`pre-migrate`) is taken before they run; on PostgreSQL all migrations run in a single transaction.
 
 ## 💾 Backups & restore
 
@@ -251,7 +256,21 @@ WantedBy=multi-user.target
 
 **Which database should I choose?**
 SQLite is enough for most communities and needs the least maintenance. PostgreSQL is supported for very large
-communities or if you prefer a managed database.
+communities or if you prefer a managed database: set `DB_DRIVER=postgres` and `DATABASE_URL=postgres://…`.
+
+**How do I move an existing forum from SQLite to PostgreSQL?**
+Create an empty PostgreSQL database, then run the transfer inside the app container. It copies every table, checks the
+row counts and leaves the SQLite file untouched (put the forum in maintenance mode first):
+
+```bash
+docker compose exec inkforum node cli.mjs transfer-db postgres://user:password@postgres:5432/inkforum
+```
+
+Then set `DB_DRIVER=postgres` and `DATABASE_URL` to the same address and restart. Uploaded files stay in `storage`.
+
+**E-mails don't arrive.**
+Until an SMTP server is configured, e-mails are only written to `storage/mail` ("Log" mode). Set it up under
+**Admin → E-mail → Delivery (SMTP) and test**.
 
 **My server has no internet access — what about updates?**
 Set `UPDATES_DISABLED=true`, load the new image manually and run `docker compose up -d`.

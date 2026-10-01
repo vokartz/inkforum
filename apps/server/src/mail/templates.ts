@@ -86,8 +86,15 @@ export function composeMail(ctx: ComposeContext, subjectTpl: string, bodyTpl: st
   const all = { forumName: ctx.forumName, forumUrl: ctx.appUrl, ...vars };
   const subject = fillVars(subjectTpl, all, false).replace(/[\r\n]+/g, ' ').trim();
   const accent = /^#[0-9a-f]{6}$/i.test(ctx.accent) ? ctx.accent : '#18181b';
+  // Açık vurgu renklerinde (ör. gri) beyaz yazı okunmaz: parlaklığa göre koyu ya da beyaz
+  const accentText = (() => {
+    const n = parseInt(accent.slice(1), 16);
+    const lin = (c: number) => (c / 255 <= 0.03928 ? c / 255 / 12.92 : ((c / 255 + 0.055) / 1.055) ** 2.4);
+    const lum = 0.2126 * lin((n >> 16) & 255) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255);
+    return lum > 0.22 ? '#141414' : '#ffffff';
+  })();
   const body = fillVars(bodyTpl, all, true)
-    .replace(/<a\b([^>]*)class="button"([^>]*)>/gi, `<a$1$2 style="display:inline-block;background:${accent};color:#ffffff;text-decoration:none;padding:11px 20px;border-radius:8px;font-weight:600">`)
+    .replace(/<a\b([^>]*)class="button"([^>]*)>/gi, `<a$1$2 style="display:inline-block;background:${accent};color:${accentText};text-decoration:none;padding:11px 20px;border-radius:8px;font-weight:600">`)
     .replace(/<p\b([^>]*)class="muted"([^>]*)>/gi, '<p$1$2 style="margin:0 0 12px;font-size:13px;color:#71717a">')
     .replace(/<p>/gi, '<p style="margin:0 0 14px">');
   const brand = ctx.logoUrl

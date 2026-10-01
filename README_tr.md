@@ -72,6 +72,10 @@ docker compose up -d
 değişkeni zorunlu değildir: site adresi platformdan (Coolify) alınır ya da kurulum sihirbazında algılanır, gizli anahtarlar
 üretilip `storage` biriminde saklanır. Platform kendi ters vekilini kullanıyorsa `TRUST_PROXY=uniquelocal` bırakın ve `caddy` profilini açmayın.
 
+**Coolify'da tek tıkla güncelleme:** `docker-compose.yml` ile kurulumda güncellemeleri birlikte gelen `updater` servisi kurar.
+Yalnızca imajı eklediyseniz imaj etiketini `latest` yapın ve kaynağın **Deploy Webhook** adresini ve `deploy` yetkili bir API
+anahtarını **Yönetim → Güncellemeler → Coolify ile güncelleme** bölümüne girin.
+
 ### Gereksinimler
 
 | | En az | Önerilen |
@@ -174,7 +178,8 @@ Komut satırından güncellemek isterseniz:
 cd /opt/inkforum && docker compose pull && docker compose up -d
 ```
 
-Veritabanı değişiklikleri açılışta otomatik uygulanır.
+Veritabanı değişiklikleri açılışta otomatik uygulanır. Migration'lar yalnızca tablo ve sütun ekler, verileriniz silinmez;
+uygulanmadan önce veritabanı yedeği (`pre-migrate`) alınır. PostgreSQL'de tüm migration'lar tek bir işlemde çalışır.
 
 ## 💾 Yedekleme ve geri yükleme
 
@@ -251,7 +256,21 @@ WantedBy=multi-user.target
 
 **Hangi veritabanını seçmeliyim?**
 Çoğu topluluk için SQLite yeterli ve en az bakım gerektiren seçenektir (günlük on binlerce mesaj rahatça işlenir).
-Çok büyük topluluklar ya da yönetilen veritabanı kullanmak isteyenler için PostgreSQL desteklenir.
+Çok büyük topluluklar ya da yönetilen veritabanı kullanmak isteyenler için PostgreSQL desteklenir. `DB_DRIVER=postgres` ve `DATABASE_URL=postgres://…` ayarlayın.
+
+**Mevcut forumu SQLite'tan PostgreSQL'e nasıl taşırım?**
+Boş bir PostgreSQL veritabanı oluşturun ve taşımayı uygulama kapsayıcısında çalıştırın. Tüm tabloları kopyalar, satır
+sayılarını doğrular ve SQLite dosyasına dokunmaz (önce forumu bakım moduna alın):
+
+```bash
+docker compose exec inkforum node cli.mjs transfer-db postgres://kullanici:sifre@postgres:5432/inkforum
+```
+
+Ardından `DB_DRIVER=postgres` ve `DATABASE_URL` değerini aynı adres yapıp yeniden başlatın. Yüklenen dosyalar `storage` içinde kalır.
+
+**E-postalar gelmiyor.**
+SMTP sunucusu ayarlanana kadar e-postalar yalnızca `storage/mail` klasörüne yazılır ("Günlük" modu). **Yönetim → E-posta →
+Gönderim (SMTP) ve test** bölümünden ayarlayın.
 
 **Sunucumun internete çıkışı yok, güncellemeler ne olacak?**
 `UPDATES_DISABLED=true` ile denetimi kapatın; yeni imajı elle yükleyip `docker compose up -d` çalıştırmanız yeterli.

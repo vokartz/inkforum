@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpCode, Post, Put, Query } from '@nestjs/common';
-import { installUpdateInput, updateSettingsInput, type UpdateSettingsInput } from '@forum/shared';
+import { coolifyUpdateInput, installUpdateInput, updateSettingsInput, type CoolifyUpdateInput, type UpdateSettingsInput } from '@forum/shared';
 import { z } from 'zod';
 import { ZodPipe } from '../common/validation.js';
 import { AdminEndpoint, RateLimit, RequirePermission } from '../common/decorators.js';
@@ -31,12 +31,19 @@ export class UpdatesController {
     return { ok: true };
   }
 
+  @Put('coolify')
+  @AdminEndpoint('admin.maintenance')
+  async saveCoolify(@Body(new ZodPipe(coolifyUpdateInput)) body: CoolifyUpdateInput, @CurrentViewer() v: RequestViewer) {
+    await this.updates.saveCoolify(body, v.user!.id);
+    return { ok: true };
+  }
+
   @Post('install')
   @HttpCode(202)
   @AdminEndpoint('admin.maintenance')
   @RateLimit({ limit: 5, windowMs: MINUTE, by: 'user' })
   install(@Body(new ZodPipe(installUpdateInput)) body: z.output<typeof installUpdateInput>, @CurrentViewer() v: RequestViewer) {
-    return this.updates.install(body.version, v.user!.id);
+    return this.updates.install(body.version, v.user!.id, v.locale);
   }
 
   @Post('rollback')

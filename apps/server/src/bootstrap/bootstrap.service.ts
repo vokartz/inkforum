@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
-import { migrateToLatest } from '@forum/db';
+import { migrateToLatest, migrations, pendingMigrations } from '@forum/db';
 import { BOARD_PERMISSIONS, GLOBAL_PERMISSIONS } from '@forum/shared';
 import { CONFIG, type AppConfig } from '../config/config.js';
 import { Db } from '../database/db.service.js';
@@ -30,6 +30,7 @@ import { HomeService } from '../home/home.service.js';
 import { ReactionsService } from '../forum/reactions.service.js';
 import { InstallService } from '../install/install.service.js';
 import { I18nService } from '../i18n/i18n.service.js';
+import { BackupService } from '../maintenance/backup.service.js';
 
 const SEEDED_KEY = 'seeded:v1';
 const APPLIED_PERMISSIONS_KEY = 'permissions:applied_defaults';
@@ -65,6 +66,7 @@ export class BootstrapService implements OnModuleInit {
     private readonly reactions: ReactionsService,
     private readonly install: InstallService,
     private readonly i18n: I18nService,
+    private readonly backups: BackupService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -74,6 +76,17 @@ export class BootstrapService implements OnModuleInit {
   }
 
   async migrate(): Promise<void> {
+    // Güncellemeden gelen yeni migration'lar uygulanmadan önce mevcut veritabanının yedeği alınır
+    // (PostgreSQL'de migration'lar zaten tek işlemde uygulanır; hata olursa hiçbiri kalmaz).
+    const pending = await pendingMigrations(this.db.q);
+    if (pending.length && pending.length < Object.keys(migrations).length && this.backups.supported().ok) {
+      try {
+        const b = await this.backups.create('db', 'pre-migrate');
+        this.logger.log(`Migration öncesi yedek: ${b.name} (${pending.join(', ')})`);
+      } catch (err) {
+        this.logger.warn(`Migration öncesi yedek alınamadı: ${String(err)}`);
+      }
+    }
     const { applied, error } = await migrateToLatest(this.db.q);
     if (error) {
       this.logger.error(`Migration hatası: ${String(error)}`);

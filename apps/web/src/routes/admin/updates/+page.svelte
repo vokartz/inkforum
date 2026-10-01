@@ -156,6 +156,25 @@
     }
   }
 
+  // ----- Coolify ile güncelleme (tek imajla kurulumlar) -----
+  let coolifyUrl = $state(untrack(() => data.updates?.coolify?.webhookUrl ?? ''));
+  let coolifyToken = $state('');
+  let coolifySaving = $state(false);
+  async function saveCoolify(remove = false) {
+    coolifySaving = true;
+    try {
+      await api.put('/api/admin/updates/coolify', remove ? { webhookUrl: '', token: '' } : { webhookUrl: coolifyUrl.trim(), token: coolifyToken.trim() });
+      if (remove) coolifyUrl = '';
+      coolifyToken = '';
+      toast.success(remove ? t('Coolify bağlantısı kaldırıldı.') : t('Coolify bağlantısı kaydedildi.'));
+      await invalidate('app:admin-updates');
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      coolifySaving = false;
+    }
+  }
+
   // ----- Sürüm geçmişi -----
   let expanded = $state<string | null>(null);
   const kindLabel = { major: 'Ana sürüm', minor: 'Yeni özellikler', patch: 'Düzeltme', pre: 'Ön sürüm' } as const;
@@ -197,6 +216,9 @@
         </div>
         {#if u.checkError}
           <p class="mt-4 flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"><WarningIcon class="mt-0.5 size-4 shrink-0" weight="fill" />{u.checkError}</p>
+        {/if}
+        {#if u.updater && !u.updater.reachable && !u.coolify?.configured}
+          <p class="mt-4 flex items-start gap-2 rounded-lg bg-warning/15 px-3 py-2 text-sm" data-part="updater-unreachable"><WarningIcon class="mt-0.5 size-4 shrink-0 text-warning" weight="fill" />{u.updater.error}</p>
         {/if}
       </section>
 
@@ -344,6 +366,38 @@
           <Button onclick={savePrefs} disabled={saving}>{#if saving}<LoaderIcon class="animate-spin" />{:else}<FloppyIcon />{/if}{t('Kaydet')}</Button>
         </Card.Content>
       </Card.Root>
+
+      {#if u.coolify}
+        <Card.Root class={cn(u.coolify.detected && !u.coolify.configured && 'border-primary/40')} data-part="coolify-updates">
+          <Card.Header>
+            <Card.Title class="flex items-center gap-2 text-base"><RocketIcon class="size-4" />{t('Coolify ile güncelleme')}</Card.Title>
+            <Card.Description>
+              {u.coolify.configured
+                ? t('Güncellemeler Coolify’ın yeniden dağıtımıyla kurulur.')
+                : t('Forumu Coolify’da tek imaj olarak kurduysanız güncelleyici kapsayıcısı yoktur; güncellemeler Coolify’ın Deploy Webhook’u ile kurulabilir.')}
+            </Card.Description>
+          </Card.Header>
+          <Card.Content class="grid gap-3 text-sm">
+            <ol class="grid list-decimal gap-1 pl-4 text-xs text-muted-foreground">
+              <li>{t('Coolify’da forum kaynağının imaj etiketi "latest" olsun.')}</li>
+              <li>{t('Kaynağın Webhooks sekmesindeki "Deploy Webhook" adresini kopyalayın.')}</li>
+              <li>{t('Keys & Tokens → API tokens bölümünden "deploy" yetkili bir anahtar oluşturun.')}</li>
+            </ol>
+            <label class="grid gap-1.5">
+              <span class="text-xs font-semibold">{t('Deploy Webhook adresi')}</span>
+              <input bind:value={coolifyUrl} placeholder="https://coolify.example.com/api/v1/deploy?uuid=…" class="h-9 rounded-md border bg-background px-3 font-mono text-xs outline-none focus:border-ring" />
+            </label>
+            <label class="grid gap-1.5">
+              <span class="text-xs font-semibold">{t('API anahtarı')}</span>
+              <input type="password" bind:value={coolifyToken} placeholder={u.coolify.hasToken ? t('Kayıtlı (değiştirmek için yazın)') : ''} autocomplete="off" class="h-9 rounded-md border bg-background px-3 font-mono text-xs outline-none focus:border-ring" />
+            </label>
+            <div class="flex flex-wrap gap-2">
+              <Button size="sm" onclick={() => saveCoolify()} disabled={coolifySaving || !coolifyUrl.trim()}>{#if coolifySaving}<LoaderIcon class="animate-spin" />{:else}<FloppyIcon />{/if}{t('Kaydet')}</Button>
+              {#if u.coolify.configured}<Button size="sm" variant="ghost" class="text-destructive" onclick={() => saveCoolify(true)} disabled={coolifySaving}>{t('Kaldır')}</Button>{/if}
+            </div>
+          </Card.Content>
+        </Card.Root>
+      {/if}
 
       <Card.Root>
         <Card.Header><Card.Title class="text-base">{t('Kurulum yöntemi')}</Card.Title></Card.Header>

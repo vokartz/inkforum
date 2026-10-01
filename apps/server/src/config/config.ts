@@ -18,6 +18,8 @@ const envSchema = z.object({
   /** Coolify'ın uygulamaya verdiği adres(ler); APP_URL yoksa kullanılır */
   COOLIFY_URL: z.string().optional(),
   COOLIFY_FQDN: z.string().optional(),
+  COOLIFY_RESOURCE_UUID: z.string().optional(),
+  COOLIFY_CONTAINER_NAME: z.string().optional(),
   APP_ROOT: z.string().optional(),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   HOST: z.string().default('0.0.0.0'),
@@ -109,6 +111,8 @@ export interface AppConfig {
   version: string;
   build: string | null;
   deploy: 'docker' | 'release' | 'source';
+  /** Coolify üzerinde çalışıyor (platformun verdiği ortam değişkenleri) */
+  coolify: boolean;
   updates: { repo: string; apiUrl: string; disabled: boolean; updaterUrl: string | null; updaterToken: string | null };
   defaultLocale: Locale | null;
   workerEnabled: boolean;
@@ -266,6 +270,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Part
     admin: { username: e.ADMIN_USERNAME, email: e.ADMIN_EMAIL, password: e.ADMIN_PASSWORD || undefined },
     version: readVersion(root),
     build: e.INKFORUM_BUILD ?? readOptional(join(root, 'BUILD')),
+    coolify: !!(e.COOLIFY_FQDN || e.COOLIFY_URL || e.COOLIFY_RESOURCE_UUID || e.COOLIFY_CONTAINER_NAME),
     deploy: e.INKFORUM_DEPLOY ?? (existsSync(join(root, 'forum.release')) ? 'release' : 'source'),
     updates: {
       repo: e.UPDATE_REPO,

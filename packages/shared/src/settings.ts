@@ -119,6 +119,15 @@ export const SETTINGS = {
     input: 'list',
     hidden: true,
   }),
+  /** Coolify Deploy Webhook ile güncelleme: { webhookUrl, tokenEnc } */
+  'updates.coolify': def({
+    section: 'general',
+    schema: z.record(z.string(), z.unknown()),
+    default: {} as Record<string, unknown>,
+    label: 'Coolify güncelleme bağlantısı',
+    input: 'list',
+    hidden: true,
+  }),
   /** Alt bilgideki "InkForum ile çalışır" bağlantısı */
   'appearance.poweredBy': def({
     section: 'appearance',

@@ -1,4 +1,6 @@
 import 'reflect-metadata';
+import { resolve } from 'node:path';
+import { createDatabase, migrateToLatest, transferDatabase, type DatabaseConfig } from '@forum/db';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module.js';
 import { loadConfig } from './config/config.js';
@@ -20,10 +22,14 @@ import type { RequestViewer } from './common/request-context.js';
  *   node dist/cli.js migrate      → migration'ları ve açılış uzlaştırmasını çalıştırır
  *   node dist/cli.js cron         → zamanı gelen görevleri ve bekleyen işleri çalıştırır (cPanel cron için)
  *   node dist/cli.js seed-dev     → geliştirme için örnek üyeler ve forum içeriği oluşturur
+ *   node dist/cli.js transfer-db <hedef>
+ *                                 → tüm verileri başka bir veritabanına taşır (ör. SQLite → PostgreSQL);
+ *                                   hedef: postgres://kullanici:sifre@sunucu:5432/veritabani ya da sqlite:/yol/forum.db
  */
 async function main(): Promise<void> {
   const command = process.argv[2] ?? 'help';
   const config = loadConfig(process.env, { WORKER_ENABLED: 'false' });
+  if (command === 'transfer-db') return transferDb(config, process.argv[3]);
   const app = await NestFactory.createApplicationContext(AppModule.forRoot(config), { logger: ['error', 'warn', 'log'] });
   await app.init();
 
@@ -43,10 +49,51 @@ async function main(): Promise<void> {
         await seedDev(app);
         break;
       default:
-        console.log('Kullanım: node dist/cli.js <migrate|cron|seed-dev>');
+        console.log('Kullanım: node dist/cli.js <migrate|cron|seed-dev|transfer-db <hedef>>');
     }
   } finally {
     await app.close();
+  }
+}
+
+/**
+ * Veritabanı taşıma: mevcut (DB_DRIVER / DATABASE_URL / DB_SQLITE_PATH) veritabanı kaynak, verilen adres hedeftir.
+ * Kaynak değiştirilmez; hedef boş olmalıdır. Bittiğinde .env'de hedef veritabanına geçip uygulamayı yeniden başlatın.
+ */
+async function transferDb(config: ReturnType<typeof loadConfig>, targetArg: string | undefined): Promise<void> {
+  if (!targetArg) {
+    console.error('Hedef veritabanı adresi gerekli: transfer-db postgres://kullanici:sifre@sunucu:5432/veritabani');
+    process.exitCode = 1;
+    return;
+  }
+  const target: DatabaseConfig = /^postgres(ql)?:\/\//i.test(targetArg)
+    ? { driver: 'postgres', postgresUrl: targetArg }
+    : { driver: 'sqlite', sqlitePath: resolve(targetArg.replace(/^sqlite:/i, '')), sqliteDriver: config.db.sqliteDriver };
+  if (target.driver === config.db.driver && (target.postgresUrl ?? target.sqlitePath) === (config.db.driver === 'postgres' ? config.db.postgresUrl : config.db.sqlitePath)) {
+    console.error('Kaynak ve hedef aynı veritabanı.');
+    process.exitCode = 1;
+    return;
+  }
+  const source = await createDatabase({ driver: config.db.driver, sqlitePath: config.db.sqlitePath, sqliteDriver: config.db.sqliteDriver, postgresUrl: config.db.postgresUrl });
+  const dest = await createDatabase(target);
+  try {
+    console.log(`Kaynak: ${config.db.driver} → Hedef: ${target.driver}`);
+    // Kaynak da güncel şemada olmalı
+    const up = await migrateToLatest(source.db);
+    if (up.error) throw up.error;
+    const r = await transferDatabase({ db: source.db, driver: source.driver }, { db: dest.db, driver: dest.driver }, { log: (m) => console.log(`  ${m}`) });
+    console.log(`✔ ${r.tables.length} tablo, ${r.totalRows} satır taşındı ve doğrulandı.`);
+    if (target.driver === 'postgres') {
+      console.log('Şimdi ortam değişkenlerinde DB_DRIVER=postgres ve DATABASE_URL=<hedef adres> yapıp uygulamayı yeniden başlatın.');
+      console.log('Yüklenen dosyalar (storage) olduğu gibi kalır; eski SQLite dosyası yedek olarak durur.');
+    }
+  } catch (err) {
+    console.error(`✖ Taşıma başarısız: ${err instanceof Error ? err.message : String(err)}`);
+    console.error('Kaynak veritabanı değiştirilmedi.');
+    process.exitCode = 1;
+  } finally {
+    await source.destroy();
+    await dest.destroy();
   }
 }
 

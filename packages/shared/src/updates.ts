@@ -159,7 +159,22 @@ export interface UpdateStatus {
   installBlocker: string | null;
   job: UpdateJob | null;
   settings: UpdateSettingsInput;
+  /** Docker: güncelleyici kapsayıcısına ulaşılabiliyor mu (son denemenin sonucu) */
+  updater: { reachable: boolean; error: string | null } | null;
+  /** Coolify: Deploy Webhook ile güncelleme (tek imajla kurulumlar için) */
+  coolify: { detected: boolean; configured: boolean; webhookUrl: string; hasToken: boolean } | null;
 }
+
+/** Coolify "Deploy Webhook" adresi ve API anahtarı (boş anahtar = değiştirme) */
+export const coolifyUpdateInput = z.object({
+  webhookUrl: z
+    .string()
+    .trim()
+    .max(500)
+    .refine((v) => v === '' || /^https?:\/\/[^\s]+\/api\/v1\/deploy\?[^\s]*uuid=[^\s&]+/i.test(v), 'Coolify’daki "Deploy Webhook" adresini yapıştırın (…/api/v1/deploy?uuid=…).'),
+  token: z.string().trim().max(500).default(''),
+});
+export type CoolifyUpdateInput = z.output<typeof coolifyUpdateInput>;
 
 export const updateSettingsInput = z.object({
   autoCheck: z.boolean().default(true),

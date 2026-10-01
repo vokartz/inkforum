@@ -225,7 +225,8 @@ export class MailService implements OnModuleInit {
   }
 
   private composeContext(): ComposeContext {
-    const logo = this.settings.get('appearance.logoUrl');
+    // E-posta açık zeminlidir: açık mod logosu (yoksa ana logo) kullanılır
+    const logo = this.settings.get('appearance.logoLightUrl') || this.settings.get('appearance.logoUrl');
     return {
       ...this.context(),
       accent: this.settings.get('appearance.accentColor'),
@@ -276,8 +277,9 @@ export class MailService implements OnModuleInit {
   /** Yönetim önizlemesi: örnek değerlerle. */
   preview(key: MailTemplateKey, subject: string, body: string, recipientName: string): MailContent {
     const def = MAIL_TEMPLATE_MAP.get(key)!;
-    const sample = Object.fromEntries([...MAIL_COMMON_VARS, ...def.vars].map((v) => [v.key, v.sample]));
-    return composeMail(this.composeContext(), subject, body, { ...sample, name: recipientName });
+    // Örnek bağlantılar forumun kendi adresiyle gösterilir
+    const sample = Object.fromEntries([...MAIL_COMMON_VARS, ...def.vars].map((v) => [v.key, v.sample.replace('https://forum.ornek.com', this.config.appUrl)]));
+    return composeMail(this.composeContext(), subject, body, { ...sample, forumName: String(this.settings.get('general.forumName')), name: recipientName });
   }
 
   lastTo(to: string): OutgoingMail | undefined {

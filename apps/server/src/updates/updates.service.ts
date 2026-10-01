@@ -19,6 +19,7 @@ import {
   type ReleaseInfo,
   type UpdateJob,
   type UpdateSettingsInput,
+  type CoolifyUpdateInput,
   type UpdateStatus,
 } from '@forum/shared';
 import { CONFIG, type AppConfig } from '../config/config.js';
@@ -32,9 +33,13 @@ import { GroupCacheService } from '../groups/group-cache.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { BackupService } from '../maintenance/backup.service.js';
 import { requestRestart } from '../common/restart.js';
+import { CryptoService } from '../security/crypto.service.js';
+import { I18nService } from '../i18n/i18n.service.js';
 
 const CACHE_KEY = 'updates:cache';
 const NOTIFIED_KEY = 'updates:notified';
+/** Platform (Coolify) yeniden dağıtımı sonrası açılışta sonuç kaydı: { from, to } */
+const PLATFORM_PENDING_KEY = 'updates:platform-pending';
 const JOB_KEY = 'updates:job';
 const CHECK_EVERY = 6 * HOUR;
 
@@ -81,11 +86,17 @@ export class UpdatesService implements OnApplicationBootstrap {
     private readonly groups: GroupCacheService,
     private readonly audit: AuditService,
     private readonly backups: BackupService,
+    private readonly crypto: CryptoService,
+    private readonly i18n: I18nService,
   ) {}
+
+  /** Son güncelleyici isteğinin bağlantı hatası (yönetim ekranında gösterilir) */
+  private updaterFailure: { code: string; host: string } | null = null;
 
   async onApplicationBootstrap(): Promise<void> {
     this.jobs.schedule('updates.tick', 30 * MINUTE, () => this.tick());
     await this.finishPendingRelease();
+    await this.finishPendingPlatform();
   }
 
   // ---------- Durum ----------
@@ -134,7 +145,7 @@ export class UpdatesService implements OnApplicationBootstrap {
   installBlocker(): string | null {
     if (this.config.updates.disabled) return 'Güncelleme denetimi kapalı (UPDATES_DISABLED).';
     if (this.config.deploy === 'source') return 'Kaynak koddan çalışan kurulumlar git ile güncellenir (git pull, pnpm install, pnpm build).';
-    if (this.config.deploy === 'docker' && (!this.config.updates.updaterUrl || !this.config.updates.updaterToken)) {
+    if (this.config.deploy === 'docker' && !this.coolify().configured && (!this.config.updates.updaterUrl || !this.config.updates.updaterToken)) {
       return 'Güncelleyici kapsayıcı ayarlı değil (UPDATER_URL / UPDATER_TOKEN). Resmi docker-compose.yml dosyasını kullanın.';
     }
     return null;
@@ -160,6 +171,14 @@ export class UpdatesService implements OnApplicationBootstrap {
       installBlocker: blocker,
       job: await this.job(),
       settings: s,
+      updater:
+        this.config.deploy === 'docker' && this.config.updates.updaterUrl
+          ? { reachable: !this.updaterFailure, error: this.updaterFailure ? this.describeUpdaterError(this.updaterFailure, locale) : null }
+          : null,
+      coolify:
+        this.config.deploy === 'docker'
+          ? { detected: this.config.coolify, configured: this.coolify().configured, webhookUrl: this.coolify().webhookUrl, hasToken: !!this.coolify().tokenEnc }
+          : null,
     };
   }
 
@@ -232,7 +251,7 @@ export class UpdatesService implements OnApplicationBootstrap {
 
     const kind = updateKind(this.config.version, latest.version);
     const job = await this.job();
-    const busy = job && !['idle', 'done', 'failed', 'rolledback'].includes(job.state);
+    const busy = this.isBusy(job);
     if (autoInstallAllows(s.autoInstall, kind) && new Date(this.clock.now()).getHours() === s.installHour && !busy && !this.installBlocker()) {
       // Aynı sürümde başarısız olmuş otomatik kurulum her saat tekrarlanmasın
       if (job?.version === latest.version && job.state === 'failed') return;
@@ -255,15 +274,21 @@ export class UpdatesService implements OnApplicationBootstrap {
   // ---------- Kurulum ----------
 
   async job(): Promise<UpdateJob | null> {
-    if (this.config.deploy === 'docker' && this.config.updates.updaterUrl && this.config.updates.updaterToken) {
+    if (this.config.deploy === 'docker' && !this.coolify().configured && this.config.updates.updaterUrl && this.config.updates.updaterToken) {
       try {
         const res = await this.updater('GET', '/v1/status');
         return (await res.json()) as UpdateJob;
       } catch {
-        return this.localJob;
+        return this.localJob ?? (await this.state<UpdateJob | null>(JOB_KEY, null));
       }
     }
     return this.localJob ?? (await this.state<UpdateJob | null>(JOB_KEY, null));
+  }
+
+  /** Süren güncelleme var mı (30 dakikadan eski, sonuçlanmamış işler takılmış sayılır) */
+  private isBusy(job: UpdateJob | null): boolean {
+    if (!job || ['idle', 'done', 'failed', 'rolledback'].includes(job.state)) return false;
+    return !job.startedAt || this.clock.now() - job.startedAt < 30 * MINUTE;
   }
 
   private updater(method: 'GET' | 'POST', path: string, body?: unknown): Promise<Response> {
@@ -272,13 +297,101 @@ export class UpdatesService implements OnApplicationBootstrap {
       headers: { authorization: `Bearer ${this.config.updates.updaterToken}`, 'content-type': 'application/json' },
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: AbortSignal.timeout(10_000),
-    }).then(async (res) => {
-      if (!res.ok) {
-        const text = await res.text().catch(() => '');
-        throw Errors.badRequest(`Güncelleyici: ${text.slice(0, 200) || `HTTP ${res.status}`}`);
-      }
-      return res;
+    }).then(
+      async (res) => {
+        this.updaterFailure = null;
+        if (!res.ok) {
+          const text = await res.text().catch(() => '');
+          throw Errors.badRequest(`Güncelleyici: ${text.slice(0, 200) || `HTTP ${res.status}`}`);
+        }
+        return res;
+      },
+      (err: unknown) => {
+        // "fetch failed" yerine nedeni ve çözümü söyleyen mesaj (bkz. describeUpdaterError)
+        const e = err as { name?: string; cause?: { code?: string } };
+        let host = 'updater';
+        try {
+          host = new URL(this.config.updates.updaterUrl ?? '').host;
+        } catch {
+          /* varsayılan */
+        }
+        this.updaterFailure = { code: e?.cause?.code ?? (e?.name === 'TimeoutError' ? 'TIMEOUT' : ''), host };
+        throw new UpdaterUnreachable();
+      },
+    );
+  }
+
+  /** Güncelleyiciye ulaşılamama nedeni ve çözümü (yöneticinin dilinde) */
+  private describeUpdaterError(f: { code: string; host: string }, locale?: string | null): string {
+    const lang = this.i18n.resolve({ preference: locale });
+    const tr = (text: string, params?: Record<string, string>) => this.i18n.t(lang, text, params);
+    const hint = this.config.coolify
+      ? tr('Coolify’da forumu tek imaj olarak kurduysanız güncelleyici kapsayıcısı yoktur: "Coolify ile güncelleme" bölümüne Deploy Webhook adresini ve API anahtarını girin.')
+      : tr('Resmi docker-compose.yml dosyasındaki "updater" servisinin çalıştığından emin olun (docker compose up -d).');
+    const reason =
+      f.code === 'ENOTFOUND' || f.code === 'EAI_AGAIN'
+        ? tr('Güncelleyici kapsayıcısı bulunamadı ({host}).', { host: f.host })
+        : f.code === 'ECONNREFUSED'
+          ? tr('Güncelleyici kapsayıcısı çalışmıyor ({host} bağlantıyı reddetti).', { host: f.host })
+          : f.code === 'TIMEOUT' || f.code === 'UND_ERR_CONNECT_TIMEOUT'
+            ? tr('Güncelleyici kapsayıcısı yanıt vermiyor ({host}).', { host: f.host })
+            : tr('Güncelleyiciye bağlanılamadı ({host}).', { host: f.code ? `${f.host}, ${f.code}` : f.host });
+    return `${reason} ${hint}`;
+  }
+
+  // ---------- Coolify ----------
+
+  private coolify(): { configured: boolean; webhookUrl: string; tokenEnc: string } {
+    const v = (this.settings.get('updates.coolify') ?? {}) as { webhookUrl?: unknown; tokenEnc?: unknown };
+    const webhookUrl = typeof v.webhookUrl === 'string' ? v.webhookUrl : '';
+    const tokenEnc = typeof v.tokenEnc === 'string' ? v.tokenEnc : '';
+    return { configured: !!webhookUrl && !!tokenEnc, webhookUrl, tokenEnc };
+  }
+
+  async saveCoolify(input: CoolifyUpdateInput, actorId: number): Promise<void> {
+    const prev = this.coolify();
+    const tokenEnc = input.token ? this.crypto.encrypt(input.token) : input.webhookUrl ? prev.tokenEnc : '';
+    if (input.webhookUrl && !tokenEnc) throw Errors.field('token', 'Coolify API anahtarı gerekli.');
+    await this.settings.update({ 'updates.coolify': { webhookUrl: input.webhookUrl, tokenEnc } }, actorId, { allowHidden: true });
+    await this.audit.log({ type: 'admin', action: 'updates.coolify', actorId, data: { configured: !!input.webhookUrl } });
+  }
+
+  /** Coolify'a yeniden dağıtım isteği: Coolify imajı (etiket latest ise yeni sürümü) çeker ve kapsayıcıyı yeniler */
+  private async deployWithCoolify(job: UpdateJob): Promise<void> {
+    const c = this.coolify();
+    let token: string;
+    try {
+      token = this.crypto.decrypt(c.tokenEnc);
+    } catch {
+      throw Errors.badRequest('Coolify API anahtarı çözülemedi; anahtarı yeniden kaydedin.');
+    }
+    const res = await fetch(c.webhookUrl, {
+      method: 'GET',
+      headers: { authorization: `Bearer ${token}`, accept: 'application/json', 'user-agent': `${PRODUCT_NAME}/${this.config.version}` },
+      signal: AbortSignal.timeout(20_000),
+    }).catch((err: unknown) => {
+      const code = (err as { cause?: { code?: string } })?.cause?.code;
+      throw Errors.badRequest(`Coolify’a bağlanılamadı${code ? ` (${code})` : ''}. Deploy Webhook adresinin forum sunucusundan erişilebildiğinden emin olun.`);
     });
+    const text = await res.text().catch(() => '');
+    if (res.status === 401 || res.status === 403) throw Errors.badRequest('Coolify API anahtarı reddedildi. Anahtarın "deploy" yetkisi olduğundan emin olun.');
+    if (!res.ok) throw Errors.badRequest(`Coolify yeniden dağıtımı başlatılamadı: HTTP ${res.status} ${text.slice(0, 200)}`);
+    this.log(job, 'Coolify yeniden dağıtımı başlatıldı; yeni imaj çekiliyor, forum birazdan yeniden başlayacak.');
+  }
+
+  /** Açılışta: Coolify ile başlatılan güncellemenin sonucunu kaydet */
+  private async finishPendingPlatform(): Promise<void> {
+    const p = await this.state<{ from: string; to: string } | null>(PLATFORM_PENDING_KEY, null);
+    if (!p || compareVersions(this.config.version, p.from) === 0) return;
+    const job = await this.state<UpdateJob>(JOB_KEY, { ...EMPTY_JOB });
+    const ok = compareVersions(this.config.version, p.to) >= 0;
+    job.state = ok ? 'done' : 'failed';
+    job.finishedAt = this.clock.now();
+    job.error = ok ? null : `Beklenen sürüm v${p.to}, çalışan v${this.config.version}. Coolify’da imaj etiketinin "latest" olduğundan emin olun.`;
+    job.log.push({ at: this.clock.now(), message: ok ? `v${this.config.version} sürümüne güncellendi.` : (job.error ?? ''), level: ok ? 'info' : 'error' });
+    await this.setState(JOB_KEY, job);
+    await this.db.q.deleteFrom('system_state').where('key', '=', PLATFORM_PENDING_KEY).execute();
+    if (ok) for (const id of await this.adminIds()) await this.notifications.notify(id, 'system.updated', { version: this.config.version });
   }
 
   private log(job: UpdateJob, message: string, level: 'info' | 'warn' | 'error' = 'info'): void {
@@ -287,7 +400,7 @@ export class UpdatesService implements OnApplicationBootstrap {
     this.logger[level === 'error' ? 'error' : level === 'warn' ? 'warn' : 'log'](message);
   }
 
-  async install(version: string, actorId: number | null): Promise<UpdateJob> {
+  async install(version: string, actorId: number | null, locale?: string | null): Promise<UpdateJob> {
     const blocker = this.installBlocker();
     if (blocker) throw Errors.badRequest(blocker);
     const target = cleanVersion(version);
@@ -295,7 +408,7 @@ export class UpdatesService implements OnApplicationBootstrap {
     if (!release) throw Errors.badRequest('Bu sürüm yayın listesinde yok. Önce "Şimdi denetle" ile listeyi yenileyin.');
     if (compareVersions(target, this.config.version) === 0) throw Errors.badRequest('Bu sürüm zaten kurulu.');
     const current = await this.job();
-    if (current && !['idle', 'done', 'failed', 'rolledback'].includes(current.state)) throw Errors.conflict('Bir güncelleme zaten sürüyor.');
+    if (this.isBusy(current)) throw Errors.conflict('Bir güncelleme zaten sürüyor.');
 
     const job: UpdateJob = { ...EMPTY_JOB, log: [], state: 'backup', version: target, from: this.config.version, startedAt: this.clock.now() };
     this.localJob = job;
@@ -307,6 +420,15 @@ export class UpdatesService implements OnApplicationBootstrap {
         const b = await this.backups.create('db', `pre-update-${target.replace(/[^a-z0-9]+/gi, '-')}`);
         this.log(job, `Yedek hazır: ${b.name}`);
       } else this.log(job, `Yedek alınamadı: ${this.backups.supported().reason}`, 'warn');
+
+      if (this.config.deploy === 'docker' && this.coolify().configured) {
+        job.state = 'restart';
+        this.log(job, 'Coolify’a yeniden dağıtım isteği gönderiliyor…');
+        await this.deployWithCoolify(job);
+        await this.setState(PLATFORM_PENDING_KEY, { from: this.config.version, to: target });
+        await this.setState(JOB_KEY, job);
+        return job;
+      }
 
       if (this.config.deploy === 'docker') {
         job.state = 'download';
@@ -327,12 +449,13 @@ export class UpdatesService implements OnApplicationBootstrap {
       });
       return job;
     } catch (err) {
+      const unreachable = err instanceof UpdaterUnreachable && this.updaterFailure;
       job.state = 'failed';
-      job.error = err instanceof Error ? err.message : String(err);
+      job.error = unreachable ? this.describeUpdaterError(this.updaterFailure!, locale) : err instanceof Error ? err.message : String(err);
       job.finishedAt = this.clock.now();
       this.log(job, `Güncelleme başlatılamadı: ${job.error}`, 'error');
       await this.setState(JOB_KEY, job);
-      throw err;
+      throw unreachable ? Errors.badRequest(job.error) : err;
     }
   }
 
@@ -467,5 +590,12 @@ export class UpdatesService implements OnApplicationBootstrap {
 
   hasPrevious(): boolean {
     return this.config.deploy === 'release' && existsSync(join(this.updateDir(), 'previous', 'server.mjs'));
+  }
+}
+
+/** Güncelleyici kapsayıcısına bağlanılamadı (ayrıntı UpdatesService.updaterFailure içinde) */
+class UpdaterUnreachable extends Error {
+  constructor() {
+    super('updater unreachable');
   }
 }

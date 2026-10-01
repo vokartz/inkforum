@@ -29,7 +29,8 @@ describe('mail templates', () => {
     expect(preview.status).toBe(200);
     expect(preview.body.subject).toBe('Selam admin');
     expect(preview.body.html).toContain('style="display:inline-block');
-    expect(preview.body.text).toContain('Git: https://forum.ornek.com');
+    // Örnek bağlantılar forumun kendi adresiyle gösterilir
+    expect(preview.body.text).toContain('Git: http://forum.test');
 
     const save = await admin.put('/api/admin/mail/templates/welcome', { subject: '{{forumName}} ailesine katıldın {{name}}', body: '<p>Hoş geldin {{name}} &amp; <script>x</script></p>' });
     expect(save.status).toBe(200);

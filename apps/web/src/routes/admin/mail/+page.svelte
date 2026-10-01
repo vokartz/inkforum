@@ -12,6 +12,7 @@
   import LoaderIcon from 'phosphor-svelte/lib/CircleNotch';
   import CopyIcon from 'phosphor-svelte/lib/Copy';
   import * as Tabs from '$lib/components/ui/tabs';
+  import WarningIcon from 'phosphor-svelte/lib/WarningCircle';
   import * as Card from '$lib/components/ui/card';
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
@@ -97,7 +98,8 @@
     testing = true;
     try {
       await api.post(`/api/admin/mail/templates/${selected.key}/preview`, { subject, body, to: data.viewer.user.email });
-      toast.success(t('Örnek e-posta {email} adresine gönderildi.', { email: data.viewer.user.email }));
+      if (data.outbox?.driver === 'log') toast.warning(t('Günlük modunda e-posta gönderilmez; örnek yalnızca "Son e-postalar" listesine yazıldı. SMTP ayarlayın.'));
+      else toast.success(t('Örnek e-posta {email} adresine gönderildi.', { email: data.viewer.user.email }));
       await invalidate('app:admin-mail');
     } catch (e) {
       toast.error(errorMessage(e));
@@ -134,7 +136,9 @@
   };
   async function send(e: SubmitEvent) {
     e.preventDefault();
-    const res = await form.submit(() => api.post('/api/admin/mail/test', { to }), { success: t('Test e-postası gönderildi; gelen kutusunu (ve spam klasörünü) kontrol edin.') });
+    const res = await form.submit(() => api.post('/api/admin/mail/test', { to }), {
+      success: data.outbox?.driver === 'log' ? t('Günlük modunda e-posta gönderilmez; örnek yalnızca "Son e-postalar" listesine yazıldı. SMTP ayarlayın.') : t('Test e-postası gönderildi; gelen kutusunu (ve spam klasörünü) kontrol edin.'),
+    });
     if (res) await invalidate('app:admin-mail');
   }
 </script>
@@ -148,6 +152,16 @@
 />
 
 {#if data.outbox}
+  {#if data.outbox.driver === 'log'}
+    <div class="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm" data-part="mail-log-mode">
+      <WarningIcon class="size-5 shrink-0 text-warning" weight="fill" />
+      <p class="min-w-0 flex-1">
+        <b>{t('E-postalar şu an gönderilmiyor.')}</b>
+        {t('Gönderim "Günlük" modunda: e-postalar yalnızca sunucudaki storage/mail klasörüne yazılır. Üyelere ulaşması için bir SMTP sunucusu ayarlayın.')}
+      </p>
+      <Button size="sm" onclick={() => (tab = 'delivery')}>{t('SMTP ayarla')}</Button>
+    </div>
+  {/if}
   <Tabs.Root bind:value={tab}>
     <Tabs.List class="mb-4">
       <Tabs.Trigger value="templates">{t('Şablonlar')}</Tabs.Trigger>

@@ -54,6 +54,7 @@
     if (l === 'daily') return t('Günlük');
     if (l === 'uploaded') return t('Yüklendi');
     if (l === 'pre-restore') return t('Geri yükleme öncesi');
+    if (l === 'pre-migrate') return t('Veritabanı güncellemesi öncesi');
     if (l.startsWith('pre-update')) return t('Güncelleme öncesi ({version})', { version: l.replace('pre-update-', 'v').replace(/-/g, '.') });
     return l;
   }
