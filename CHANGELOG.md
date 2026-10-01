@@ -8,6 +8,43 @@ Each version section becomes the GitHub release note and the update note in the 
 
 ## [Unreleased]
 
+### Added
+
+- **Code-first custom pages (Admin → Pages):** write a page in HTML, CSS and JavaScript, with an optional sidebar
+  (forum sidebar, your own HTML or none). A page can live at any root address you choose, for example `/ucp`, and
+  can have its own server code: a sandboxed `handle(req)` function that can redirect, return data to the page or
+  answer JSON requests at `/api/page-api/<page>/…`. Server code can call allowed external hosts with `fetch`, keep
+  data in a per-page key-value store, read encrypted secrets that never reach the browser and get a signed token for
+  the signed-in member. It runs with CPU, time and memory limits. A test runner, ready examples (UCP single sign-on,
+  member panel, form, landing page, sidebar) and a detailed documentation page are included, together with a UI kit
+  (`f-*` classes) and forum components such as `<forum-user>`, `<forum-recent>` and `<forum-countdown>`.
+- **Maintenance page designer:** layout, icon, background, texts, countdown, progress bar, buttons, social links and
+  the staff login link; admins with the custom code permission can add their own HTML and CSS.
+- **Optional captcha** on register, login and forgot password: a built-in math question, Cloudflare Turnstile,
+  hCaptcha or Google reCAPTCHA, chosen per form.
+- **Share card designer (Admin → Share card):** design the link preview image with four layouts, a background color,
+  gradient or image, logo, texts and the embed color, with a live Discord-style preview.
+- **Automatic staff assignment for support tickets:** each category can hand new tickets to staff in turn, to
+  whoever has the fewest open tickets, or always to one person, optionally preferring staff who are online. Only the
+  assigned staff member is notified.
+
+### Changed
+
+- **Private messages work like topics:** a conversation has a title and its messages appear as full posts with the
+  author card, quoting and the complete editor, instead of a chat layout.
+- Cleaner support (tickets) and applications pages.
+- YouTube and other embeds play directly inside the editor, and custom emoji show as images while writing.
+- The Updates page and other admin pages open quickly even when the updater is unreachable.
+
+### Removed
+
+- The visual page builder. Existing builder pages keep working; opening one in the editor converts it to HTML.
+- The Shoutbox and Game server status plugins.
+
+### Fixed
+
+- Switching between light and dark mode now applies at once instead of after a reload.
+
 ## [1.2.0] - 2026-10-01
 
 ### Added

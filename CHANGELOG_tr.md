@@ -9,6 +9,44 @@ güncelleme notuna dönüşür (panel yöneticinin diline uygun olanı gösterir
 
 ## [Yayımlanmamış]
 
+### Eklenenler
+
+- **Kodla özel sayfalar (Yönetim → Sayfalar):** sayfayı HTML, CSS ve JavaScript ile yazın; isteğe bağlı kenar
+  çubuğu ekleyin (forumun kenar çubuğu, kendi HTML'iniz ya da hiç). Sayfa istediğiniz kök adreste yayınlanabilir,
+  örneğin `/ucp`, ve kendi sunucu kodu olabilir: yalıtılmış bir `handle(req)` fonksiyonu yönlendirme yapabilir,
+  sayfaya veri verebilir ya da `/api/page-api/<sayfa>/…` adresindeki JSON isteklerini yanıtlayabilir. Sunucu kodu
+  izin verilen dış adreslere `fetch` ile istek atabilir, sayfaya özel anahtar-değer deposu kullanabilir, tarayıcıya
+  hiç gitmeyen şifreli gizli değerleri okuyabilir ve giriş yapmış üye için imzalı bir anahtar alabilir. İşlemci,
+  süre ve bellek sınırlarıyla çalışır. Test aracı, hazır örnekler (UCP tek oturum, üye paneli, form, tanıtım sayfası,
+  kenar çubuğu), ayrıntılı bir belge sayfası, arayüz kiti (`f-*` sınıfları) ve `<forum-user>`, `<forum-recent>`,
+  `<forum-countdown>` gibi forum bileşenleri de eklendi.
+- **Bakım sayfası tasarımcısı:** düzen, ikon, arka plan, metinler, geri sayım, ilerleme çubuğu, düğmeler, sosyal
+  bağlantılar ve yetkili girişi bağlantısı; özel kod yetkisi olan yöneticiler kendi HTML ve CSS'lerini ekleyebilir.
+- **İsteğe bağlı captcha:** kayıt, giriş ve şifremi unuttum formlarında yerleşik matematik sorusu, Cloudflare
+  Turnstile, hCaptcha ya da Google reCAPTCHA; her form için ayrı seçilir.
+- **Paylaşım kartı tasarımcısı (Yönetim → Paylaşım kartı):** bağlantı önizleme görselini dört düzen, renk, geçiş ya
+  da görsel arka plan, logo, metinler ve gömme rengiyle tasarlayın; Discord benzeri canlı önizleme ile.
+- **Destek taleplerinde otomatik yetkili atama:** her kategori yeni talepleri yetkililere sırayla, açık talebi en az
+  olana ya da hep aynı kişiye verebilir; istenirse çevrimiçi yetkililer önceliklidir. Bildirim yalnızca atanan
+  yetkiliye gider.
+
+### Değişenler
+
+- **Özel mesajlar konu gibi çalışıyor:** her yazışmanın bir başlığı var, mesajlar sohbet balonu yerine yazar kartı,
+  alıntı ve tam editörle birer gönderi olarak görünür.
+- Destek talepleri ve başvurular sayfaları sadeleştirildi.
+- YouTube ve diğer gömülü içerikler editörde doğrudan oynatılır, özel emojiler yazarken görsel olarak görünür.
+- Güncellemeler sayfası ve diğer yönetim sayfaları, güncelleyiciye ulaşılamadığında bile hızlı açılır.
+
+### Kaldırılanlar
+
+- Görsel sayfa oluşturucu. Mevcut oluşturucu sayfaları çalışmaya devam eder; editörde açıldığında HTML'e çevrilir.
+- Sohbet kutusu ve oyun sunucusu durumu eklentileri.
+
+### Düzeltilenler
+
+- Açık ve koyu mod arasında geçiş artık sayfayı yenilemeden hemen uygulanır.
+
 ## [1.2.0] - 2026-10-01
 
 ### Eklenenler
