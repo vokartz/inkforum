@@ -8,6 +8,44 @@ Each version section becomes the GitHub release note and the update note in the 
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-01
+
+### Added
+
+- **Theme studio (Admin → Themes):** build a complete theme visually, without writing code. Start from a preset
+  (Modern, Community, Midnight, Forest, Sunset, Paper, Neon, Clean) or copy an existing theme, then change light and
+  dark colors, fonts and sizes, corners, borders and shadows, card style, header layout (top bar, banner, centered),
+  menu style, page width, sidebar position, density, post layout, the forum list, the page background (gradient,
+  pattern, image) and effects. A live preview shows the home page, a board or a topic on desktop, tablet and phone
+  in light and dark mode. Each theme keeps its own settings; themes can be duplicated, exported and imported as JSON,
+  reset and activated. Admins with the custom code permission can add CSS to a theme and HTML before or after the
+  header and footer.
+- **Plugins:** Shoutbox (live chat on the home page), Discord (server widget and new-topic notifications through a
+  webhook) and Game server status (FiveM, Minecraft and SA-MP, with player counts). They are off by default; enabling
+  one adds its block to the home page.
+- **Real-time notifications and messages:** notifications, new messages and read receipts arrive instantly without
+  reloading, with an optional sound and the unread count in the tab title. The messages page has a new two-column
+  messenger layout.
+- **Login and register page layouts:** split with an image, centered or full-page cover, with your own headline and
+  text; pages without an image now look finished.
+
+### Changed
+
+- **Forum list redesign:** cleaner board rows with topic and post counts, the last post with its author's avatar,
+  and sub-boards as chips. Themes can show the list as a table, cards or a compact list.
+- Themes: the SMF theme was removed and the IPS-style theme is now called **Community**. Existing forums keep their
+  look; Modern and Community are now system themes in the theme studio. Theme options (accent, mode, font, corners,
+  post layout) moved from Appearance to the theme studio.
+- The profile cover without an image is now a flat color.
+- Link previews (Open Graph) for boards show the category and counts, and use the forum's custom domain instead of
+  Coolify's generated address.
+
+### Fixed
+
+- Admin → Appearance did not save (validation error on the banner color).
+- Saving a board with topic template errors looked like nothing happened; the error is now shown next to the field
+  and as a message.
+
 ## [1.1.1] - 2026-10-01
 
 ### Added

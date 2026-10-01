@@ -9,6 +9,45 @@ güncelleme notuna dönüşür (panel yöneticinin diline uygun olanı gösterir
 
 ## [Yayımlanmamış]
 
+## [1.2.0] - 2026-10-01
+
+### Eklenenler
+
+- **Tema stüdyosu (Yönetim → Temalar):** kod yazmadan, görsel olarak baştan sona yeni bir tema yapın. Hazır bir
+  başlangıçtan (Modern, Topluluk, Gece Mavisi, Orman, Gün Batımı, Kâğıt, Neon, Temiz Açık) ya da var olan bir temanın
+  kopyasından başlayıp açık ve koyu renkleri, yazı tiplerini ve boyutları, köşeleri, kenarlık ve gölgeleri, kart
+  stilini, üst alan düzenini (üst çubuk, banner, ortalı), menü stilini, sayfa genişliğini, yan sütunun yerini,
+  sıklığı, mesaj düzenini, forum listesini, sayfa arka planını (geçiş, desen, görsel) ve efektleri değiştirin. Canlı
+  önizleme ana sayfayı, bir bölümü ya da konuyu masaüstü, tablet ve telefonda, açık ve koyu modda gösterir. Her temanın
+  kendi ayarları vardır; temalar kopyalanabilir, JSON olarak dışa/içe aktarılabilir, varsayılana döndürülebilir ve
+  etkinleştirilebilir. Özel kod iznine sahip yöneticiler temaya CSS, üst alan ve alt bilginin önüne/arkasına HTML
+  ekleyebilir.
+- **Eklentiler:** Sohbet kutusu (ana sayfada canlı sohbet), Discord (sunucu widget'ı ve webhook ile yeni konu
+  bildirimleri) ve Oyun sunucusu durumu (FiveM, Minecraft ve SA-MP, oyuncu sayılarıyla). Varsayılan olarak kapalıdır;
+  açılınca bloğu ana sayfaya eklenir.
+- **Anlık bildirimler ve mesajlar:** bildirimler, yeni mesajlar ve okundu bilgisi sayfa yenilenmeden anında gelir;
+  isteğe bağlı ses ve sekme başlığında okunmamış sayısı. Mesajlar sayfası iki sütunlu yeni bir mesajlaşma düzenine
+  kavuştu.
+- **Giriş ve kayıt sayfası düzenleri:** görselli bölünmüş, ortalı ya da tam sayfa kapak; kendi başlığınız ve
+  metninizle. Görsel olmayan sayfalar artık eksik görünmüyor.
+
+### Değişenler
+
+- **Forum listesi yenilendi:** konu ve mesaj sayıları, yazarının avatarıyla son mesaj ve etiket olarak alt bölümlerle
+  daha sade bölüm satırları. Temalar listeyi tablo, kart ya da sıkışık liste olarak gösterebilir.
+- Temalar: SMF teması kaldırıldı, IPS tarzı temanın adı artık **Topluluk**. Mevcut forumların görünümü değişmez;
+  Modern ve Topluluk tema stüdyosunda sistem temasıdır. Tema seçenekleri (vurgu, mod, yazı tipi, köşeler, mesaj
+  düzeni) Görünüm sayfasından tema stüdyosuna taşındı.
+- Görseli olmayan profil kapağı artık düz renk.
+- Bölümlerin bağlantı önizlemeleri (Open Graph) kategoriyi ve sayıları gösterir; Coolify'ın ürettiği adres yerine
+  forumun kendi alan adını kullanır.
+
+### Düzeltilenler
+
+- Yönetim → Görünüm kaydedilmiyordu (banner renginde doğrulama hatası).
+- Konu şablonu hatalı bir bölümü kaydetmek hiçbir şey olmamış gibi görünüyordu; hata artık alanın yanında ve mesaj
+  olarak gösteriliyor.
+
 ## [1.1.1] - 2026-10-01
 
 ### Eklenenler
