@@ -30,7 +30,6 @@
   import { REALTIME_EVENT, realtime } from '$lib/realtime.svelte';
   import { formatDateTime } from '$lib/format';
   import { profileUrl } from '$lib/viewer';
-  import { cn } from '$lib/utils';
   import { t, tc } from '$lib/i18n.svelte';
 
   /** Özel konuşma: forumdaki bir konu gibi; her mesaj yazar sütunlu bir kart, yanıt en altta */

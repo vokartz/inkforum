@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import type { UserSummary } from './dto.js';
 
 /**
  * Yerleşik eklentiler. Yönetim → Eklentiler ekranından açılıp kapatılır; kapalı bir eklentinin
