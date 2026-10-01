@@ -149,7 +149,8 @@
       requireApprovalPosts: approvalPosts,
       isHidden,
       privateTopics,
-      topicTemplate: $state.snapshot(template),
+      // Boş bırakılan (soru yazılmamış) satırlar kaydedilmez
+      topicTemplate: { ...$state.snapshot(template), fields: $state.snapshot(template).fields.filter((f) => f.label.trim() || f.options.length) },
       about,
     };
     const res = await form.submit(

@@ -1,3 +1,4 @@
+import { tick } from 'svelte';
 import { toast } from 'svelte-sonner';
 import { ApiError, errorMessage } from './api';
 
@@ -48,7 +49,12 @@ export function createForm() {
           if (opts.onError?.(e)) return undefined;
           errors = e.fields;
           message = Object.keys(e.fields).length ? (e.message ?? null) : e.message;
-          if (opts.toastErrors) toast.error(e.message);
+          const first = Object.values(e.fields)[0];
+          // Hatalı alan ekranın dışında kalabilir: ilk hata bildirilir ve o alana kaydırılır
+          if (opts.toastErrors || first) toast.error(first ?? e.message);
+          if (first && typeof document !== 'undefined') {
+            void tick().then(() => document.querySelector('[aria-invalid="true"], p[role="alert"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+          }
         } else {
           message = errorMessage(e);
           if (opts.toastErrors) toast.error(message);
