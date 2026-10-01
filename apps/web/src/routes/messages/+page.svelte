@@ -5,7 +5,7 @@
   import { t } from '$lib/i18n.svelte';
 </script>
 
-<div class="grid h-full place-content-center justify-items-center gap-3 bg-[radial-gradient(40rem_16rem_at_50%_0%,color-mix(in_oklch,var(--primary)_8%,transparent),transparent)] p-8 text-center">
+<div class="grid min-h-[28rem] place-content-center justify-items-center gap-3 rounded-2xl border bg-card p-8 text-center shadow-card">
   <span class="flex size-16 items-center justify-center rounded-xl bg-primary-soft text-primary"><ChatsIcon class="size-8" weight="duotone" /></span>
   <h2 class="text-lg font-bold">{t('Bir konuşma seç')}</h2>
   <p class="max-w-sm text-sm text-muted-foreground">{t('Soldaki listeden bir konuşma aç ya da yeni bir mesaj başlat. Mesajlar yalnızca katılımcılar tarafından görülür.')}</p>

@@ -48,12 +48,12 @@
 
 <svelte:head><title>{t('Yeni mesaj')}</title></svelte:head>
 
-<div class="flex h-full flex-col">
+<div class="flex flex-col overflow-hidden rounded-2xl border bg-card shadow-card">
   <header class="flex items-center gap-2 border-b px-4 py-3">
     <a href="/messages" class="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground lg:hidden" aria-label={t('Geri')}><ArrowLeftIcon class="size-5" /></a>
     <h2 class="text-lg font-extrabold">{t('Yeni mesaj')}</h2>
   </header>
-  <div class="grid min-h-0 flex-1 content-start gap-4 overflow-y-auto p-4 sm:p-5">
+  <div class="grid content-start gap-4 p-4 sm:p-5">
     <FormMessage message={form.message} />
     <Field label={t('Kime')} error={form.error('recipientIds')} hint={t('En fazla {n} üye. Birden çok üye seçersen grup konuşması olur.', { n: maxRecipients })}>
       <div class="grid gap-2">

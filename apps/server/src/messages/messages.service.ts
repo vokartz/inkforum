@@ -20,6 +20,7 @@ import { privacySchema, DEFAULT_PRIVACY } from '../profiles/profiles.schemas.js'
 import { fromJsonSchema } from '../database/json.js';
 import { unreadConversationCount } from './unread.js';
 import { can, type RequestViewer } from '../common/request-context.js';
+import { RealtimeService } from '../realtime/realtime.service.js';
 
 const LIST_PER_PAGE = 20;
 const MESSAGES_PER_PAGE = 25;
@@ -37,6 +38,7 @@ export class MessagesService {
     private readonly render: PostRenderService,
     private readonly posts: PostsService,
     private readonly notifications: NotificationsService,
+    private readonly realtime: RealtimeService,
   ) {}
 
   /** Yönetim ve moderatörler sınırlara ve "mesaj kabul etmiyorum" ayarına takılmaz. */
@@ -127,6 +129,7 @@ export class MessagesService {
 
     const now = this.clock.now();
     let id = 0;
+    let messageId = 0;
     await this.db.tx(async () => {
       const conv = await this.db.q
         .insertInto('conversations')
@@ -137,9 +140,10 @@ export class MessagesService {
       for (const uid of [user.id, ...recipients]) {
         await this.db.q.insertInto('conversation_participants').values({ conversation_id: id, user_id: uid, joined_at: now }).execute();
       }
-      await this.addMessage(id, user, input.body);
+      messageId = await this.addMessage(id, user, input.body);
     });
     this.db.afterCommit(() => this.emailRecipients(recipients, user.display_name, input.title || null, id));
+    await this.push(recipients, id, messageId, input.title || null, user, input.body);
     return { id };
   }
 
@@ -185,7 +189,22 @@ export class MessagesService {
       messageId = await this.addMessage(conv.id, user, body);
     });
     if (caughtUp.length) this.db.afterCommit(() => this.emailRecipients(caughtUp.map((r) => r.user_id), user.display_name, conv.title, conv.id));
+    await this.push(others.map((o) => o.user_id), conv.id, messageId, conv.title, user, body);
     return { messageId };
+  }
+
+  /** Alıcıların açık sekmelerine anlık mesaj bildirimi (ses, açılır uyarı, açık konuşmanın yenilenmesi) */
+  private async push(userIds: number[], conversationId: number, messageId: number, title: string | null, user: Row<'users'>, body: string): Promise<void> {
+    if (!userIds.length) return;
+    const me = (await this.users.summaries([user.id])).get(user.id);
+    this.realtime.publish(userIds, {
+      type: 'message',
+      conversationId,
+      messageId,
+      title: title ?? '',
+      from: { id: user.id, name: user.display_name, avatarUrl: me?.avatarUrl ?? null },
+      excerpt: bbcodeExcerpt(body, 140),
+    });
   }
 
   /** Gelen kutusu: son mesaja göre. */
@@ -260,13 +279,20 @@ export class MessagesService {
     ]);
     const people = await this.users.summaries([...parts.map((p) => p.user_id), ...rows.map((r) => r.user_id ?? 0)]);
 
-    if (conv.last_message_id) {
+    const mine = parts.find((p) => p.user_id === uid);
+    if (conv.last_message_id && (mine?.last_read_message_id ?? 0) < conv.last_message_id) {
       await this.db.q
         .updateTable('conversation_participants')
         .set({ last_read_message_id: conv.last_message_id })
         .where('conversation_id', '=', id)
         .where('user_id', '=', uid)
         .execute();
+      // Diğer sekmeler sayaçları, diğer katılımcılar "görüldü" bilgisini günceller
+      this.realtime.publish(uid, { type: 'counters' });
+      this.realtime.publish(
+        parts.filter((p) => p.user_id !== uid && !p.left_at).map((p) => p.user_id),
+        { type: 'conversationRead', conversationId: id, userId: uid, messageId: conv.last_message_id },
+      );
     }
     const blocked = await this.blockReason(viewer);
     const active = parts.filter((p) => !p.left_at);
@@ -279,12 +305,22 @@ export class MessagesService {
       createdAt: r.created_at,
       isMine: r.user_id === uid,
     }));
+    // Katılımcıların okuduğu son mesajın zamanı ("Okudu: 5 dk önce")
+    const readIds = [...new Set(parts.map((p) => (p.user_id === uid ? (conv.last_message_id ?? 0) : p.last_read_message_id)).filter((x) => x > 0))];
+    const readAt = new Map(
+      readIds.length
+        ? (await this.db.q.selectFrom('conversation_messages').select(['id', 'created_at']).where('id', 'in', readIds).execute()).map((r) => [r.id, r.created_at] as const)
+        : [],
+    );
     return {
       id: conv.id,
       title: conv.title,
       participants: parts
         .filter((p) => people.has(p.user_id))
-        .map((p) => ({ user: people.get(p.user_id)!, isCreator: p.user_id === conv.created_by, leftAt: p.left_at, lastReadMessageId: p.last_read_message_id })),
+        .map((p) => {
+          const lastRead = p.user_id === uid ? (conv.last_message_id ?? 0) : p.last_read_message_id;
+          return { user: people.get(p.user_id)!, isCreator: p.user_id === conv.created_by, leftAt: p.left_at, lastReadMessageId: lastRead, lastReadAt: readAt.get(lastRead) ?? null };
+        }),
       messages: { items: messages, total, page, perPage: MESSAGES_PER_PAGE },
       can: { reply: !replyBlockedReason, invite: conv.created_by === uid && !blocked },
       replyBlockedReason,

@@ -8,6 +8,8 @@ class Counters {
   notifications = $state(0);
   messages = $state(0);
   modQueue = $state(0);
+  /** Anlık akış bağlıyken düzenli sorgu seyrekleşir (akış koparsa yine 45 sn) */
+  live = false;
   private timer: ReturnType<typeof setInterval> | null = null;
 
   set(values: Partial<MeCounters>) {
@@ -29,7 +31,11 @@ class Counters {
   start(intervalMs = 45_000): () => void {
     const onVisible = () => document.visibilityState === 'visible' && void this.refresh();
     void this.refresh();
-    this.timer = setInterval(() => document.visibilityState === 'visible' && void this.refresh(), intervalMs);
+    let tick = 0;
+    this.timer = setInterval(() => {
+      tick++;
+      if (document.visibilityState === 'visible' && (!this.live || tick % 4 === 0)) void this.refresh();
+    }, intervalMs);
     document.addEventListener('visibilitychange', onVisible);
     return () => {
       if (this.timer) clearInterval(this.timer);

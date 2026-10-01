@@ -25,6 +25,7 @@ import { TwoFactorService } from './auth/two-factor.service.js';
 import { ViewerService } from './auth/viewer.service.js';
 import { TokenAuthService } from './auth/token-auth.service.js';
 import { NotificationsService } from './notifications/notifications.service.js';
+import { RealtimeService } from './realtime/realtime.service.js';
 import { PresenceService } from './presence/presence.service.js';
 import { I18nService } from './i18n/i18n.service.js';
 
@@ -55,6 +56,7 @@ const services = [
   TokenAuthService,
   NotificationsService,
   PresenceService,
+  RealtimeService,
 ];
 
 /** Uygulama genelinde paylaşılan altyapı ve çekirdek alan servisleri. */

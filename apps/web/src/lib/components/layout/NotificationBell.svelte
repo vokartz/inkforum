@@ -10,6 +10,11 @@
   import TimeAgo from '../TimeAgo.svelte';
   import { cn } from '$lib/utils';
   import { counters } from '$lib/counters.svelte';
+  import { sounds } from '$lib/sounds.svelte';
+  import { REALTIME_EVENT } from '$lib/realtime.svelte';
+  import SpeakerIcon from 'phosphor-svelte/lib/SpeakerHigh';
+  import SpeakerOffIcon from 'phosphor-svelte/lib/SpeakerSlash';
+  import { onMount } from 'svelte';
   import { t } from '$lib/i18n.svelte';
 
   // `unread` sayfa verisinden gelir; güncel değer ortak sayaçtan okunur.
@@ -29,6 +34,15 @@
       loading = false;
     }
   }
+
+  // Açıkken yeni bildirim gelirse liste yenilenir
+  onMount(() => {
+    const onEvent = (e: Event) => {
+      if ((e as CustomEvent<{ type: string }>).detail.type === 'notification' && open) void load();
+    };
+    window.addEventListener(REALTIME_EVENT, onEvent);
+    return () => window.removeEventListener(REALTIME_EVENT, onEvent);
+  });
 
   async function openItem(n: NotificationItem) {
     const { href } = describeNotification(n);
@@ -67,11 +81,23 @@
   <Popover.Content align="end" class="w-[23rem] gap-0 overflow-hidden p-0">
     <div class="flex items-center justify-between px-4 pt-3.5 pb-2.5">
       <span class="text-base font-extrabold">{t('Bildirimler')}</span>
-      {#if unread > 0}
-        <button type="button" class="inline-flex items-center gap-1 text-xs font-semibold text-link hover:underline" onclick={markAll}>
-          <ChecksIcon class="size-3.5" />{t('Tümünü okundu say')}
+      <span class="flex items-center gap-3">
+        {#if unread > 0}
+          <button type="button" class="inline-flex items-center gap-1 text-xs font-semibold text-link hover:underline" onclick={markAll}>
+            <ChecksIcon class="size-3.5" />{t('Tümünü okundu say')}
+          </button>
+        {/if}
+        <button
+          type="button"
+          class="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          onclick={() => sounds.toggle()}
+          title={sounds.enabled ? t('Bildirim sesini kapat') : t('Bildirim sesini aç')}
+          aria-pressed={sounds.enabled}
+          data-part="sound-toggle"
+        >
+          {#if sounds.enabled}<SpeakerIcon class="size-4" />{:else}<SpeakerOffIcon class="size-4" />{/if}
         </button>
-      {/if}
+      </span>
     </div>
     <div class="max-h-[26rem] overflow-auto px-1.5 pb-1.5">
       {#if loading && !items.length}

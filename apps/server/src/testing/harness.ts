@@ -74,6 +74,11 @@ export class Agent {
     return this.store(await this.apply(request(this.app.getHttpServer()).post(path)).attach(field, buffer, filename));
   }
 
+  /** Uzun süreli bağlantılar (ör. olay akışı) için çerez başlığı */
+  cookieHeader(): string {
+    return [...this.cookies].map(([k, v]) => `${k}=${v}`).join('; ');
+  }
+
   hasSession(): boolean {
     return [...this.cookies.keys()].some((k) => k.includes('forum_sid'));
   }

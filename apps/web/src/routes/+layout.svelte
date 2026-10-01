@@ -26,6 +26,7 @@
   import { formatDate } from '$lib/format';
   import { installEmbedRuntime } from '$lib/embed-runtime';
   import { counters } from '$lib/counters.svelte';
+  import { realtime } from '$lib/realtime.svelte';
 
   let { data, children } = $props();
   const viewer = $derived(data.viewer);
@@ -84,7 +85,19 @@
   });
   $effect(() => {
     if (!viewer.user) return;
-    return counters.start();
+    const stopPolling = counters.start();
+    const stopStream = realtime.start();
+    return () => (stopPolling(), stopStream());
+  });
+
+  // Okunmamışlar sekme başlığında: "(3) Konu başlığı"
+  $effect(() => {
+    const n = viewer.user ? counters.notifications + counters.messages : 0;
+    void page.url.pathname;
+    void tick().then(() => {
+      const base = document.title.replace(/^\(\d+\+?\) /, '');
+      document.title = n > 0 ? `(${n > 99 ? '99+' : n}) ${base}` : base;
+    });
   });
 
   // Tema tercihi ve forumun varsayılan modu istemci durumuyla eşitlenir.

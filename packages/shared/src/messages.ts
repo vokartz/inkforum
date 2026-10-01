@@ -30,6 +30,8 @@ export interface ConversationParticipant {
   leftAt: number | null;
   /** Okuduğu son mesaj (okundu bilgisi için) */
   lastReadMessageId: number;
+  /** Okuduğu son mesajın gönderilme zamanı */
+  lastReadAt: number | null;
 }
 
 export interface ConversationDetail {
@@ -63,3 +65,15 @@ export interface MeCounters {
   /** Onay bekleyen konu/mesaj (yalnızca onaylayabildiği bölümler; diğer üyelerde 0) */
   modQueue: number;
 }
+
+/** Anlık olaylar (GET /api/me/stream, Server-Sent Events) */
+export type RealtimeEvent =
+  | { type: 'hello' }
+  /** Yeni site içi bildirim; istemci sayaçları ve son bildirimi çeker */
+  | { type: 'notification'; notificationType: string }
+  /** Yeni özel mesaj */
+  | { type: 'message'; conversationId: number; messageId: number; title: string; from: { id: number; name: string; avatarUrl: string | null }; excerpt: string }
+  /** Bir katılımcı konuşmayı okudu (görüldü bilgisi) */
+  | { type: 'conversationRead'; conversationId: number; userId: number; messageId: number }
+  /** Okundu bilgisi değişti (başka sekmede okundu vb.); istemci sayaçları tazeler */
+  | { type: 'counters' };

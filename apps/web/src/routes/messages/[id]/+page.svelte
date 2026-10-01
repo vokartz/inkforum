@@ -1,15 +1,18 @@
 <script lang="ts">
-  import type { ConversationMessage, UserSummary } from '@forum/shared';
-  import { tick } from 'svelte';
+  import type { ConversationMessage, RealtimeEvent, UserSummary } from '@forum/shared';
+  import { onMount, tick } from 'svelte';
   import { goto, invalidate } from '$app/navigation';
   import { toast } from 'svelte-sonner';
   import ArrowLeftIcon from 'phosphor-svelte/lib/ArrowLeft';
   import PaperPlaneIcon from 'phosphor-svelte/lib/PaperPlaneRight';
   import LoaderIcon from 'phosphor-svelte/lib/CircleNotch';
-  import DotsIcon from 'phosphor-svelte/lib/DotsThreeVertical';
+  import DotsIcon from 'phosphor-svelte/lib/DotsThree';
+  import CaretDownIcon from 'phosphor-svelte/lib/CaretDown';
   import UserPlusIcon from 'phosphor-svelte/lib/UserPlus';
+  import UsersIcon from 'phosphor-svelte/lib/Users';
   import SignOutIcon from 'phosphor-svelte/lib/SignOut';
-  import ChecksIcon from 'phosphor-svelte/lib/Checks';
+  import QuotesIcon from 'phosphor-svelte/lib/Quotes';
+  import LinkIcon from 'phosphor-svelte/lib/Link';
   import LockIcon from 'phosphor-svelte/lib/LockSimple';
   import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
   import * as Dialog from '$lib/components/ui/dialog';
@@ -22,6 +25,7 @@
   import { api, errorMessage } from '$lib/api';
   import { confirmAction } from '$lib/confirm.svelte';
   import { counters } from '$lib/counters.svelte';
+  import { REALTIME_EVENT, realtime } from '$lib/realtime.svelte';
   import { formatDateTime } from '$lib/format';
   import { cn } from '$lib/utils';
   import { t } from '$lib/i18n.svelte';
@@ -33,40 +37,42 @@
   const others = $derived(active.filter((p) => p.user.id !== me));
   const heading = $derived(c.title || others.map((p) => p.user.displayName).join(', ') || t('Konuşma'));
   const pages = $derived(Math.max(1, Math.ceil(c.messages.total / c.messages.perPage)));
+  const firstId = $derived(c.messages.page === 1 ? c.messages.items[0]?.id : undefined);
 
-  // Aynı üyenin art arda (5 dk içinde) gönderdiği mesajlar tek grupta gösterilir.
-  const groups = $derived.by(() => {
-    const out: Array<{ author: UserSummary | null; authorName: string; mine: boolean; items: ConversationMessage[] }> = [];
-    for (const m of c.messages.items) {
-      const last = out.at(-1);
-      const prev = last?.items.at(-1);
-      if (last && prev && last.authorName === m.authorName && m.createdAt - prev.createdAt < 5 * 60_000) last.items.push(m);
-      else out.push({ author: m.author, authorName: m.authorName, mine: m.isMine, items: [m] });
-    }
-    return out;
-  });
-  // Son mesajımı herkes okuduysa "Görüldü"
-  const lastMine = $derived([...c.messages.items].reverse().find((m) => m.isMine));
-  const seenByAll = $derived(!!lastMine && others.length > 0 && others.every((p) => p.lastReadMessageId >= lastMine.id));
+  // Okundu bilgisi: son mesajı okuyan herkes "Şu an" gibi güncel görünür
+  const lastId = $derived(c.messages.items.at(-1)?.id ?? 0);
 
-  let scroller = $state<HTMLElement | null>(null);
-  async function toBottom(smooth = false) {
+  let editor = $state<{ focus: () => void; insertBBCode: (bb: string) => void } | null>(null);
+  let composer = $state<HTMLElement | null>(null);
+
+  async function scrollToLatest(smooth = false) {
     await tick();
-    scroller?.scrollTo({ top: scroller.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
+    const last = document.getElementById(`m${lastId}`);
+    last?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' });
   }
-  // Açılışta ve yeni mesajlarda en alta in; bu konuşma okundu sayıldı.
-  let lastSeenId = 0;
+
+  // Açılışta son mesaja inilir; yeni mesaj gelince yumuşakça kaydırılır
+  let seen = 0;
   $effect(() => {
-    const last = c.messages.items.at(-1)?.id ?? 0;
-    if (last !== lastSeenId && c.messages.page === pages) void toBottom(lastSeenId !== 0);
-    lastSeenId = last;
+    const last = lastId;
+    if (last !== seen && c.messages.page === pages && c.messages.items.length > 1) void scrollToLatest(seen !== 0);
+    seen = last;
     void counters.refresh();
   });
 
-  // Konuşma açıkken yeni mesajlar için düzenli yenileme
-  $effect(() => {
-    const t = setInterval(() => document.visibilityState === 'visible' && void invalidate('app:conversation'), 15_000);
-    return () => clearInterval(t);
+  // Anlık güncelleme: bu konuşmaya yeni mesaj ya da okundu bilgisi gelince yenilenir
+  onMount(() => {
+    const onEvent = (e: Event) => {
+      const ev = (e as CustomEvent<RealtimeEvent>).detail;
+      if ((ev.type === 'message' || ev.type === 'conversationRead') && ev.conversationId === c.id) void invalidate('app:conversation');
+    };
+    window.addEventListener(REALTIME_EVENT, onEvent);
+    // Akış bağlı değilse (eski tarayıcı, vekil sorunu) düzenli yoklama
+    const poll = setInterval(() => !realtime.connected && document.visibilityState === 'visible' && void invalidate('app:conversation'), 15_000);
+    return () => {
+      window.removeEventListener(REALTIME_EVENT, onEvent);
+      clearInterval(poll);
+    };
   });
 
   let body = $state('');
@@ -82,6 +88,22 @@
       toast.error(errorMessage(e));
     } finally {
       sending = false;
+    }
+  }
+
+  function quote(m: ConversationMessage) {
+    const text = (new DOMParser().parseFromString(m.html, 'text/html').body.textContent ?? '').trim().slice(0, 2000);
+    editor?.insertBBCode(`[quote=${m.authorName}]${text}[/quote]\n`);
+    composer?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    editor?.focus();
+  }
+
+  async function copyLink(m: ConversationMessage) {
+    try {
+      await navigator.clipboard.writeText(`${location.origin}/messages/${c.id}#m${m.id}`);
+      toast.success(t('Bağlantı kopyalandı.'));
+    } catch {
+      toast.error(t('Kopyalanamadı.'));
     }
   }
 
@@ -110,92 +132,107 @@
 
 <svelte:head><title>{heading} · {t('Mesajlar')}</title></svelte:head>
 
-<div class="flex h-full flex-col" data-part="conversation">
-  <header class="flex items-center gap-3 border-b px-3 py-2.5 sm:px-4">
-    <a href="/messages" class="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground lg:hidden" aria-label={t('Geri')}><ArrowLeftIcon class="size-5" /></a>
-    <div class="flex -space-x-2">
-      {#each others.slice(0, 3) as p (p.user.id)}<UserAvatar user={p.user} size={36} class="ring-2 ring-card" />{/each}
-    </div>
-    <div class="min-w-0 flex-1">
-      <h2 class="truncate font-bold">{heading}</h2>
-      <p class="truncate text-xs text-muted-foreground">
-        {#if c.title}{others.map((p) => p.user.displayName).join(', ')} · {/if}{t('{n} katılımcı', { n: active.length })} · {t('{n} mesaj', { n: c.messages.total })}
-      </p>
-    </div>
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger>
-        {#snippet child({ props })}<Button {...props} variant="ghost" size="icon" aria-label={t('Konuşma işlemleri')}><DotsIcon weight="bold" /></Button>{/snippet}
-      </DropdownMenu.Trigger>
-      <DropdownMenu.Content align="end" class="w-60">
-        <DropdownMenu.Label class="text-xs text-muted-foreground">{t('Katılımcılar')}</DropdownMenu.Label>
-        {#each c.participants as p (p.user.id)}
-          <div class={cn('flex items-center gap-2 px-2 py-1.5 text-sm', p.leftAt && 'opacity-50')}>
-            <UserAvatar user={p.user} size={24} /><UserName user={p.user} class="text-sm" />
-            {#if p.isCreator}<span class="ml-auto text-[10px] font-bold text-muted-foreground">{t('BAŞLATAN')}</span>{:else if p.leftAt}<span class="ml-auto text-[10px] text-muted-foreground">{t('ayrıldı')}</span>{/if}
-          </div>
-        {/each}
-        <DropdownMenu.Separator />
-        {#if c.can.invite}<DropdownMenu.Item onSelect={() => (inviteOpen = true)}><UserPlusIcon />{t('Katılımcı ekle')}</DropdownMenu.Item>{/if}
-        <DropdownMenu.Item variant="destructive" onSelect={leave}><SignOutIcon />{t('Konuşmadan ayrıl')}</DropdownMenu.Item>
-      </DropdownMenu.Content>
-    </DropdownMenu.Root>
-  </header>
-
-  <!-- Mesajlar -->
-  <div bind:this={scroller} class="min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-5" data-part="conversation-messages">
-    {#if c.messages.page > 1}
-      <div class="mb-4 text-center">
-        <a href="?sayfa={c.messages.page - 1}" class="rounded-full border px-3 py-1 text-xs font-semibold text-muted-foreground hover:bg-accent hover:text-foreground">{t('Önceki mesajlar')}</a>
+<div class="grid gap-4" data-part="conversation">
+  <!-- Başlık ve katılımcılar -->
+  <header class="rounded-2xl border bg-card shadow-card">
+    <div class="flex items-start gap-3 px-5 pt-5 pb-4">
+      <a href="/messages" class="-ml-1 rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground lg:hidden" aria-label={t('Geri')}><ArrowLeftIcon class="size-5" /></a>
+      <div class="min-w-0 flex-1">
+        <h2 class="text-xl font-extrabold tracking-tight break-words sm:text-2xl">{heading}</h2>
+        <p class="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
+          <UsersIcon class="size-4" />{t('Bu yazışmada {n} üye var (sen dahil)', { n: active.length })} · {t('{n} mesaj', { n: c.messages.total })}
+        </p>
       </div>
-    {/if}
-    <div class="grid gap-4">
-      {#each groups as g, gi (gi)}
-        <div class={cn('flex items-end gap-2.5', g.mine && 'flex-row-reverse')}>
-          {#if !g.mine}<UserAvatar user={g.author ?? { displayName: g.authorName, avatarUrl: null }} size={32} class="mb-0.5" />{/if}
-          <div class={cn('grid max-w-[min(85%,42rem)] gap-1', g.mine && 'justify-items-end')}>
-            <p class={cn('px-1 text-xs text-muted-foreground', g.mine && 'text-right')}>
-              {#if !g.mine}<span class="font-semibold text-foreground">{g.authorName}</span> · {/if}<span title={formatDateTime(g.items[0]!.createdAt)}><TimeAgo ms={g.items[0]!.createdAt} /></span>
-            </p>
-            {#each g.items as m (m.id)}
-              <div
-                class={cn(
-                  'prose-forum rounded-2xl px-3.5 py-2 text-sm [&_.bb-embed]:max-w-md',
-                  g.mine ? 'rounded-br-md bg-primary text-primary-foreground [&_a]:text-primary-foreground' : 'rounded-bl-md bg-muted',
-                )}
-                title={formatDateTime(m.createdAt)}
-              >
-                {@html m.html}
-              </div>
-            {/each}
-            {#if g.mine && lastMine && g.items.some((m) => m.id === lastMine.id) && seenByAll}
-              <span class="flex items-center gap-1 px-1 text-[11px] text-muted-foreground"><ChecksIcon class="size-3.5 text-primary" weight="bold" />{t('Görüldü')}</span>
-            {/if}
-          </div>
+      <DropdownMenu.Root>
+        <DropdownMenu.Trigger>
+          {#snippet child({ props })}<Button {...props} variant="outline" size="sm">{t('Seçenekler')}<CaretDownIcon /></Button>{/snippet}
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Content align="end" class="w-56">
+          {#if c.can.invite}<DropdownMenu.Item onSelect={() => (inviteOpen = true)}><UserPlusIcon />{t('Katılımcı ekle')}</DropdownMenu.Item>{/if}
+          <DropdownMenu.Item variant="destructive" onSelect={leave}><SignOutIcon />{t('Konuşmadan ayrıl')}</DropdownMenu.Item>
+        </DropdownMenu.Content>
+      </DropdownMenu.Root>
+    </div>
+    <div class="flex flex-wrap items-stretch gap-2 border-t px-5 py-3.5" data-part="participants">
+      {#each c.participants as p (p.user.id)}
+        <div class={cn('flex items-center gap-2.5 rounded-xl border bg-surface-2 py-1.5 pr-3.5 pl-1.5', p.leftAt && 'opacity-55')}>
+          <UserAvatar user={p.user} size={34} />
+          <span class="grid leading-tight">
+            <UserName user={p.user} class="text-sm font-semibold" />
+            <span class="text-xs text-muted-foreground">
+              {#if p.leftAt}{t('Ayrıldı')}
+              {:else if p.user.id === me || (p.lastReadMessageId >= lastId && lastId > 0)}{t('Okudu:')} {t('güncel')}
+              {:else if p.lastReadAt}{t('Okudu:')} <TimeAgo ms={p.lastReadAt} />
+              {:else}{t('Henüz okumadı')}{/if}
+            </span>
+          </span>
         </div>
       {/each}
+      {#if c.can.invite}
+        <button type="button" onclick={() => (inviteOpen = true)} class="flex items-center gap-1.5 rounded-xl border border-dashed px-3.5 text-sm font-semibold text-muted-foreground transition-colors hover:border-primary hover:text-foreground" title={t('Katılımcı ekle')}>
+          <UserPlusIcon class="size-4" />{t('Ekle')}
+        </button>
+      {/if}
     </div>
-    {#if c.messages.page < pages}
-      <div class="mt-4 text-center">
-        <a href="?sayfa={c.messages.page + 1}" class="rounded-full border px-3 py-1 text-xs font-semibold text-muted-foreground hover:bg-accent hover:text-foreground">{t('Sonraki mesajlar')}</a>
-      </div>
-    {/if}
-  </div>
+  </header>
 
-  <!-- Yazma alanı -->
-  <footer class="border-t p-3 sm:p-4">
-    {#if c.can.reply}
-      <div class="flex items-end gap-2">
-        <div class="min-w-0 flex-1">
-          <Editor bind:value={body} compact minHeight={60} maxLength={c.limits.maxLength} mentions={false} onsubmit={send} placeholder={t('Bir mesaj yaz…')} draftKey="pm:{c.id}" />
+  {#if c.messages.page > 1}
+    <div class="text-center"><a href="?sayfa={c.messages.page - 1}" class="rounded-full border bg-card px-4 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground">{t('Önceki mesajlar')}</a></div>
+  {/if}
+
+  <!-- Mesajlar: forum gönderisi gibi -->
+  {#each c.messages.items as m (m.id)}
+    <article id="m{m.id}" class={cn('scroll-mt-24 rounded-2xl border bg-card shadow-card', m.isMine && 'border-primary/30')} data-part="conversation-message">
+      <header class="flex items-center gap-3 px-5 pt-4">
+        <UserAvatar user={m.author ?? { displayName: m.authorName, avatarUrl: null }} size={44} />
+        <div class="min-w-0 flex-1 leading-tight">
+          {#if m.author}<UserName user={m.author} class="font-bold" />{:else}<span class="font-bold">{m.authorName}</span>{/if}
+          <p class="mt-0.5 text-xs text-muted-foreground" title={formatDateTime(m.createdAt)}>
+            {m.id === firstId ? t('Yazışmayı başlattı') : t('Yanıt verdi')} · <TimeAgo ms={m.createdAt} />
+          </p>
         </div>
-        <Button onclick={send} disabled={sending || !body.trim()} size="icon-lg" title={t('Gönder (Ctrl+Enter)')} aria-label={t('Gönder')}>
-          {#if sending}<LoaderIcon class="animate-spin" />{:else}<PaperPlaneIcon weight="fill" />{/if}
-        </Button>
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger>
+            {#snippet child({ props })}<Button {...props} variant="ghost" size="icon-sm" aria-label={t('Mesaj işlemleri')}><DotsIcon weight="bold" /></Button>{/snippet}
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Content align="end">
+            <DropdownMenu.Item onSelect={() => copyLink(m)}><LinkIcon />{t('Bağlantıyı kopyala')}</DropdownMenu.Item>
+            {#if c.can.reply}<DropdownMenu.Item onSelect={() => quote(m)}><QuotesIcon />{t('Alıntıla')}</DropdownMenu.Item>{/if}
+          </DropdownMenu.Content>
+        </DropdownMenu.Root>
+      </header>
+      <div class="prose-forum px-5 py-4 [&_.bb-embed]:max-w-xl" data-part="post-body">{@html m.html}</div>
+      {#if c.can.reply}
+        <footer class="flex justify-end border-t px-4 py-2">
+          <Button variant="ghost" size="sm" onclick={() => quote(m)}><QuotesIcon />{t('Alıntıla')}</Button>
+        </footer>
+      {/if}
+    </article>
+  {/each}
+
+  {#if c.messages.page < pages}
+    <div class="text-center"><a href="?sayfa={c.messages.page + 1}" class="rounded-full border bg-card px-4 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground">{t('Sonraki mesajlar')}</a></div>
+  {/if}
+
+  <!-- Yanıt -->
+  <section bind:this={composer} class="rounded-2xl border bg-card p-4 shadow-card sm:p-5" data-part="conversation-reply">
+    {#if c.can.reply}
+      <div class="flex gap-3">
+        <UserAvatar user={data.viewer.user!} size={40} class="hidden shrink-0 sm:block" />
+        <div class="grid min-w-0 flex-1 gap-3">
+          <Editor bind:this={editor} bind:value={body} minHeight={120} maxLength={c.limits.maxLength} mentions={false} onsubmit={send} placeholder={t('Yanıtını yaz…')} draftKey="pm:{c.id}" />
+          <div class="flex items-center justify-end gap-2">
+            <span class="mr-auto hidden text-xs text-muted-foreground sm:inline">{t('Göndermek için Ctrl+Enter')}</span>
+            <Button onclick={send} disabled={sending || !body.trim()}>
+              {#if sending}<LoaderIcon class="animate-spin" />{:else}<PaperPlaneIcon weight="fill" />{/if}{t('Yanıt gönder')}
+            </Button>
+          </div>
+        </div>
       </div>
     {:else}
       <p class="flex items-center justify-center gap-2 rounded-md bg-muted px-3 py-3 text-sm text-muted-foreground"><LockIcon class="size-4" />{c.replyBlockedReason}</p>
     {/if}
-  </footer>
+  </section>
 </div>
 
 <Dialog.Root bind:open={inviteOpen}>

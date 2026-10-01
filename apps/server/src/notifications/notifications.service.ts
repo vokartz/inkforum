@@ -6,6 +6,7 @@ import { JobsService } from '../jobs/jobs.service.js';
 import { MailService } from '../mail/mail.service.js';
 import { SettingsService } from '../settings/settings.service.js';
 import { EMAIL_NOTIFICATION_DEFAULTS, type MailTemplateKey } from '@forum/shared';
+import { RealtimeService } from '../realtime/realtime.service.js';
 
 export type NotificationType =
   | 'warning.issued'
@@ -81,6 +82,7 @@ export class NotificationsService implements OnModuleInit {
     private readonly jobs: JobsService,
     private readonly mail: MailService,
     private readonly settings: SettingsService,
+    private readonly realtime: RealtimeService,
   ) {}
 
   onModuleInit(): void {
@@ -106,6 +108,7 @@ export class NotificationsService implements OnModuleInit {
       .set((eb) => ({ unread_notifications: eb('unread_notifications', '+', 1) }))
       .where('id', '=', userId)
       .execute();
+    this.db.afterCommit(() => this.realtime.publish(userId, { type: 'notification', notificationType: type }));
     if (EMAIL_TEMPLATES[type]) {
       try {
         await this.email(userId, type, data);
@@ -204,6 +207,7 @@ export class NotificationsService implements OnModuleInit {
       await q.execute();
       await this.recount(userId);
     });
+    this.realtime.publish(userId, { type: 'counters' });
   }
 
   async delete(userId: number, id: number): Promise<void> {

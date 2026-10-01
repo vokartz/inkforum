@@ -45,6 +45,7 @@ import { AppearanceController } from './appearance/appearance.controller.js';
 import { HomeService } from './home/home.service.js';
 import { MessagesService } from './messages/messages.service.js';
 import { MessagesController } from './messages/messages.controller.js';
+import { RealtimeController } from './realtime/realtime.controller.js';
 import { ReactionsService } from './forum/reactions.service.js';
 import { HomeController } from './home/home.controller.js';
 import { TopicExtrasService } from './forum/topic-extras.service.js';
@@ -113,6 +114,7 @@ export class AppModule {
         AppearanceController,
         HomeController,
         MessagesController,
+        RealtimeController,
         CustomController,
         WikiController,
         ApplicationsController,
