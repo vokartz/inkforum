@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { CustomPageView } from '@forum/shared';
-  import { onMount } from 'svelte';
+  import { untrack } from 'svelte';
+  import { browser } from '$app/environment';
   import { page as appPage } from '$app/state';
   import PencilIcon from 'phosphor-svelte/lib/PencilSimple';
   import EyeSlashIcon from 'phosphor-svelte/lib/EyeSlash';
@@ -45,15 +46,20 @@
     return out;
   });
 
-  onMount(() => {
-    defineForumElements();
-  });
-  $effect(() => {
+  function install() {
     const u = viewer?.user;
     setForumPage(
       { id: u?.id ?? 0, username: u?.username ?? '', displayName: u?.displayName ?? '', group: u?.primaryGroup?.name ?? null, isGuest: !u, avatarUrl: u?.avatarUrl ?? null },
       { id: p.id, slug: p.slug, route: p.route ?? null, title: p.title, data: p.data ?? null },
     );
+  }
+  // Sayfanın betikleri (alt bileşen) takılmadan önce forum.page ve bileşenler hazır olmalı
+  if (browser) {
+    untrack(install);
+    defineForumElements();
+  }
+  $effect(() => {
+    install();
     return () => {
       if (window.forum) window.forum.page = null;
     };
@@ -96,13 +102,18 @@
   {#if script}<CustomHtml html={script} part="custom-page-script" class="hidden" />{/if}
 {/snippet}
 
+{#snippet aside()}
+  <aside class="grid min-w-0 content-start gap-4 lg:sticky lg:top-24" data-part="custom-page-sidebar">
+    <CustomHtml html={p.sidebarHtml ?? ''} vars={dataVars} part="custom-page-sidebar-html" />
+  </aside>
+{/snippet}
+
 {#snippet withSidebar(main: import('svelte').Snippet)}
   {#if sidebar}
     <div class={cn('grid items-start gap-6', sidebar === 'left' ? 'lg:grid-cols-[18rem_minmax(0,1fr)]' : 'lg:grid-cols-[minmax(0,1fr)_18rem]')} data-part="custom-page-layout">
-      <aside class={cn('grid min-w-0 content-start gap-4 lg:sticky lg:top-24', sidebar === 'left' && 'lg:order-first')} data-part="custom-page-sidebar">
-        <CustomHtml html={p.sidebarHtml ?? ''} vars={dataVars} part="custom-page-sidebar-html" />
-      </aside>
-      <div class={cn('min-w-0', sidebar === 'left' && 'lg:order-last')}>{@render main()}</div>
+      {#if sidebar === 'left'}{@render aside()}{/if}
+      <div class="min-w-0">{@render main()}</div>
+      {#if sidebar === 'right'}{@render aside()}{/if}
     </div>
   {:else}
     {@render main()}
