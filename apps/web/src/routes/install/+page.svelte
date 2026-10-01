@@ -70,8 +70,6 @@
   const THEMES = [
     { key: 'modern', label: 'Modern', hint: 'Kartlar, ferah boşluklar, akıcı animasyonlar' },
     { key: 'community', label: 'Topluluk', hint: 'Bannerlı üst alan, altında menü çubuğu; geniş kartlar' },
-    { key: 'nova', label: 'Nova', hint: 'Kurumsal forum düzeni: renkli üst bant, sekme menü, başlık şeritli bloklar' },
-    { key: 'editorial', label: 'Zarif', hint: 'Kâğıt tonları, serif başlıklar, ortalanmış gazete başlığı' },
   ] as const;
 
   // Adım 4
@@ -315,7 +313,7 @@
                 </div>
                 <div class="grid gap-2">
                   <span class="text-sm font-medium">{t('Tema')}</span>
-                  <div class="grid gap-3 grid-cols-2 lg:grid-cols-4">
+                  <div class="grid gap-3 sm:grid-cols-2">
                     {#each THEMES as th (th.key)}
                       <button
                         type="button"

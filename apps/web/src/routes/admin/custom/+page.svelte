@@ -382,7 +382,7 @@
         <p class="mb-3 text-sm text-muted-foreground">
           {t('Tüm forum sayfalarına eklenir ve temanın üzerine yazılır. Bileşenleri')} <code class="rounded bg-muted px-1">[data-part="…"]</code> {t('seçicileriyle hedefleyebilirsin (ör.')}
           <code class="rounded bg-muted px-1">[data-part="site-header"]</code>); {t('temaya özel kurallar için')}
-          <code class="rounded bg-muted px-1">[data-style="nova"]</code> {t('kullan.')}
+          <code class="rounded bg-muted px-1">[data-style="community"]</code> {t('kullan.')}
         </p>
         <CodeEditor bind:value={css} language="CSS" minHeight={440} maxLength={100000} placeholder={'[data-part="site-header"] {\n  border-bottom: 2px solid var(--primary);\n}'} />
       </div>

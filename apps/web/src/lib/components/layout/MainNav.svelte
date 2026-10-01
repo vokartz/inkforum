@@ -13,7 +13,7 @@
   interface Props {
     items: NavEntry[];
     /** pill: hap (modern); underline: alt çizgili (topluluk); tab: sekme (klasik) */
-    variant?: 'pill' | 'underline' | 'tab' | 'nova' | 'editorial';
+    variant?: 'pill' | 'underline' | 'tab';
   }
   let { items, variant = 'pill' }: Props = $props();
 
@@ -77,23 +77,16 @@
         'h-9 rounded-t-md border border-b-0 px-3.5',
         on ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-foreground/85 hover:bg-accent',
       ],
-      // Nova: koyu bantta sekmeler; etkin sekme alttaki açık alt menü şeridiyle birleşir
-      variant === 'nova' && [
-        'h-10 rounded-t-[calc(var(--radius)*1.2)] px-4 text-[14px]',
-        on ? 'bg-topbar text-topbar-foreground' : 'text-header-foreground/85 hover:bg-white/10 hover:text-header-foreground',
-      ],
-      // Zarif: aralıklı küçük büyük harfler, etkin olan vurgu renginde
-      variant === 'editorial' && ['h-11 px-3 text-[12.5px] font-semibold tracking-[0.12em] uppercase', on ? 'text-[var(--nav-active)]' : 'text-topbar-foreground/80 hover:text-foreground'],
     );
 </script>
 
 {#snippet itemIcon(e: NavEntry)}
-  {#if e.icon && variant !== 'editorial'}<NodeIcon nodes={e.icon} size={18} class="opacity-75 transition-[opacity,transform] duration-200 group-hover/nav:scale-110 group-hover/nav:opacity-100" />{/if}
+  {#if e.icon}<NodeIcon nodes={e.icon} size={18} class="opacity-75 transition-[opacity,transform] duration-200 group-hover/nav:scale-110 group-hover/nav:opacity-100" />{/if}
 {/snippet}
 
 {#snippet underline(_on: boolean)}{/snippet}
 
-<div bind:this={container} class={cn('relative flex min-w-0 flex-1 items-center overflow-x-clip', variant === 'editorial' && 'justify-center gap-0.5')} data-part="main-nav">
+<div bind:this={container} class={'relative flex min-w-0 flex-1 items-center overflow-x-clip'} data-part="main-nav">
   <!-- Genişlik ölçümü için görünmez kopya -->
   <div bind:this={measure} class="pointer-events-none invisible absolute top-0 left-0 flex" aria-hidden="true">
     {#each items as e (e.id)}

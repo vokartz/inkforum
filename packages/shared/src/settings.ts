@@ -44,7 +44,7 @@ export const SETTING_SECTIONS = {
 
 /** Yönetim panelinden seçilebilen yazı tipleri (hepsi Türkçe karakter destekli, değişken ağırlıklı). */
 /** Forum temaları (Yönetim → Görünüm → Tema) */
-export const THEME_STYLES = ['modern', 'community', 'nova', 'editorial'] as const;
+export const THEME_STYLES = ['modern', 'community'] as const;
 export type ThemeStyle = (typeof THEME_STYLES)[number];
 
 export const FONT_OPTIONS = [
@@ -864,13 +864,11 @@ export const SETTINGS = {
     schema: z.enum(THEME_STYLES),
     default: 'modern' as ThemeStyle,
     label: 'Tema',
-    description: 'Forumun genel görünümü: Modern, Topluluk, Nova ya da Zarif.',
+    description: 'Forumun temel düzeni: Modern ya da Topluluk (bannerlı üst alan, altında menü).',
     input: 'select',
     options: [
       { value: 'modern', label: 'Modern' },
       { value: 'community', label: 'Topluluk' },
-      { value: 'nova', label: 'Nova' },
-      { value: 'editorial', label: 'Zarif' },
     ],
     public: true,
   }),

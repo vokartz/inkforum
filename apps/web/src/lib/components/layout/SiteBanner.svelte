@@ -14,7 +14,7 @@
     inner?: string;
     /** Sağ taraf (hesap düğmeleri vb.) */
     aside?: Snippet;
-    /** Logo ve slogan ortada (Zarif teması) */
+    /** Logo ve slogan ortada (ortalanmış başlık düzeni) */
     center?: boolean;
   }
   let { height, class: className, inner = 'mx-auto max-w-7xl px-4 sm:px-6', aside, center = false }: Props = $props();

@@ -110,7 +110,7 @@ y se guardan en el volumen `storage`. Si la plataforma ofrece su propio proxy in
 <details>
 <summary><b>Diseño</b></summary>
 
-- Cuatro temas: **Modern**, **Community** (gran banner), **Nova** (diseño de foro profesional: franja superior de color, menú en pestañas, cabeceras de bloque) y **Elegant** (tonos de papel, títulos con serifa, cabecera centrada)
+- Dos temas: **Modern** y **Community** (gran banner), y un **estudio de temas** visual para crear el tuyo
 - Modo claro/oscuro, color de acento, 9 fuentes, radio de las esquinas, banner, logotipo y fondos
 - Editor de menús y bloques de la página de inicio con arrastrar y soltar
 - **Studio**: un creador de páginas a pantalla completa con arrastrar y soltar: landing pages, galerías, tarjetas de servidor, cuentas atrás, tablas de precios, preguntas frecuentes…

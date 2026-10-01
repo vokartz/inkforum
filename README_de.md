@@ -110,7 +110,7 @@ Du kannst kein Docker nutzen (cPanel/Passenger, Plesk, reines Node.js)? Jede Ver
 <details>
 <summary><b>Design</b></summary>
 
-- Vier Themes: **Modern**, **Community** (großes Banner), **Nova** (professionelles Forenlayout: farbiges Kopfband, Tab-Menü, Blocküberschriften) und **Elegant** (Papiertöne, Serifen-Überschriften, zentrierter Titelkopf)
+- Zwei Themes: **Modern** und **Community** (großes Banner) sowie ein visuelles **Theme-Studio** für eigene Designs
 - Hell-/Dunkelmodus, Akzentfarbe, 9 Schriftarten, Eckenradius, Banner, Logo und Hintergründe
 - Menü-Editor und Startseiten-Blöcke per Drag & Drop
 - **Studio**: ein Vollbild-Seitenbaukasten per Drag & Drop – Landingpages, Galerien, Serverkarten, Countdowns, Preistabellen, FAQs …

@@ -118,7 +118,7 @@ Docker kullanamayan ortamlar (cPanel/Passenger, Plesk, doğrudan Node.js) için 
 <details>
 <summary><b>Tasarım</b></summary>
 
-- Dört tema: **Modern**, **Topluluk** (büyük banner), **Nova** (kurumsal forum düzeni: renkli üst bant, sekme menü, başlık şeritli bloklar) ve **Zarif** (kâğıt tonları, serif başlıklar, ortalanmış gazete başlığı)
+- İki tema: **Modern** ve **Topluluk** (büyük banner); ayrıca kendi temanızı kodsuz oluşturduğunuz görsel **tema stüdyosu**
 - Açık/koyu mod, vurgu rengi, 9 yazı tipi, köşe yuvarlaklığı, banner, logo, arka planlar
 - Sürükle-bırak menü yöneticisi ve ana sayfa blokları
 - **Stüdyo**: tam ekran sürükle-bırak sayfa oluşturucu — tanıtım sayfaları, galeriler, sunucu kartı, geri sayım, fiyat tabloları, SSS…

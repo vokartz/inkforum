@@ -9,7 +9,6 @@
 
   let { viewer }: { viewer: Viewer } = $props();
   const s = $derived(viewer.settings);
-  const style = $derived(String(s['appearance.themeStyle'] ?? 'modern'));
   const links = $derived((s['appearance.footerLinks'] ?? []) as Array<{ label: string; url: string; newTab?: boolean }>);
   const social = $derived((s['appearance.socialLinks'] ?? []) as Array<{ platform: string; url: string }>);
   const label = (p: string) => t(SOCIAL_PLATFORMS.find((x) => x.key === p)?.label ?? p);
@@ -41,19 +40,6 @@
   {/each}
 {/snippet}
 
-{#if style === 'editorial'}
-  <!-- Zarif: çift çizgiyle ayrılmış, ortalanmış künye -->
-  <footer data-part="site-footer" class="mx-auto mt-14 w-full max-w-7xl px-3 pb-10 sm:px-6">
-    <div class="editorial-rule px-4 py-6 text-center text-xs text-muted-foreground">
-      <p class="mb-3 text-lg font-bold text-foreground" style="font-family:var(--heading-font)">{s['general.forumName'] ?? 'Forum'}</p>
-      <nav class="flex flex-wrap justify-center gap-x-3 gap-y-1" aria-label={t('Alt bilgi')}>{@render linkList('hover:text-foreground hover:underline')}</nav>
-      {#if social.length}<div class="mt-3 flex justify-center gap-3">{@render socialList()}</div>{/if}
-      <p class="mt-3 whitespace-pre-line">{copyright}</p>
-      <p class="mt-1.5 flex justify-center">{@render powered('opacity-80')}</p>
-      <div class="mt-2 flex items-center justify-center gap-4"><LanguagePicker /><ThemeToggle variant="text" loggedIn={!!viewer.user} timezone={viewer.user?.timezone ?? 'Europe/Istanbul'} /></div>
-    </div>
-  </footer>
-{:else}
   <footer
     data-part="site-footer"
     class={cn('relative isolate mt-14 border-t', bg ? 'text-white' : 'bg-card')}
@@ -79,4 +65,3 @@
       </div>
     </div>
   </footer>
-{/if}
