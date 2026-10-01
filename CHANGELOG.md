@@ -8,6 +8,8 @@ Each version section becomes the GitHub release note and the update note in the 
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-10-01
+
 ### Added
 
 - **Code-first custom pages (Admin → Pages):** write a page in HTML, CSS and JavaScript, with an optional sidebar

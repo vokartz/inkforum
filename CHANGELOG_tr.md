@@ -9,6 +9,8 @@ güncelleme notuna dönüşür (panel yöneticinin diline uygun olanı gösterir
 
 ## [Yayımlanmamış]
 
+## [1.3.0] - 2026-10-01
+
 ### Eklenenler
 
 - **Kodla özel sayfalar (Yönetim → Sayfalar):** sayfayı HTML, CSS ve JavaScript ile yazın; isteğe bağlı kenar
