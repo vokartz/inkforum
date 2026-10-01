@@ -6,6 +6,7 @@
   import { Input } from '$lib/components/ui/input';
   import Field from '$lib/components/Field.svelte';
   import FormMessage from '$lib/components/FormMessage.svelte';
+  import Captcha from './Captcha.svelte';
   import PasswordStrength from '$lib/components/PasswordStrength.svelte';
   import PolicyCheckList from '$lib/components/PolicyCheckList.svelte';
   import CustomFieldInput from '$lib/components/CustomFieldInput.svelte';
@@ -35,6 +36,8 @@
   let passwordConfirm = $state('');
   let birthdate = $state('');
   let website = $state('');
+  let captcha = $state('');
+  let captchaBox = $state<{ reset: () => void } | null>(null);
   let accepted = $state<number[]>([]);
   let customFields = $state<Record<string, string>>({});
   let formStartedAt = 0;
@@ -69,9 +72,11 @@
         customFields,
         website,
         formStartedAt,
+        captcha: captcha || undefined,
       }),
     );
     if (!res) {
+      captchaBox?.reset();
       document.querySelector('[aria-invalid="true"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
@@ -161,6 +166,7 @@
       <PolicyCheckList policies={info.policies} bind:accepted errors={form.errors} />
     {/if}
 
+    <Captcha form="register" bind:value={captcha} bind:this={captchaBox} error={form.error('captcha')} />
     <Button type="submit" size="lg" disabled={form.submitting} class="press mt-1">{form.submitting ? t('Kaydediliyor…') : t('Hesabımı oluştur')}</Button>
   </form>
 {/if}

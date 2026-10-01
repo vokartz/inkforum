@@ -6,7 +6,7 @@ import type { UserSummary } from './dto.js';
  * API uç noktaları 404 döner, menü öğeleri ve yönetim sayfaları gizlenir. Veriler silinmez.
  */
 
-export const PLUGIN_KEYS = ['landing', 'wiki', 'applications', 'tickets', 'shoutbox', 'discord', 'gameserver'] as const;
+export const PLUGIN_KEYS = ['landing', 'wiki', 'applications', 'tickets', 'shoutbox', 'discord'] as const;
 export type PluginKey = (typeof PLUGIN_KEYS)[number];
 
 export interface PluginDef {
@@ -109,19 +109,6 @@ export const PLUGINS: PluginDef[] = [
     publicHref: null,
     defaultEnabled: false,
   },
-  {
-    key: 'gameserver',
-    name: 'Oyun sunucusu durumu',
-    description: 'FiveM, Minecraft ve SA-MP / open.mp sunucularınızın anlık durumunu ve oyuncu sayısını ana sayfada gösterir.',
-    icon: 'game-controller',
-    version: '1.0.0',
-    author: 'InkForum',
-    category: 'integration',
-    features: ['Canlı oyuncu sayısı (dakikada bir)', 'Birden çok sunucu', 'Adresi kopyala ve bağlan düğmesi'],
-    adminHref: '/admin/gameservers',
-    publicHref: null,
-    defaultEnabled: false,
-  },
 ];
 
 export const PLUGIN_MAP = new Map(PLUGINS.map((p) => [p.key, p]));
@@ -162,44 +149,6 @@ export const shoutboxSettingsInput = z.object({
   guests: z.boolean().default(true),
 });
 export type ShoutboxSettings = z.output<typeof shoutboxSettingsInput>;
-
-// ----- Oyun sunucusu durumu -----
-
-export const GAME_SERVER_TYPES = ['fivem', 'minecraft', 'samp'] as const;
-export type GameServerType = (typeof GAME_SERVER_TYPES)[number];
-
-export interface GameServerStatus {
-  id: string;
-  name: string;
-  type: GameServerType;
-  /** Oyuncuların gördüğü bağlantı adresi */
-  address: string;
-  online: boolean;
-  players: number | null;
-  maxPlayers: number | null;
-  /** Sunucu adı / MOTD (oyunun bildirdiği) */
-  hostname: string | null;
-  /** Bağlan düğmesinin adresi (fivem://, samp://) */
-  connectUrl: string | null;
-  checkedAt: number;
-}
-
-export const gameServerInput = z.object({
-  id: z.string().trim().regex(/^[a-z0-9-]{1,32}$/).optional(),
-  name: z.string().trim().min(1, 'Sunucu adı gerekli.').max(60),
-  type: z.enum(GAME_SERVER_TYPES),
-  host: z
-    .string()
-    .trim()
-    .min(1, 'Adres gerekli.')
-    .max(253)
-    .regex(/^[a-z0-9.-]+$/i, 'Yalnızca alan adı ya da IP adresi yazın (ör. play.ornek.com).'),
-  port: z.number().int().min(1).max(65535).nullable().default(null),
-  /** FiveM: cfx.re/join kodu (isteğe bağlı) */
-  joinCode: z.string().trim().max(20).default(''),
-});
-export type GameServerInput = z.output<typeof gameServerInput>;
-export const gameServersInput = z.object({ servers: z.array(gameServerInput).max(10) });
 
 // ----- Discord -----
 

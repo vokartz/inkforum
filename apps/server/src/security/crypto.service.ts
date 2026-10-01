@@ -1,13 +1,20 @@
-import { createCipheriv, createDecipheriv, createHash, hkdfSync, randomBytes, timingSafeEqual } from 'node:crypto';
+import { createCipheriv, createDecipheriv, createHash, createHmac, hkdfSync, randomBytes, timingSafeEqual } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import { CONFIG, type AppConfig } from '../config/config.js';
 
 @Injectable()
 export class CryptoService {
   private readonly encKey: Buffer;
+  private readonly macKey: Buffer;
 
   constructor(@Inject(CONFIG) config: AppConfig) {
     this.encKey = Buffer.from(hkdfSync('sha256', config.secret, 'forum-salt', 'forum:aes-gcm:v1', 32));
+    this.macKey = Buffer.from(hkdfSync('sha256', config.secret, 'forum-salt', 'forum:hmac:v1', 32));
+  }
+
+  /** Sunucunun imzası (HMAC-SHA256, base64url) */
+  sign(value: string): string {
+    return createHmac('sha256', this.macKey).update(value).digest('base64url');
   }
 
   /** URL-güvenli rastgele belirteç. */

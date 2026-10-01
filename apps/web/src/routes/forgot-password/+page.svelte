@@ -4,18 +4,22 @@
   import AuthCard from '$lib/components/AuthCard.svelte';
   import Field from '$lib/components/Field.svelte';
   import FormMessage from '$lib/components/FormMessage.svelte';
+  import Captcha from '$lib/components/auth/Captcha.svelte';
   import { api } from '$lib/api';
   import { createForm } from '$lib/form.svelte';
   import { t } from '$lib/i18n.svelte';
 
   let email = $state('');
   let sent = $state(false);
+  let captcha = $state('');
+  let captchaBox = $state<{ reset: () => void } | null>(null);
   const form = createForm();
 
   async function submit(e: SubmitEvent) {
     e.preventDefault();
-    const res = await form.submit(() => api.post('/api/auth/password/forgot', { email }));
+    const res = await form.submit(() => api.post('/api/auth/password/forgot', { email, captcha: captcha || undefined }));
     if (res) sent = true;
+    else captchaBox?.reset();
   }
 </script>
 
@@ -31,6 +35,7 @@
       <Field label={t('E-posta adresi')} for="email" error={form.error('email')}>
         <Input id="email" type="email" bind:value={email} autocomplete="email" required />
       </Field>
+      <Captcha form="forgot" bind:value={captcha} bind:this={captchaBox} error={form.error('captcha')} />
       <Button type="submit" disabled={form.submitting}>{form.submitting ? t('Gönderiliyor…') : t('Bağlantı gönder')}</Button>
     </form>
   {/if}

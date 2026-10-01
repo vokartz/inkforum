@@ -1,12 +1,12 @@
 <script lang="ts">
   import WikiIcon from 'phosphor-svelte/lib/BookOpenText';
+  import RobotIcon from 'phosphor-svelte/lib/Robot';
   import ApplicationsIcon from 'phosphor-svelte/lib/ClipboardText';
   import TicketsIcon from 'phosphor-svelte/lib/Lifebuoy';
   import PluginsIcon from 'phosphor-svelte/lib/PuzzlePiece';
   import ThemesIcon from 'phosphor-svelte/lib/PaintBrushBroad';
   import ShoutboxIcon from 'phosphor-svelte/lib/ChatCenteredDots';
   import DiscordIcon from 'phosphor-svelte/lib/DiscordLogo';
-  import GameIcon from 'phosphor-svelte/lib/GameController';
   import FirewallIcon from 'phosphor-svelte/lib/ShieldCheckered';
   import UpdatesIcon from 'phosphor-svelte/lib/ArrowsClockwise';
   import { pluginEnabled } from '@forum/shared';
@@ -81,7 +81,6 @@
           { href: '/admin/tickets', label: t('Destek kategorileri'), icon: TicketsIcon, show: can(v, 'admin.tickets') && pluginEnabled(v.settings, 'tickets') },
           { href: '/admin/shoutbox', label: t('Sohbet kutusu'), icon: ShoutboxIcon, show: can(v, 'admin.settings') && pluginEnabled(v.settings, 'shoutbox') },
           { href: '/admin/discord', label: t('Discord'), icon: DiscordIcon, show: can(v, 'admin.settings') && pluginEnabled(v.settings, 'discord') },
-          { href: '/admin/gameservers', label: t('Oyun sunucuları'), icon: GameIcon, show: can(v, 'admin.settings') && pluginEnabled(v.settings, 'gameserver') },
           { href: '/admin/custom', label: t('Özel kod ve entegrasyon'), icon: CodeBlockIcon, show: can(v, 'admin.customCode') },
           { href: '/admin/developers', label: t('Geliştiriciler ve API'), icon: PlugsIcon, show: can(v, 'admin.developers') },
         ],
@@ -132,6 +131,7 @@
           { href: '/admin/jobs', label: t('İşler ve görevler'), icon: CogIcon, show: can(v, 'admin.maintenance'), badge: data.access.badges?.failedJobs, badgeTone: 'danger' },
           { href: '/admin/mail', label: t('E-posta'), icon: MailIcon, show: can(v, 'admin.settings') },
           { href: '/admin/security', label: t('Güvenlik duvarı'), icon: FirewallIcon, show: can(v, 'admin.settings') },
+          { href: '/admin/captcha', label: t('Captcha'), icon: RobotIcon, show: can(v, 'admin.settings') },
           { href: '/admin/updates', label: t('Güncellemeler'), icon: UpdatesIcon, show: can(v, 'admin.maintenance'), badgeText: data.access.version?.available ? t('Yeni') : null },
           { href: '/admin/maintenance', label: t('Bakım ve yedekler'), icon: WrenchIcon, show: can(v, 'admin.maintenance') },
           { href: '/admin/import', label: t('Forum taşıma'), icon: ImportIcon, show: can(v, 'admin.maintenance') },

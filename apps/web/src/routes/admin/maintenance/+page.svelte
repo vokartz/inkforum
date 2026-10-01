@@ -424,6 +424,7 @@
             <Textarea bind:value={maintenanceMsg} rows={3} maxlength={500} />
           </label>
           <Button onclick={saveMode} disabled={savingMode || !modeDirty} variant={maintenanceOn ? 'destructive' : 'default'}>{#if savingMode}<LoaderIcon class="animate-spin" />{/if}{t('Uygula')}</Button>
+          <Button href="/admin/maintenance/page" variant="outline">{t('Bakım sayfasını tasarla')}</Button>
         </Card.Content>
       </Card.Root>
     </div>

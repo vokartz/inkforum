@@ -92,7 +92,7 @@ export class UpdatesService implements OnApplicationBootstrap {
   ) {}
 
   /** Son güncelleyici isteğinin bağlantı hatası (yönetim ekranında gösterilir) */
-  private updaterFailure: { code: string; host: string } | null = null;
+  private updaterFailure: { code: string; host: string; at: number } | null = null;
 
   async onApplicationBootstrap(): Promise<void> {
     this.jobs.schedule('updates.tick', 30 * MINUTE, () => this.tick());
@@ -280,8 +280,10 @@ export class UpdatesService implements OnApplicationBootstrap {
 
   async job(): Promise<UpdateJob | null> {
     if (this.config.deploy === 'docker' && !this.coolify().configured && this.config.updates.updaterUrl && this.config.updates.updaterToken) {
+      // Ulaşılamayan güncelleyici her sayfa açılışında beklenmesin: son hatadan sonra 1 dakika yerel durum kullanılır
+      if (this.updaterFailure && this.clock.now() - this.updaterFailure.at < MINUTE) return this.localJob ?? (await this.state<UpdateJob | null>(JOB_KEY, null));
       try {
-        const res = await this.updater('GET', '/v1/status');
+        const res = await this.updater('GET', '/v1/status', undefined, 3_000);
         return (await res.json()) as UpdateJob;
       } catch {
         return this.localJob ?? (await this.state<UpdateJob | null>(JOB_KEY, null));
@@ -296,12 +298,12 @@ export class UpdatesService implements OnApplicationBootstrap {
     return !job.startedAt || this.clock.now() - job.startedAt < 30 * MINUTE;
   }
 
-  private updater(method: 'GET' | 'POST', path: string, body?: unknown): Promise<Response> {
+  private updater(method: 'GET' | 'POST', path: string, body?: unknown, timeoutMs = 10_000): Promise<Response> {
     return fetch(`${this.config.updates.updaterUrl}${path}`, {
       method,
       headers: { authorization: `Bearer ${this.config.updates.updaterToken}`, 'content-type': 'application/json' },
       body: body === undefined ? undefined : JSON.stringify(body),
-      signal: AbortSignal.timeout(10_000),
+      signal: AbortSignal.timeout(timeoutMs),
     }).then(
       async (res) => {
         this.updaterFailure = null;
@@ -320,7 +322,7 @@ export class UpdatesService implements OnApplicationBootstrap {
         } catch {
           /* varsayılan */
         }
-        this.updaterFailure = { code: e?.cause?.code ?? (e?.name === 'TimeoutError' ? 'TIMEOUT' : ''), host };
+        this.updaterFailure = { code: e?.cause?.code ?? (e?.name === 'TimeoutError' ? 'TIMEOUT' : ''), host, at: this.clock.now() };
         throw new UpdaterUnreachable();
       },
     );

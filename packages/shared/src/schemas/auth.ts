@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { captchaField } from '../captcha.js';
 
 export const registerSchema = z.object({
   username: z.string().trim().min(1, 'Kullanıcı adı gerekli.').max(50),
@@ -12,6 +13,7 @@ export const registerSchema = z.object({
   website: z.string().max(200).optional().default(''),
   /** Formun açıldığı an (ms) — çok hızlı gönderimleri engellemek için. */
   formStartedAt: z.number().int().nonnegative().optional(),
+  captcha: captchaField,
 });
 export type RegisterInput = z.input<typeof registerSchema>;
 
@@ -19,6 +21,7 @@ export const loginSchema = z.object({
   identifier: z.string().trim().min(1, 'Kullanıcı adı veya e-posta gerekli.').max(254),
   password: z.string().min(1, 'Şifre gerekli.').max(256),
   remember: z.boolean().default(false),
+  captcha: captchaField,
 });
 export type LoginInput = z.input<typeof loginSchema>;
 
@@ -35,6 +38,7 @@ export const loginTwoFactorSchema = z.object({
 
 export const forgotPasswordSchema = z.object({
   email: z.email('Geçerli bir e-posta adresi girin.').max(254),
+  captcha: captchaField,
 });
 
 export const resetPasswordSchema = z.object({

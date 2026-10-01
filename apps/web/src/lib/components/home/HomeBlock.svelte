@@ -16,7 +16,6 @@
   import TilesBlock from './TilesBlock.svelte';
   import ShoutboxBlock from './ShoutboxBlock.svelte';
   import DiscordBlock from './DiscordBlock.svelte';
-  import GameServerBlock from './GameServerBlock.svelte';
   import CustomHtml from '../CustomHtml.svelte';
   import { formatCompact, formatNumber } from '$lib/format';
   import { cn } from '$lib/utils';
@@ -104,8 +103,6 @@
   <ShoutboxBlock title={block.title} {compact} />
 {:else if block.kind === 'discord'}
   <DiscordBlock title={block.title} />
-{:else if block.kind === 'gameserver'}
-  <GameServerBlock title={block.title} />
 {:else if block.kind === 'birthdays'}
   {#if birthdays.length}
     <Widget title={block.title || t('Bugün doğum günü')} icon={CakeIcon}>

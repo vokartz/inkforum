@@ -122,6 +122,16 @@ describe('tiptap bridge', () => {
     expect(docToBBCode(bbcodeToDoc(once))).toBe(once);
   });
 
+  it('turns known custom emoji shortcodes into nodes and back', () => {
+    const find = (c: string) => (c === 'pepe' ? { url: '/u/pepe.png', name: 'Pepe' } : undefined);
+    const src = 'selam :pepe: [b]ve :pepe:[/b] :yok: [icode]:pepe:[/icode]';
+    const doc = bbcodeToDoc(src, { customEmoji: find });
+    const inline = doc.content![0]!.content!;
+    expect(inline.filter((n) => n.type === 'customEmoji')).toHaveLength(2);
+    expect(inline.find((n) => n.type === 'customEmoji' && n.marks)?.marks?.[0]?.type).toBe('bold');
+    expect(docToBBCode(doc)).toBe(src);
+  });
+
   it('escapes tag-like text typed in the visual editor', () => {
     const doc = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'yaz [b] böyle' }] }] };
     const bb = docToBBCode(doc);

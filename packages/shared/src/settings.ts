@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { LOCALES, LOCALE_INFO, type Locale } from './i18n.js';
+import { DEFAULT_CAPTCHA_CONFIG, captchaConfigSchema, type CaptchaConfig } from './captcha.js';
+import { DEFAULT_MAINTENANCE_PAGE, maintenancePageSchema, type MaintenancePage } from './maintenance-page.js';
 
 /**
  * Ayar kayıt defteri. Veritabanında (`settings` tablosu) yalnızca varsayılandan farklı değerler tutulur.
@@ -286,6 +288,23 @@ export const SETTINGS = {
     input: 'list',
     hidden: true,
   }),
+  'captcha.config': def({
+    section: 'security',
+    schema: captchaConfigSchema,
+    default: DEFAULT_CAPTCHA_CONFIG as CaptchaConfig,
+    label: 'Doğrulama (captcha)',
+    input: 'list',
+    public: true,
+    hidden: true,
+  }),
+  'captcha.secretEnc': def({
+    section: 'security',
+    schema: z.string().max(2000),
+    default: '',
+    label: 'Captcha gizli anahtarı',
+    input: 'text',
+    hidden: true,
+  }),
   'waf.secretEnc': def({
     section: 'security',
     schema: z.string().max(2000),
@@ -334,14 +353,6 @@ export const SETTINGS = {
     schema: z.object({ webhookEnc: z.string(), boardIds: z.array(z.number().int()), replies: z.boolean(), guildId: z.string(), inviteUrl: z.string() }),
     default: { webhookEnc: '', boardIds: [] as number[], replies: false, guildId: '', inviteUrl: '' },
     label: 'Discord',
-    input: 'list',
-    hidden: true,
-  }),
-  'gameserver.servers': def({
-    section: 'general',
-    schema: z.array(z.object({ id: z.string(), name: z.string(), type: z.enum(['fivem', 'minecraft', 'samp']), host: z.string(), port: z.number().int().nullable(), joinCode: z.string() })),
-    default: [] as Array<{ id: string; name: string; type: 'fivem' | 'minecraft' | 'samp'; host: string; port: number | null; joinCode: string }>,
-    label: 'Oyun sunucuları',
     input: 'list',
     hidden: true,
   }),
@@ -422,6 +433,15 @@ export const SETTINGS = {
     label: 'Bakım mesajı',
     input: 'textarea',
     public: true,
+  }),
+  'general.maintenancePage': def({
+    section: 'general',
+    schema: maintenancePageSchema,
+    default: DEFAULT_MAINTENANCE_PAGE as MaintenancePage,
+    label: 'Bakım sayfası',
+    input: 'list',
+    public: true,
+    hidden: true,
   }),
 
   // Kayıt

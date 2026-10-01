@@ -50,8 +50,6 @@ import { ShoutboxController } from './shoutbox/shoutbox.controller.js';
 import { ShoutboxService } from './shoutbox/shoutbox.service.js';
 import { DiscordController } from './discord/discord.controller.js';
 import { DiscordService } from './discord/discord.service.js';
-import { GameServerController } from './gameserver/gameserver.controller.js';
-import { GameServerService } from './gameserver/gameserver.service.js';
 import { ThemesController } from './themes/themes.controller.js';
 import { ThemesService } from './themes/themes.service.js';
 import { ReactionsService } from './forum/reactions.service.js';
@@ -77,6 +75,8 @@ import { TicketsController } from './tickets/tickets.controller.js';
 import { PluginsController } from './plugins/plugins.controller.js';
 import { WafService } from './security/waf.service.js';
 import { WafController } from './security/waf.controller.js';
+import { CaptchaController } from './security/captcha.controller.js';
+import { CaptchaService } from './security/captcha.service.js';
 import { CustomController } from './custom/custom.controller.js';
 import { InstallService } from './install/install.service.js';
 import { InstallController } from './install/install.controller.js';
@@ -125,7 +125,6 @@ export class AppModule {
         RealtimeController,
         ShoutboxController,
         DiscordController,
-        GameServerController,
         ThemesController,
         CustomController,
         WikiController,
@@ -133,6 +132,7 @@ export class AppModule {
         TicketsController,
         PluginsController,
         WafController,
+        CaptchaController,
         TopicExtrasController,
         EmojisController,
         OAuthController,
@@ -165,7 +165,6 @@ export class AppModule {
         MessagesService,
         ShoutboxService,
         DiscordService,
-        GameServerService,
         ThemesService,
         CustomService,
         BuilderService,
@@ -173,6 +172,7 @@ export class AppModule {
         ApplicationsService,
         TicketsService,
         WafService,
+        CaptchaService,
         TopicExtrasService,
         EmojisService,
         OAuthService,

@@ -18,6 +18,7 @@
   import { api } from '$lib/api';
   import { can, profileUrl } from '$lib/viewer';
   import { theme } from '$lib/theme.svelte';
+  import { themeOptions } from '$lib/theme-options';
   import { cn } from '$lib/utils';
   import { t, tc } from '$lib/i18n.svelte';
   import UserAvatar from '../UserAvatar.svelte';
@@ -40,6 +41,8 @@
     await api.post('/api/forum/mark-read');
     await invalidateAll();
   }
+  // Etkin tema tek renk moduna kilitliyse geçiş gösterilmez
+  const modeLocked = $derived(themeOptions(viewer.settings)?.mode.toggle === false);
   async function toggleTheme() {
     const next = theme.resolved === 'dark' ? 'light' : 'dark';
     theme.set(next);
@@ -82,9 +85,11 @@
     <DropdownMenu.Separator />
     <DropdownMenu.Item onSelect={() => goto('/unread')}><BookmarkIcon />{t('Okunmamış içerik')}</DropdownMenu.Item>
     <DropdownMenu.Item onSelect={markAllRead}><ChecksIcon />{t('Tümünü okundu say')}</DropdownMenu.Item>
-    <DropdownMenu.Item onSelect={toggleTheme} closeOnSelect={false}>
-      {#if theme.resolved === 'dark'}<SunIcon />{t('Açık moda geç')}{:else}<MoonIcon />{t('Koyu moda geç')}{/if}
-    </DropdownMenu.Item>
+    {#if !modeLocked}
+      <DropdownMenu.Item onSelect={toggleTheme} closeOnSelect={false}>
+        {#if theme.resolved === 'dark'}<SunIcon />{t('Açık moda geç')}{:else}<MoonIcon />{t('Koyu moda geç')}{/if}
+      </DropdownMenu.Item>
+    {/if}
     {#if can(viewer, 'mod.post.approve') || counters.modQueue > 0}
       <DropdownMenu.Separator />
       <DropdownMenu.Item onSelect={() => goto('/mod/queue')}>

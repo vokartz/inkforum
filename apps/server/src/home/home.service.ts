@@ -60,7 +60,7 @@ export class HomeService {
   }
 
   /** Eklenti açılınca bloğu (yoksa) verilen konuma ekler */
-  async ensureBlock(kind: 'shoutbox' | 'discord' | 'gameserver', position: 'top' | 'sidebar' | 'bottom', actorId: number): Promise<void> {
+  async ensureBlock(kind: 'shoutbox' | 'discord', position: 'top' | 'sidebar' | 'bottom', actorId: number): Promise<void> {
     const exists = await this.db.q.selectFrom('home_blocks').select('id').where('kind', '=', kind).executeTakeFirst();
     if (exists) return;
     const last = await this.db.q.selectFrom('home_blocks').select((eb) => eb.fn.max('sort_order').as('m')).where('position', '=', position).executeTakeFirst();
@@ -144,7 +144,6 @@ export class HomeService {
         return { ...base, kind: r.kind };
       case 'shoutbox':
       case 'discord':
-      case 'gameserver':
         // Eklenti kapalıysa blok gösterilmez (yerleşimde kalır, açılınca geri gelir)
         if (!this.settings.plugin(r.kind)) return null;
         return { ...base, kind: r.kind };

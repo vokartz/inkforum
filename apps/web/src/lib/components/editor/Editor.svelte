@@ -3,6 +3,7 @@
   import type { Editor as TiptapEditor } from '@tiptap/core';
   import { bbcodeToDoc, docToBBCode, BB_FONTS, resolveEmbed } from '@forum/shared';
   import { page } from '$app/state';
+  import { customEmoji, loadCustomEmojis } from '$lib/custom-emoji';
   import { toast } from 'svelte-sonner';
   import BoldIcon from 'phosphor-svelte/lib/TextB';
   import ItalicIcon from 'phosphor-svelte/lib/TextItalic';
@@ -166,9 +167,12 @@
     queueMicrotask(() => focus());
   }
 
+  /** BBCode → editör belgesi; bilinen özel emojiler görsel olarak gösterilir. */
+  const toDoc = (bb: string) => bbcodeToDoc(bb, { customEmoji });
+
   function setValue(bb: string) {
     emit(bb);
-    if (mode === 'visual' && editor) editor.commands.setContent(bbcodeToDoc(bb), { emitUpdate: false });
+    if (mode === 'visual' && editor) editor.commands.setContent(toDoc(bb), { emitUpdate: false });
   }
 
   // Dışarıdan gelen değer değişikliği (ör. gönderim sonrası temizleme)
@@ -177,7 +181,7 @@
     untrack(() => {
       if (v === lastEmitted) return;
       lastEmitted = v;
-      if (mode === 'visual' && editor) editor.commands.setContent(bbcodeToDoc(v), { emitUpdate: false });
+      if (mode === 'visual' && editor) editor.commands.setContent(toDoc(v), { emitUpdate: false });
     });
   });
 
@@ -228,13 +232,13 @@
     lastEmitted = value ?? '';
     let destroyed = false;
     void (async () => {
-      const [{ Editor }, { buildExtensions }] = await Promise.all([import('@tiptap/core'), import('./extensions')]);
+      const [{ Editor }, { buildExtensions }] = await Promise.all([import('@tiptap/core'), import('./extensions'), loadCustomEmojis()]);
       if (destroyed || !host) return;
       let frame = 0;
       editor = new Editor({
         element: host,
         extensions: buildExtensions({ placeholder, mentions }),
-        content: bbcodeToDoc(value ?? ''),
+        content: toDoc(value ?? ''),
         editable: !disabled,
         editorProps: {
           attributes: {
@@ -298,7 +302,7 @@
   function setMode(next: 'visual' | 'source') {
     if (next === mode) return;
     preview = false;
-    if (next === 'visual' && editor) editor.commands.setContent(bbcodeToDoc(value ?? ''), { emitUpdate: false });
+    if (next === 'visual' && editor) editor.commands.setContent(toDoc(value ?? ''), { emitUpdate: false });
     mode = next;
     try {
       localStorage.setItem(MODE_KEY, next);
@@ -494,7 +498,9 @@
   }
 
   function emoji(e: string) {
+    const custom = customEmoji(e);
     if (mode === 'source') wrapSource(e, '', true);
+    else if (custom) editor?.chain().focus().insertContent({ type: 'customEmoji', attrs: { code: custom.shortcode, url: custom.url, name: custom.name } }).run();
     else editor?.chain().focus().insertContent(e).run();
   }
 </script>

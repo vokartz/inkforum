@@ -1,10 +1,10 @@
 import { Body, Controller, Delete, Get, HttpCode, Inject, Param, Post, Put, Query } from '@nestjs/common';
 import { z } from 'zod';
-import { MAIL_TEMPLATE_KEYS, SETTINGS, SETTING_KEYS, SETTING_SECTIONS, mailTemplateSchema, mailTransportInput, type MailTemplateKey, type MailTransportInput } from '@forum/shared';
+import { MAIL_TEMPLATE_KEYS, maintenancePageInput, type MaintenancePageInput, SETTINGS, SETTING_KEYS, SETTING_SECTIONS, mailTemplateSchema, mailTransportInput, type MailTemplateKey, type MailTransportInput } from '@forum/shared';
 import { sql } from 'kysely';
 import { ZodPipe, parse } from '../common/validation.js';
 import { AdminEndpoint, RequirePermission } from '../common/decorators.js';
-import { CurrentViewer, type RequestViewer } from '../common/request-context.js';
+import { CurrentViewer, can, type RequestViewer } from '../common/request-context.js';
 import { CONFIG, type AppConfig } from '../config/config.js';
 import { Db } from '../database/db.service.js';
 import { Clock, DAY } from '../common/clock.js';
@@ -256,6 +256,21 @@ export class AdminController {
       page: q.page,
       perPage: q.perPage,
     };
+  }
+
+  // ----- Bakım modu ve bakım sayfası -----
+
+  @Put('maintenance/page')
+  @AdminEndpoint('admin.maintenance')
+  async saveMaintenancePage(@Body(new ZodPipe(maintenancePageInput)) body: MaintenancePageInput, @CurrentViewer() v: RequestViewer) {
+    const { enabled, message, ...page } = body;
+    const current = this.settings.get('general.maintenancePage');
+    // Ham HTML/CSS yalnızca özel kod yetkisiyle değişir; yetkisiz kayıtta mevcut kod korunur
+    if ((page.html !== current.html || page.css !== current.css) && !(v.isAdmin || can(v, 'admin.customCode'))) {
+      throw Errors.forbidden('Özel HTML/CSS için "Özel kod" yetkisi gerekli.');
+    }
+    await this.settings.update({ 'general.maintenanceMode': enabled, 'general.maintenanceMessage': message, 'general.maintenancePage': page }, v.user!.id, { allowHidden: true });
+    return { ok: true };
   }
 
   // ----- İşler / görevler -----

@@ -1,4 +1,5 @@
 <script lang="ts" module>
+  import { loadCustomEmojis } from '$lib/custom-emoji';
   interface EmojiEntry {
     unicode: string;
     label: string;
@@ -21,16 +22,11 @@
     return dataPromise;
   }
 
-  /** Yöneticinin eklediği özel emojiler (bir kez yüklenir). */
-  let customPromise: Promise<EmojiEntry[]> | null = null;
+  /** Yöneticinin eklediği özel emojiler (bir kez yüklenir, editörle ortak). */
   function loadCustom(): Promise<EmojiEntry[]> {
-    customPromise ??= fetch('/api/emojis', { headers: { accept: 'application/json' } })
-      .then((r) => (r.ok ? r.json() : []))
-      .then((list: Array<{ shortcode: string; name: string; category: string; url: string }>) =>
-        list.map((e, i) => ({ unicode: `:${e.shortcode}:`, label: e.name, tags: `${e.shortcode} ${e.category}`.toLocaleLowerCase('tr-TR'), group: -2, order: i, url: e.url })),
-      )
-      .catch(() => []);
-    return customPromise;
+    return loadCustomEmojis().then((list) =>
+      list.map((e, i) => ({ unicode: `:${e.shortcode}:`, label: e.name, tags: `${e.shortcode} ${e.category}`.toLocaleLowerCase('tr-TR'), group: -2, order: i, url: e.url })),
+    );
   }
 
   /** Türkçe aramada sık kullanılan kelimeler → İngilizce anahtar kelimeler */

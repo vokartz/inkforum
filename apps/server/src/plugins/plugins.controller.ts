@@ -12,7 +12,6 @@ import { AppearanceService } from '../appearance/appearance.service.js';
 import { I18nService } from '../i18n/i18n.service.js';
 import { ShoutboxService } from '../shoutbox/shoutbox.service.js';
 import { DiscordService } from '../discord/discord.service.js';
-import { GameServerService } from '../gameserver/gameserver.service.js';
 import { HomeService } from '../home/home.service.js';
 
 // eslint-disable-next-line no-useless-assignment -- dekoratörde (@Param) kullanılıyor
@@ -31,7 +30,6 @@ export class PluginsController {
     private readonly i18n: I18nService,
     private readonly shoutbox: ShoutboxService,
     private readonly discord: DiscordService,
-    private readonly gameservers: GameServerService,
     private readonly home: HomeService,
   ) {}
 
@@ -65,8 +63,6 @@ export class PluginsController {
         const c = this.discord.adminView();
         return [c.hasWebhook ? tr('Webhook bağlı') : tr('Webhook ayarlı değil'), c.guildId ? tr('Sunucu widget\'ı açık') : tr('Widget ayarlı değil')];
       }
-      case 'gameserver':
-        return [tr('{n, plural, other {# sunucu}}', { n: this.gameservers.servers().length })];
     }
   }
 
@@ -88,7 +84,7 @@ export class PluginsController {
     const nav = ({ wiki: 'wiki', applications: 'applications', tickets: 'tickets' } as const)[key as 'wiki'];
     if (nav && body.enabled) await this.appearance.ensureBuiltin(nav);
     // Bloğu olan eklentiler açılınca ana sayfaya (yoksa) eklenir
-    const block = ({ shoutbox: 'top', discord: 'sidebar', gameserver: 'sidebar' } as const)[key as 'shoutbox'];
+    const block = ({ shoutbox: 'top', discord: 'sidebar' } as const)[key as 'shoutbox'];
     if (block && body.enabled) await this.home.ensureBlock(key as 'shoutbox', block, v.user!.id);
     await this.audit.log({ type: 'admin', action: body.enabled ? 'plugin.enable' : 'plugin.disable', actorId: v.user!.id, ip: v.ip, data: { key } });
     return { ok: true };

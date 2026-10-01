@@ -10,6 +10,7 @@
   import { Label } from '$lib/components/ui/label';
   import Field from '$lib/components/Field.svelte';
   import FormMessage from '$lib/components/FormMessage.svelte';
+  import Captcha from './Captcha.svelte';
   import { api } from '$lib/api';
   import { createForm } from '$lib/form.svelte';
   import { t } from '$lib/i18n.svelte';
@@ -33,18 +34,23 @@
   let code = $state('');
   let pendingEmail = $state<string | null>(null);
   let resent = $state(false);
+  let captcha = $state('');
+  let captchaBox = $state<{ reset: () => void } | null>(null);
 
   const form = createForm();
 
   async function submit(e: SubmitEvent) {
     e.preventDefault();
     pendingEmail = null;
-    const res = await form.submit(() => api.post<LoginResult>('/api/auth/login', { identifier, password, remember }), {
+    const res = await form.submit(() => api.post<LoginResult>('/api/auth/login', { identifier, password, remember, captcha: captcha || undefined }), {
       onError: (err) => {
         if (err.code === 'ACCOUNT_PENDING_EMAIL') pendingEmail = String(err.details.email ?? '');
       },
     });
-    if (!res) return;
+    if (!res) {
+      captchaBox?.reset();
+      return;
+    }
     if (res.status === 'two_factor_required' && res.challenge) {
       challenge = res.challenge;
       return;
@@ -121,6 +127,7 @@
         </button>
       </div>
     </Field>
+    <Captcha form="login" bind:value={captcha} bind:this={captchaBox} error={form.error('captcha')} />
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-2">
         <Checkbox id="{idPrefix}-remember" bind:checked={remember} />

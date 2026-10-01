@@ -22,6 +22,7 @@ import { ViewerService } from './viewer.service.js';
 import { PoliciesService } from '../policies/policies.service.js';
 import { ProfileFieldsService } from '../profiles/profile-fields.service.js';
 import { SettingsService } from '../settings/settings.service.js';
+import { CaptchaService } from '../security/captcha.service.js';
 
 const client = (v: RequestViewer) => ({ ip: v.ip, userAgent: v.userAgent });
 
@@ -34,6 +35,7 @@ export class AuthController {
     private readonly policies: PoliciesService,
     private readonly profileFields: ProfileFieldsService,
     private readonly settings: SettingsService,
+    private readonly captcha: CaptchaService,
   ) {}
 
   /** Mevcut kullanıcı + yetkiler + uyum bayrakları + herkese açık ayarlar. */
@@ -75,6 +77,7 @@ export class AuthController {
     @CurrentViewer() viewer: RequestViewer,
     @Res({ passthrough: true }) res: Response,
   ) {
+    await this.captcha.verify('register', body.captcha, viewer.ip);
     return this.auth.register(body, client(viewer), res);
   }
 
@@ -86,6 +89,7 @@ export class AuthController {
     @CurrentViewer() viewer: RequestViewer,
     @Res({ passthrough: true }) res: Response,
   ) {
+    await this.captcha.verify('login', body.captcha, viewer.ip);
     return this.auth.login(body.identifier, body.password, body.remember, client(viewer), res);
   }
 
@@ -136,6 +140,7 @@ export class AuthController {
     @Body(new ZodPipe(forgotPasswordSchema)) body: z.output<typeof forgotPasswordSchema>,
     @CurrentViewer() viewer: RequestViewer,
   ) {
+    await this.captcha.verify('forgot', body.captcha, viewer.ip);
     await this.auth.forgotPassword(body.email, client(viewer));
     return { ok: true };
   }

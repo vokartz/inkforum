@@ -225,8 +225,46 @@ function rawText(nodes: BBNode[]): string {
   return nodes.map((n) => (n.type === 'text' ? n.text : rawText(n.children))).join('');
 }
 
-export function bbcodeToDoc(input: string): PMNode {
-  return { type: 'doc', content: ensureBlocks(toBlocks(parseBBCode(input))) };
+export interface DocOptions {
+  /** Özel emojiler: `:kisaad:` metni görsel düğüme (customEmoji) dönüşür. */
+  customEmoji?: (shortcode: string) => { url: string; name: string } | undefined;
+}
+
+const SHORTCODE_SPLIT = /:([a-z0-9_-]{2,32}):/g;
+
+/** Metin düğümlerindeki bilinen `:kisaad:` emojilerini customEmoji düğümüne ayırır (kod içinde dokunmaz). */
+function splitEmojis(nodes: PMNode[] | undefined, find: NonNullable<DocOptions['customEmoji']>): PMNode[] | undefined {
+  if (!nodes) return nodes;
+  const out: PMNode[] = [];
+  for (const n of nodes) {
+    if (n.type === 'codeBlock') {
+      out.push(n);
+      continue;
+    }
+    if (n.type !== 'text' || !n.text?.includes(':') || n.marks?.some((m) => m.type === 'code')) {
+      out.push(n.content ? { ...n, content: splitEmojis(n.content, find) } : n);
+      continue;
+    }
+    let last = 0;
+    const text = n.text;
+    for (const m of text.matchAll(SHORTCODE_SPLIT)) {
+      const e = find(m[1]!);
+      if (!e) continue;
+      if (m.index > last) out.push({ ...n, text: text.slice(last, m.index) });
+      const node: PMNode = { type: 'customEmoji', attrs: { code: m[1], url: e.url, name: e.name } };
+      if (n.marks?.length) node.marks = n.marks;
+      out.push(node);
+      last = m.index + m[0].length;
+    }
+    if (last === 0) out.push(n);
+    else if (last < text.length) out.push({ ...n, text: text.slice(last) });
+  }
+  return out;
+}
+
+export function bbcodeToDoc(input: string, opts: DocOptions = {}): PMNode {
+  const content = ensureBlocks(toBlocks(parseBBCode(input)));
+  return { type: 'doc', content: opts.customEmoji ? splitEmojis(content, opts.customEmoji) : content };
 }
 
 // ---------- Belge → BBCode ----------
@@ -323,6 +361,13 @@ function inlineToBB(content: PMNode[] | undefined): string {
         out += `[img${attrs}]${String(a.src).replace(/[[\]\n]/g, '')}[/img]`;
         break;
       }
+      case 'customEmoji': {
+        const code = String(n.attrs?.code ?? '');
+        if (!/^[a-z0-9_-]{2,32}$/.test(code)) break;
+        setMarks(vmarks(n.marks).filter((m) => !m.raw));
+        out += `:${code}:`;
+        break;
+      }
       case 'mention': {
         const a = n.attrs ?? {};
         const id = Number(a.id);
@@ -411,6 +456,7 @@ function blockToBB(n: PMNode): string {
       return '[hr]';
     case 'image':
     case 'mention':
+    case 'customEmoji':
     case 'text':
       return inlineToBB([n]);
     default:

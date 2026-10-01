@@ -31,7 +31,6 @@
   import CakeIcon from 'phosphor-svelte/lib/Cake';
   import ShoutIcon from 'phosphor-svelte/lib/ChatCenteredDots';
   import DiscordIcon from 'phosphor-svelte/lib/DiscordLogo';
-  import GameIcon from 'phosphor-svelte/lib/GameController';
   import ImageIcon from 'phosphor-svelte/lib/Image';
   import UploadIcon from 'phosphor-svelte/lib/UploadSimple';
   import CaretUpIcon from 'phosphor-svelte/lib/CaretUp';
@@ -75,7 +74,6 @@
     birthdays: CakeIcon,
     shoutbox: ShoutIcon,
     discord: DiscordIcon,
-    gameserver: GameIcon,
   };
   const ZONES: Array<{ key: HomePosition; label: string; hint: string }> = [
     { key: 'top', label: 'Üst alan', hint: 'Kategorilerin üstünde, tam genişlik' },

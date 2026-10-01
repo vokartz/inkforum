@@ -14,7 +14,6 @@
   import WrenchIcon from 'phosphor-svelte/lib/Wrench';
   import TriangleAlertIcon from 'phosphor-svelte/lib/Warning';
   import { Toaster } from '$lib/components/ui/sonner';
-  import { Button } from '$lib/components/ui/button';
   import SiteHeader from '$lib/components/layout/SiteHeader.svelte';
   import SiteFooter from '$lib/components/layout/SiteFooter.svelte';
   import CookieBanner from '$lib/components/layout/CookieBanner.svelte';
@@ -28,7 +27,8 @@
   import { counters } from '$lib/counters.svelte';
   import { realtime } from '$lib/realtime.svelte';
   import { THEME_PREVIEW_MESSAGE } from '$lib/theme-preview';
-  import { themeHtmlAttrs, type ActiveTheme } from '@forum/shared';
+  import { DEFAULT_MAINTENANCE_PAGE, themeHtmlAttrs, type ActiveTheme, type MaintenancePage } from '@forum/shared';
+  import MaintenanceScreen from '$lib/components/MaintenanceScreen.svelte';
 
   let { data, children } = $props();
   const viewer = $derived(data.viewer);
@@ -103,8 +103,11 @@
   });
 
   // Tema tercihi ve forumun varsayılan modu istemci durumuyla eşitlenir.
+  // init, tercih durumunu okur; untrack olmazsa her geçişte etki yeniden çalışıp tercihi sunucudaki eski değere döndürür.
   function syncTheme() {
-    theme.init(data.theme, data.themeDefault);
+    const pref = data.theme;
+    const forumDefault = data.themeDefault;
+    untrack(() => theme.init(pref, forumDefault));
   }
   syncTheme();
   $effect.pre(syncTheme);
@@ -215,12 +218,14 @@
 {/if}
 
 {#if maintenance}
-  <main class="mx-auto flex min-h-dvh max-w-lg flex-col items-center justify-center gap-4 px-6 text-center">
-    <div class="flex size-14 items-center justify-center rounded-2xl bg-muted"><WrenchIcon class="size-7" /></div>
-    <h1 class="text-2xl font-semibold">{t('{name} bakımda', { name: String(s['general.forumName'] ?? '') })}</h1>
-    <p class="text-muted-foreground">{s['general.maintenanceMessage']}</p>
-    {#if !viewer.user}<Button href="/login" variant="outline" size="sm">{t('Yönetici girişi')}</Button>{/if}
-  </main>
+  <MaintenanceScreen
+    cfg={(s['general.maintenancePage'] as MaintenancePage | undefined) ?? DEFAULT_MAINTENANCE_PAGE}
+    forumName={String(s['general.forumName'] ?? '')}
+    message={String(s['general.maintenanceMessage'] ?? '')}
+    logoUrl={(s['appearance.logoUrl'] as string | null) ?? null}
+    social={(s['appearance.socialLinks'] ?? []) as Array<{ platform: string; url: string }>}
+    loggedIn={!!viewer.user}
+  />
 {:else if isAdminArea}
   {@render children()}
 {:else if isAuthArea || isBare}

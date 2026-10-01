@@ -1,4 +1,4 @@
-import { themeHtmlAttrs, type ActiveTheme, type NavEntry, type Viewer, type ViewerCustom } from '@forum/shared';
+import { CAPTCHA_SCRIPTS, themeHtmlAttrs, type ActiveTheme, type CaptchaConfig, type NavEntry, type Viewer, type ViewerCustom } from '@forum/shared';
 import { request } from '$lib/api';
 import type { LayoutServerLoad } from './$types';
 
@@ -32,5 +32,12 @@ export const load: LayoutServerLoad = async ({ fetch, locals, depends, url }) =>
   const favicon = viewer.settings['appearance.faviconUrl'];
   if (typeof favicon === 'string' && favicon) locals.favicon = favicon;
   locals.customCsp = custom?.enabled ? custom.csp : null;
+  // Dış captcha sağlayıcısının betik kaynakları (yalnızca seçiliyse)
+  const captcha = viewer.settings['captcha.config'] as CaptchaConfig | undefined;
+  const cap = captcha && captcha.provider in CAPTCHA_SCRIPTS ? CAPTCHA_SCRIPTS[captcha.provider as keyof typeof CAPTCHA_SCRIPTS].csp : null;
+  if (cap) {
+    const base = locals.customCsp ?? { script: [], connect: [], style: [], font: [] };
+    locals.customCsp = { script: [...base.script, ...cap.script], connect: [...base.connect, ...cap.connect], style: [...base.style, ...cap.style], font: base.font };
+  }
   return { viewer, nav, theme: pref, themeDefault: forumDefault, custom: custom?.enabled ? custom : null, safeMode: locals.safeMode };
 };
