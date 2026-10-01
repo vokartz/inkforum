@@ -9,6 +9,26 @@ güncelleme notuna dönüşür (panel yöneticinin diline uygun olanı gösterir
 
 ## [Yayımlanmamış]
 
+## [1.0.2] - 2026-10-01
+
+### Düzeltilenler
+
+- Diğer dillerde Türkçe metin görünmesi giderildi: alt bilgi bağlantıları, alıntı başlığı ("… yazdı:"), yedek
+  etiketleri, bildirim ayarları, grup adları, destek kategorileri, wiki açıklaması, eklenti durumları, yetki profilleri,
+  tepkiler, başarılar, politikalar ve yönetim kenar çubuğu artık ziyaretçinin dilini izliyor.
+- Var olan mesaj, özel mesaj ve sayfalardaki alıntılar otomatik güncellenir; başlıkları okuyanın dilinde görünür.
+- `ADMIN_PASSWORD` ile otomatik kurulan forumlarda örnek bölümler ve hoş geldin konusu Türkçe yerine varsayılan dilde
+  oluşturulur.
+- Varsayılan e-posta şablonları düzenleyicide yöneticinin dilinde gösterilir.
+- Geliştirici ve özel kod sayfalarındaki kod örnekleri çevrildi.
+- Geri yükleme onay sözcüğü ve forum aktarma sayfasındaki `mysqldump` örneği çevrildi.
+- Bazı kartların üstündeki fazladan boşluk kaldırıldı (forum aktarma, ayarlar, üye ve grup sayfaları).
+
+### Değişenler
+
+- Almanca, Fransızca, Rusça, Portekizce, İspanyolca ve Çince çeviriler tamamlandı; eksik kalan bir metin olursa
+  Türkçe yerine İngilizce gösterilir.
+
 ## [1.0.1] - 2026-10-01
 
 ### Değişenler

@@ -8,6 +8,27 @@ Each version section becomes the GitHub release note and the update note in the 
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-10-01
+
+### Fixed
+
+- Turkish text no longer leaks into other languages: footer links, the quote header ("… wrote:"), backup labels,
+  notification settings, group names, support categories, the wiki description, plugin status, permission profiles,
+  reactions, achievements, policies and the admin sidebar now follow the visitor's language.
+- Quotes in existing posts, messages and pages are updated automatically so their header is shown in the reader's
+  language.
+- Forums installed automatically with `ADMIN_PASSWORD` get their sample boards and welcome topic in the default
+  language instead of Turkish.
+- Default e-mail templates are shown in the administrator's language in the editor.
+- Code samples on the developer and custom-code pages are translated.
+- The restore confirmation word and the `mysqldump` example on the migration page are translated.
+- Removed the extra empty space at the top of some cards (forum migration, settings, member and group pages).
+
+### Changed
+
+- German, French, Russian, Portuguese, Spanish and Chinese translations are now complete; any text that is still
+  missing falls back to English instead of Turkish.
+
 ## [1.0.1] - 2026-10-01
 
 ### Changed
