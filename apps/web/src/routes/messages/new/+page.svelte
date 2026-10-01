@@ -29,7 +29,7 @@
   });
 
   const form = createForm();
-  const canSend = $derived(recipients.length > 0 && body.trim().length > 0 && !form.submitting);
+  const canSend = $derived(recipients.length > 0 && title.trim().length > 0 && body.trim().length > 0 && !form.submitting);
 
   function add(u: UserSummary) {
     if (
@@ -55,16 +55,13 @@
 
 <svelte:head><title>{t('Yeni mesaj')}</title></svelte:head>
 
-<div class="flex h-full min-h-0 flex-col">
-  <header class="flex items-center gap-2 border-b px-4 py-3">
-    <a
-      href="/messages"
-      class="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground lg:hidden"
-      aria-label={t('Geri')}><ArrowLeftIcon class="size-5" /></a
-    >
-    <h2 class="text-[15px] font-semibold">{t('Yeni mesaj')}</h2>
+<div class="mx-auto grid max-w-4xl gap-5" data-part="message-new">
+  <header class="grid gap-2">
+    <a href="/messages" class="inline-flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"><ArrowLeftIcon class="size-4" />{t('Özel mesajlar')}</a>
+    <h1 class="text-2xl font-bold tracking-tight">{t('Yeni özel mesaj')}</h1>
+    <p class="text-sm text-muted-foreground">{t('Konu açar gibi: başlık yaz, kime gideceğini seç, mesajını yaz. Yazışmayı yalnızca katılımcılar görür.')}</p>
   </header>
-  <div class="grid min-h-0 flex-1 content-start gap-4 overflow-y-auto p-4 sm:p-5">
+  <div class="grid gap-4 rounded-xl border bg-card p-4 shadow-card sm:p-5">
     <FormMessage message={form.message} />
     <Field
       label={t('Kime')}
@@ -100,24 +97,24 @@
         {/if}
       </div>
     </Field>
-    <Field label={t('Konu (isteğe bağlı)')} for="pm-title">
+    <Field label={t('Konu başlığı')} for="pm-title" required error={form.error('title')}>
       <Input id="pm-title" bind:value={title} maxlength={100} placeholder={t('ör. Etkinlik hakkında')} />
     </Field>
     <Field label={t('Mesaj')} error={form.error('body')}>
       <Editor
         bind:value={body}
         {maxLength}
-        minHeight={200}
+        minHeight={260}
         mentions={false}
         onsubmit={send}
         draftKey="pm:new"
       />
     </Field>
-  </div>
-  <footer class="flex justify-end gap-2 border-t px-4 py-3">
-    <Button variant="ghost" href="/messages">{t('Vazgeç')}</Button>
+    <div class="flex justify-end gap-2 border-t pt-4">
+      <Button variant="ghost" href="/messages">{t('Vazgeç')}</Button>
     <Button onclick={send} disabled={!canSend} title={t('Gönder (Ctrl+Enter)')}>
-      {#if form.submitting}<LoaderIcon class="animate-spin" />{:else}<PaperPlaneIcon />{/if}{t('Gönder')}
-    </Button>
-  </footer>
+        {#if form.submitting}<LoaderIcon class="animate-spin" />{:else}<PaperPlaneIcon />{/if}{t('Gönder')}
+      </Button>
+    </div>
+  </div>
 </div>
