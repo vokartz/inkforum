@@ -392,7 +392,7 @@ const SPACING: Record<ThemeConfig['typography']['letterSpacing'], string> = {
   wide: '0.015em',
 };
 const CARDS =
-  "[data-part='category'],[data-part='widget'],[data-part='post'],[data-part='board-header'],[data-part='topic-list'],[data-part='profile-header'],[data-part='conversation-message']";
+  "[data-part='category'],[data-part='widget'],[data-part='post'],[data-part='board-header'],[data-part='topic-list'],[data-part='profile-header'],[data-part='messenger']";
 
 /** CSS değeri olarak güvenli (yalnızca doğrulanmış biçimler kullanılır; yine de kaçış uygulanır) */
 const safe = (v: string) => v.replace(/[;{}<>\\]/g, '');

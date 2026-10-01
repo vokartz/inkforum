@@ -445,7 +445,8 @@ export class SeoService {
     } else if (sample === 'board') {
       const boards = [...(await this.access.visibleBoards(await this.guest())).values()].map((v) => v.board).filter((b) => !b.is_hidden);
       const first = boards[0];
-      if (first) content = { ...(await this.pageCard(`/f/${first.id}`))!, forum: content.forum };
+      const board = first ? await this.pageCard(`/f/${first.id}`) : null;
+      if (board) content = { kicker: board.kicker, title: board.title, meta: board.meta ?? '', forum: content.forum };
     }
     const svg = Buffer.from(this.cardSvg(content, card));
     // sharp yoksa (ör. geliştirme ortamı) SVG'nin kendisi gösterilir; yazı tipleri tarayıcınınkidir

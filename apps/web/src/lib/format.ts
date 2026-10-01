@@ -1,7 +1,7 @@
 import { i18n, localeTag, t } from '$lib/i18n.svelte';
 
 /** Biçimlendiriciler dil başına bir kez oluşturulur (Intl nesneleri pahalıdır) */
-const cache = new Map<string, { date: Intl.DateTimeFormat; dateTime: Intl.DateTimeFormat; short: Intl.DateTimeFormat; num: Intl.NumberFormat; compact: Intl.NumberFormat; rtf: Intl.RelativeTimeFormat; dayMonth: Intl.DateTimeFormat }>();
+const cache = new Map<string, { date: Intl.DateTimeFormat; dateTime: Intl.DateTimeFormat; short: Intl.DateTimeFormat; num: Intl.NumberFormat; compact: Intl.NumberFormat; rtf: Intl.RelativeTimeFormat; dayMonth: Intl.DateTimeFormat; clock: Intl.DateTimeFormat; dayClock: Intl.DateTimeFormat }>();
 function fmt() {
   const tag = localeTag();
   let f = cache.get(tag);
@@ -14,6 +14,8 @@ function fmt() {
       compact: new Intl.NumberFormat(tag, { notation: 'compact', maximumFractionDigits: 1 }),
       rtf: new Intl.RelativeTimeFormat(i18n.locale, { numeric: 'auto' }),
       dayMonth: new Intl.DateTimeFormat(tag, { day: 'numeric', month: 'long' }),
+      clock: new Intl.DateTimeFormat(tag, { hour: '2-digit', minute: '2-digit' }),
+      dayClock: new Intl.DateTimeFormat(tag, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }),
     };
     cache.set(tag, f);
   }
@@ -26,6 +28,12 @@ export function formatDate(ms: number | null | undefined): string {
 
 export function formatDateTime(ms: number | null | undefined): string {
   return ms ? fmt().dateTime.format(ms) : '—';
+}
+
+/** Sohbet saati: bugünse "14:05", değilse "3 Eki 14:05" */
+export function formatClock(ms: number | null | undefined): string {
+  if (!ms) return '—';
+  return new Date(ms).toDateString() === new Date().toDateString() ? fmt().clock.format(ms) : fmt().dayClock.format(ms);
 }
 
 export function formatShortDate(ms: number | null | undefined): string {

@@ -1,6 +1,7 @@
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 import {
   activeThemeOf,
+  type ActiveTheme,
   THEME_HTML_SLOTS,
   THEME_PRESETS,
   themeConfigSchema,
@@ -39,9 +40,20 @@ export class ThemesService implements OnModuleInit {
   async onModuleInit(): Promise<void> {
     try {
       await this.ensureSystem();
+      await this.refreshActive();
     } catch {
       /* kurulum öncesi (tablo yok) — kurulumdan sonra ilk istekte yeniden denenir */
     }
+  }
+
+  /** Derleyici güncellenince (yeni sürüm) etkin temanın kayıtlı CSS'i yeniden üretilir */
+  private async refreshActive(): Promise<void> {
+    const active = this.settings.get('appearance.theme') as ActiveTheme | null;
+    if (!active?.id) return;
+    const t = await this.get(active.id).catch(() => null);
+    if (!t) return;
+    const next = activeThemeOf(t);
+    if (JSON.stringify(next) !== JSON.stringify(active)) await this.settings.update({ 'appearance.theme': next }, null, { allowHidden: true });
   }
 
   /** Sistem temaları yoksa forumun şu anki görünümünden oluşturulur; etkin tema eşleşen temaya bağlanır. */
