@@ -18,7 +18,9 @@ class Sounds {
     if (this.armed || typeof window === 'undefined') return;
     this.armed = true;
     const unlock = () => {
-      this.context()?.resume().catch(() => undefined);
+      this.context()
+        ?.resume()
+        .catch(() => undefined);
       window.removeEventListener('pointerdown', unlock);
       window.removeEventListener('keydown', unlock);
     };
@@ -38,7 +40,9 @@ class Sounds {
 
   private context(): AudioContext | null {
     if (this.ctx) return this.ctx;
-    const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    const Ctor =
+      window.AudioContext ??
+      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!Ctor) return null;
     this.ctx = new Ctor();
     return this.ctx;
@@ -50,7 +54,14 @@ class Sounds {
     const ctx = this.context();
     if (!ctx || ctx.state !== 'running') return;
     const now = ctx.currentTime;
-    const tone = (start: number, from: number, to: number, length: number, volume: number, type: OscillatorType = 'sine') => {
+    const tone = (
+      start: number,
+      from: number,
+      to: number,
+      length: number,
+      volume: number,
+      type: OscillatorType = 'sine',
+    ) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = type;

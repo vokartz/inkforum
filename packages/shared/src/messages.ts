@@ -76,4 +76,7 @@ export type RealtimeEvent =
   /** Bir katılımcı konuşmayı okudu (görüldü bilgisi) */
   | { type: 'conversationRead'; conversationId: number; userId: number; messageId: number }
   /** Okundu bilgisi değişti (başka sekmede okundu vb.); istemci sayaçları tazeler */
-  | { type: 'counters' };
+  | { type: 'counters' }
+  /** Sohbet kutusuna yeni mesaj (tüm bağlı üyelere) */
+  | { type: 'shout'; shout: { id: number; user: UserSummary; body: string; createdAt: number } }
+  | { type: 'shoutDeleted'; id: number };

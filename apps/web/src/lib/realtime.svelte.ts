@@ -41,6 +41,8 @@ class Realtime {
     on('counters', () => void counters.refresh());
     on('notification', () => void this.onNotification());
     on('message', (e) => e.type === 'message' && this.onMessage(e));
+    // Yalnızca sayfalara iletilen olaylar (konuşma "görüldü", sohbet kutusu)
+    for (const type of ['conversationRead', 'shout', 'shoutDeleted'] as const) on(type, () => undefined);
     es.onerror = () => {
       this.connected = false;
       counters.live = false;
@@ -75,7 +77,10 @@ class Realtime {
     if (page.url.pathname === '/notifications') return;
     let item: NotificationItem | undefined;
     try {
-      const res = await fetch('/api/me/notifications?perPage=1', { credentials: 'same-origin', headers: { accept: 'application/json' } });
+      const res = await fetch('/api/me/notifications?perPage=1', {
+        credentials: 'same-origin',
+        headers: { accept: 'application/json' },
+      });
       if (res.ok) item = ((await res.json()) as { items: NotificationItem[] }).items[0];
     } catch {
       /* yoksay */
@@ -92,7 +97,8 @@ class Realtime {
 
   private onMessage(e: Extract<RealtimeEvent, { type: 'message' }>): void {
     void counters.refresh();
-    const viewing = page.url.pathname === `/messages/${e.conversationId}` && document.visibilityState === 'visible';
+    const viewing =
+      page.url.pathname === `/messages/${e.conversationId}` && document.visibilityState === 'visible';
     if (viewing || !this.claim(`m${e.messageId}`)) return;
     sounds.play('message');
     if (document.visibilityState !== 'visible') return;

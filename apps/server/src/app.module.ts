@@ -46,6 +46,12 @@ import { HomeService } from './home/home.service.js';
 import { MessagesService } from './messages/messages.service.js';
 import { MessagesController } from './messages/messages.controller.js';
 import { RealtimeController } from './realtime/realtime.controller.js';
+import { ShoutboxController } from './shoutbox/shoutbox.controller.js';
+import { ShoutboxService } from './shoutbox/shoutbox.service.js';
+import { DiscordController } from './discord/discord.controller.js';
+import { DiscordService } from './discord/discord.service.js';
+import { GameServerController } from './gameserver/gameserver.controller.js';
+import { GameServerService } from './gameserver/gameserver.service.js';
 import { ReactionsService } from './forum/reactions.service.js';
 import { HomeController } from './home/home.controller.js';
 import { TopicExtrasService } from './forum/topic-extras.service.js';
@@ -115,6 +121,9 @@ export class AppModule {
         HomeController,
         MessagesController,
         RealtimeController,
+        ShoutboxController,
+        DiscordController,
+        GameServerController,
         CustomController,
         WikiController,
         ApplicationsController,
@@ -151,6 +160,9 @@ export class AppModule {
         AppearanceService,
         HomeService,
         MessagesService,
+        ShoutboxService,
+        DiscordService,
+        GameServerService,
         CustomService,
         BuilderService,
         WikiService,

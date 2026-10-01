@@ -59,6 +59,20 @@ export class HomeService {
     return this.cache.wrap(NS, 'rows', () => this.db.q.selectFrom('home_blocks').selectAll().orderBy('sort_order').orderBy('id').execute());
   }
 
+  /** Eklenti açılınca bloğu (yoksa) verilen konuma ekler */
+  async ensureBlock(kind: 'shoutbox' | 'discord' | 'gameserver', position: 'top' | 'sidebar' | 'bottom', actorId: number): Promise<void> {
+    const exists = await this.db.q.selectFrom('home_blocks').select('id').where('kind', '=', kind).executeTakeFirst();
+    if (exists) return;
+    const last = await this.db.q.selectFrom('home_blocks').select((eb) => eb.fn.max('sort_order').as('m')).where('position', '=', position).executeTakeFirst();
+    const now = this.clock.now();
+    await this.db.q
+      .insertInto('home_blocks')
+      .values({ position, kind, config_json: '{}', sort_order: position === 'top' ? -1 : Number(last?.m ?? 0) + 1, created_at: now, updated_at: now })
+      .execute();
+    await this.cache.invalidate(NS);
+    await this.audit.log({ type: 'admin', action: 'home.block.add', actorId, data: { kind } });
+  }
+
   async seedDefaults(): Promise<void> {
     const any = await this.db.q.selectFrom('home_blocks').select('id').executeTakeFirst();
     if (any) return;
@@ -127,6 +141,12 @@ export class HomeService {
       case 'stats':
       case 'online':
       case 'birthdays':
+        return { ...base, kind: r.kind };
+      case 'shoutbox':
+      case 'discord':
+      case 'gameserver':
+        // Eklenti kapalıysa blok gösterilmez (yerleşimde kalır, açılınca geri gelir)
+        if (!this.settings.plugin(r.kind)) return null;
         return { ...base, kind: r.kind };
       default:
         return null;

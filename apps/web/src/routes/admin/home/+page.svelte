@@ -7,6 +7,8 @@
   import {
     ANNOUNCEMENT_STYLES,
     HOME_BLOCK_INFO,
+    HOME_BLOCK_PLUGIN,
+    pluginEnabled,
     type AdminHomeBlock,
     type AnnouncementStyle,
     type HomeBlockKind,
@@ -27,6 +29,9 @@
   import ChartIcon from 'phosphor-svelte/lib/ChartLineUp';
   import BroadcastIcon from 'phosphor-svelte/lib/Broadcast';
   import CakeIcon from 'phosphor-svelte/lib/Cake';
+  import ShoutIcon from 'phosphor-svelte/lib/ChatCenteredDots';
+  import DiscordIcon from 'phosphor-svelte/lib/DiscordLogo';
+  import GameIcon from 'phosphor-svelte/lib/GameController';
   import ImageIcon from 'phosphor-svelte/lib/Image';
   import UploadIcon from 'phosphor-svelte/lib/UploadSimple';
   import CaretUpIcon from 'phosphor-svelte/lib/CaretUp';
@@ -68,6 +73,9 @@
     stats: ChartIcon,
     online: BroadcastIcon,
     birthdays: CakeIcon,
+    shoutbox: ShoutIcon,
+    discord: DiscordIcon,
+    gameserver: GameIcon,
   };
   const ZONES: Array<{ key: HomePosition; label: string; hint: string }> = [
     { key: 'top', label: 'Üst alan', hint: 'Kategorilerin üstünde, tam genişlik' },
@@ -277,7 +285,7 @@
           {#snippet child({ props })}<Button {...props} variant="outline" size="sm"><PlusIcon weight="bold" />{t('Blok ekle')}</Button>{/snippet}
         </DropdownMenu.Trigger>
         <DropdownMenu.Content align="end" class="w-72">
-          {#each Object.entries(HOME_BLOCK_INFO) as [kind, info] (kind)}
+          {#each Object.entries(HOME_BLOCK_INFO).filter(([k]) => { const pl = HOME_BLOCK_PLUGIN[k as HomeBlockKind]; return !pl || pluginEnabled(data.viewer.settings, pl); }) as [kind, info] (kind)}
             {@const Icon = ICONS[kind as HomeBlockKind]}
             <DropdownMenu.Item onSelect={() => openNew(kind as HomeBlockKind, z.key)} class="items-start py-2">
               <Icon class="mt-0.5" />

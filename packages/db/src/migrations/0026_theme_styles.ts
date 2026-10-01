@@ -5,7 +5,12 @@ import type { Kysely } from 'kysely';
  * Yalnızca ayar değeri değişir; başka veri silinmez.
  */
 export async function up(db: Kysely<any>): Promise<void> {
-  await db.updateTable('settings').set({ value_json: JSON.stringify('editorial') }).where('key', '=', 'appearance.themeStyle').where('value_json', '=', JSON.stringify('classic')).execute();
+  await db
+    .updateTable('settings')
+    .set({ value_json: JSON.stringify('editorial') })
+    .where('key', '=', 'appearance.themeStyle')
+    .where('value_json', '=', JSON.stringify('classic'))
+    .execute();
 }
 
 export async function down(): Promise<void> {

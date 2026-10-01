@@ -28,7 +28,9 @@ afterAll(async () => {
 describe('plugins', () => {
   it('turns plugin endpoints off and on', async () => {
     const list = (await admin.get('/api/admin/plugins')).body.items;
-    expect(list.map((p: { key: string }) => p.key)).toEqual(['landing', 'wiki', 'applications', 'tickets']);
+    expect(list.map((p: { key: string }) => p.key)).toEqual(['landing', 'wiki', 'applications', 'tickets', 'shoutbox', 'discord', 'gameserver']);
+    // Sonradan eklenen eklentiler kapalı başlar
+    expect(list.filter((p: { enabled: boolean }) => !p.enabled).map((p: { key: string }) => p.key)).toEqual(['shoutbox', 'discord', 'gameserver']);
     expect((await user.put('/api/admin/plugins/wiki', { enabled: false })).status).toBe(403);
     expect((await admin.put('/api/admin/plugins/wiki', { enabled: false })).status).toBe(200);
     expect((await h.agent().get('/api/wiki')).status).toBe(404);

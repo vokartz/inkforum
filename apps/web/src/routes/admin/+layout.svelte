@@ -3,6 +3,9 @@
   import ApplicationsIcon from 'phosphor-svelte/lib/ClipboardText';
   import TicketsIcon from 'phosphor-svelte/lib/Lifebuoy';
   import PluginsIcon from 'phosphor-svelte/lib/PuzzlePiece';
+  import ShoutboxIcon from 'phosphor-svelte/lib/ChatCenteredDots';
+  import DiscordIcon from 'phosphor-svelte/lib/DiscordLogo';
+  import GameIcon from 'phosphor-svelte/lib/GameController';
   import FirewallIcon from 'phosphor-svelte/lib/ShieldCheckered';
   import UpdatesIcon from 'phosphor-svelte/lib/ArrowsClockwise';
   import { pluginEnabled } from '@forum/shared';
@@ -74,6 +77,9 @@
           { href: '/admin/wiki', label: t('Wiki'), icon: WikiIcon, show: can(v, 'admin.wiki') && pluginEnabled(v.settings, 'wiki') },
           { href: '/admin/applications', label: t('Başvuru formları'), icon: ApplicationsIcon, show: can(v, 'admin.applications') && pluginEnabled(v.settings, 'applications') },
           { href: '/admin/tickets', label: t('Destek kategorileri'), icon: TicketsIcon, show: can(v, 'admin.tickets') && pluginEnabled(v.settings, 'tickets') },
+          { href: '/admin/shoutbox', label: t('Sohbet kutusu'), icon: ShoutboxIcon, show: can(v, 'admin.settings') && pluginEnabled(v.settings, 'shoutbox') },
+          { href: '/admin/discord', label: t('Discord'), icon: DiscordIcon, show: can(v, 'admin.settings') && pluginEnabled(v.settings, 'discord') },
+          { href: '/admin/gameservers', label: t('Oyun sunucuları'), icon: GameIcon, show: can(v, 'admin.settings') && pluginEnabled(v.settings, 'gameserver') },
           { href: '/admin/custom', label: t('Özel kod ve entegrasyon'), icon: CodeBlockIcon, show: can(v, 'admin.customCode') },
           { href: '/admin/developers', label: t('Geliştiriciler ve API'), icon: PlugsIcon, show: can(v, 'admin.developers') },
         ],

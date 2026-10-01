@@ -947,6 +947,15 @@ export interface TagsTable {
   created_at: number;
 }
 
+export interface ShoutsTable {
+  id: Generated<number>;
+  user_id: number;
+  body: string;
+  created_at: number;
+  deleted_at: number | null;
+  deleted_by: number | null;
+}
+
 export interface TopicMembersTable {
   topic_id: number;
   user_id: number;
@@ -1228,6 +1237,7 @@ export interface DB {
   tags: TagsTable;
   topic_tags: TopicTagsTable;
   topic_members: TopicMembersTable;
+  shouts: ShoutsTable;
   polls: PollsTable;
   poll_options: PollOptionsTable;
   poll_votes: PollVotesTable;

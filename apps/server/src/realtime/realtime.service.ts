@@ -60,6 +60,11 @@ export class RealtimeService implements OnModuleDestroy {
     }
   }
 
+  /** Bağlı tüm üyelere (ör. sohbet kutusu) */
+  broadcast(event: RealtimeEvent): void {
+    for (const set of this.clients.values()) for (const res of set) this.write(res, event);
+  }
+
   /** Bağlı üye sayısı (sistem bilgisi ve testler için) */
   connected(userId?: number): number {
     if (userId !== undefined) return this.clients.get(userId)?.size ?? 0;
