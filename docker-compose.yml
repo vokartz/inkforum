@@ -1,0 +1,86 @@
+# ─────────────────────────────────────────────────────────────
+#  InkForum — Docker Compose
+#
+#  Kurulum:   curl -fsSL https://raw.githubusercontent.com/vokartz/inkforum/main/install.sh | sudo bash
+#  Elle:      cp .env.example .env  (düzenleyin)  →  docker compose up -d
+#  Kurulum kodu: docker compose logs inkforum | grep "Kurulum kodu"
+#
+#  Güncellemeler yönetim panelinden (Yönetim → Güncellemeler) tek tıkla kurulur.
+# ─────────────────────────────────────────────────────────────
+name: inkforum
+
+services:
+  inkforum:
+    image: ghcr.io/vokartz/inkforum:${INKFORUM_VERSION:-latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      UPDATER_URL: http://updater:9000
+    ports:
+      - "${INKFORUM_BIND:-0.0.0.0}:${INKFORUM_PORT:-3000}:3000"
+    volumes:
+      - inkforum-storage:/app/storage
+    labels:
+      inkforum.role: app
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  # Tek tıkla güncelleme: yeni imajı çeker, uygulamayı sağlık denetimiyle yeniden başlatır,
+  # sorun olursa önceki sürüme döner. Dışarıya port açmaz; yalnızca iç ağdan, anahtarla konuşur.
+  updater:
+    image: ghcr.io/vokartz/inkforum:${INKFORUM_VERSION:-latest}
+    restart: unless-stopped
+    command: ["node", "updater.mjs"]
+    user: root
+    environment:
+      UPDATER_TOKEN: ${UPDATER_TOKEN:?UPDATER_TOKEN .env içinde tanımlı olmalı}
+      UPDATER_IMAGE: ghcr.io/vokartz/inkforum
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    labels:
+      inkforum.role: updater
+    healthcheck:
+      disable: true
+    logging:
+      driver: json-file
+      options: { max-size: "5m", max-file: "2" }
+
+  # İsteğe bağlı: otomatik HTTPS (Let's Encrypt). .env içinde DOMAIN=forum.ornek.com ve
+  # COMPOSE_PROFILES=https ayarlayın; INKFORUM_BIND=127.0.0.1 yapın.
+  caddy:
+    image: caddy:2-alpine
+    profiles: ["https"]
+    restart: unless-stopped
+    command: ["caddy", "reverse-proxy", "--from", "${DOMAIN:-localhost}", "--to", "inkforum:3000"]
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+
+  # İsteğe bağlı: PostgreSQL. .env içinde COMPOSE_PROFILES=postgres (ya da https,postgres),
+  # DB_DRIVER=postgres ve DATABASE_URL=postgres://inkforum:${POSTGRES_PASSWORD}@postgres:5432/inkforum
+  postgres:
+    image: postgres:17-alpine
+    profiles: ["postgres"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: inkforum
+      POSTGRES_DB: inkforum
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-inkforum}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U inkforum"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  inkforum-storage:
+  caddy-data:
+  caddy-config:
+  postgres-data:

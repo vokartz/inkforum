@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    name: Lint, tip kontrolü, testler (${{ matrix.db }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        db: [sqlite, pglite]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm lint
+        if: matrix.db == 'sqlite'
+      - run: pnpm typecheck
+        if: matrix.db == 'sqlite'
+      - name: Testler
+        run: pnpm --filter @forum/shared --filter @forum/db test && pnpm --filter @forum/server test
+        if: matrix.db == 'sqlite'
+      - name: Testler (PostgreSQL / PGlite)
+        run: pnpm --filter @forum/server test:pg
+        if: matrix.db == 'pglite'
+
+  postgres:
+    name: Gerçek PostgreSQL üzerinde açılış
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: forum
+          POSTGRES_PASSWORD: forum
+          POSTGRES_DB: forum
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U forum" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: Migration ve açılış
+        env:
+          NODE_ENV: production
+          DB_DRIVER: postgres
+          DATABASE_URL: postgres://forum:forum@localhost:5432/forum
+          APP_URL: http://localhost:3000
+          APP_SECRET: ci-secret-ci-secret-ci-secret-ci-secret
+          ADMIN_PASSWORD: CiAdminPass123
+        run: |
+          node apps/server/dist/cli.js migrate
+          node apps/server/dist/main.js &
+          for i in $(seq 1 30); do curl -sf http://localhost:3000/api/health && break; sleep 1; done
+          curl -sf http://localhost:3000/api/health
+          curl -sf http://localhost:3000/ -o /dev/null

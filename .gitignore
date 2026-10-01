@@ -1,0 +1,22 @@
+node_modules/
+dist/
+build/
+.svelte-kit/
+.turbo/
+coverage/
+test-results/
+playwright-report/
+*.log
+.env
+.env.*
+!.env.example
+!.env.dev.example
+storage/*
+!storage/.gitkeep
+apps/web/src/lib/paraglide/
+.DS_Store
+/release/
+.update/
+
+# Yerel araç ayarları
+.claude/

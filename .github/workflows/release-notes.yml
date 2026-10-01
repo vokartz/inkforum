@@ -1,0 +1,41 @@
+# Yayınlanmış sürümlerin notlarını günceller.
+#
+# CHANGELOG.md / CHANGELOG_tr.md değiştiğinde bu depodaki her yayının notu yeniden üretilir
+# (scripts/release/notes.mjs). Yayından sonra fark edilen not hataları yeni sürüm çıkarmadan düzeltilebilir.
+
+name: Sürüm notlarını güncelle
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - CHANGELOG.md
+      - CHANGELOG_tr.md
+      - scripts/release/notes.mjs
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  notes:
+    name: Notları eşitle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Yayın notlarını yeniden yaz
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for tag in $(gh release list --limit 100 --json tagName --jq '.[].tagName'); do
+            node scripts/release/notes.mjs "$tag" > notes.md
+            gh release edit "$tag" --notes-file notes.md
+            echo "✔ $tag"
+          done

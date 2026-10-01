@@ -1,0 +1,6 @@
+# Yalnızca hazırlanmış sürüm paketi imaja girer (kaynak kod değil)
+*
+!release/inkforum/**
+release/inkforum/node_modules
+release/inkforum/storage
+release/inkforum/.env

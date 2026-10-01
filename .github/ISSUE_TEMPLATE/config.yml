@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 🔒 Security vulnerability
+    url: https://github.com/vokartz/inkforum/security/advisories/new
+    about: Please report security issues privately, never in a public issue.
+  - name: 💬 Questions & help (Discussions)
+    url: https://github.com/vokartz/inkforum/discussions
+    about: Installation help, "how do I…" questions and showing off your community.
+  - name: ☕ Support development
+    url: https://buymeacoffee.com/vokartz
+    about: InkForum is built by a small team — every coffee helps.

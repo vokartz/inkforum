@@ -1,0 +1,8 @@
+node_modules
+dist
+build
+.svelte-kit
+.turbo
+storage
+pnpm-lock.yaml
+apps/web/src/lib/paraglide
