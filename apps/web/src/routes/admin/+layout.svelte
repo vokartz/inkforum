@@ -1,6 +1,7 @@
 <script lang="ts">
   import WikiIcon from 'phosphor-svelte/lib/BookOpenText';
   import RobotIcon from 'phosphor-svelte/lib/Robot';
+  import ShareIcon from 'phosphor-svelte/lib/ShareNetwork';
   import ApplicationsIcon from 'phosphor-svelte/lib/ClipboardText';
   import TicketsIcon from 'phosphor-svelte/lib/Lifebuoy';
   import PluginsIcon from 'phosphor-svelte/lib/PuzzlePiece';
@@ -94,6 +95,7 @@
           { href: '/admin/emojis', label: t('Özel emojiler'), icon: StickerIcon, show: can(v, 'admin.forum.manage') },
           { href: '/admin/reactions', label: t('Tepkiler'), icon: SmileyIcon, show: can(v, 'admin.forum.manage') },
           { href: '/admin/embeds', label: t('Gömülü içerik'), icon: SquarePlayIcon, show: can(v, 'admin.settings') },
+          { href: '/admin/og-card', label: t('Paylaşım kartı'), icon: ShareIcon, show: can(v, 'admin.settings') },
         ],
       },
       {

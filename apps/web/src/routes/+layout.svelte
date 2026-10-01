@@ -146,6 +146,7 @@
     `html:root{--app-font:${fontFamily};--tint:${tint};--bb-quote-says:${cssString(t('yazdı:'))};--bb-quote-label:${cssString(t('Alıntı:'))}}` +
       (/^#[0-9a-fA-F]{6}$/.test(accent) ? `html:root,html[data-theme]{--primary:${accent};--primary-foreground:${readableOn(accent)}}` : ''),
   );
+  const embedColor = $derived(String((s['seo.ogCard'] as { embedColor?: string } | undefined)?.embedColor ?? ''));
   const favicon = $derived(s['appearance.faviconUrl'] as string | null | undefined);
   // Site simgesi app.html'de sunucuda yazılır; yönetimden değişince sayfa yenilenmeden güncellenir.
   $effect(() => {
@@ -195,7 +196,8 @@
 
 <svelte:head>
   <!-- Vurgu rengi: mobil tarayıcı çubuğu ve Discord / Slack gömme kartının kenar rengi -->
-  <meta name="theme-color" content={/^#[0-9a-fA-F]{6}$/.test(accent) ? accent : theme.resolved === 'dark' ? '#0f1219' : '#f6f7fb'} />
+  <!-- Discord gibi uygulamalarda bağlantı önizlemesinin kenar rengi (SEO → Paylaşım kartı) -->
+  <meta name="theme-color" content={embedColor || (/^#[0-9a-fA-F]{6}$/.test(accent) ? accent : theme.resolved === 'dark' ? '#0f1219' : '#f6f7fb')} />
   {#if accentCss}{@html `<style>${accentCss}</style>`}{/if}
   {#if themed && activeTheme?.css}{@html `<style data-forum-theme>${activeTheme.css.replace(/<\/style/gi, '<\\/style')}</style>`}{/if}
   {#if !isAdminArea && !isEmbed}

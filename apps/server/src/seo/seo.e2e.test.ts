@@ -92,4 +92,13 @@ describe('seo', () => {
     expect(res.status).toBe(302);
     expect(res.headers.location).toBe('/brand/inkforum-icon-512.png');
   });
+  it('saves the share card design and rejects outside images', async () => {
+    const ok = await admin.put('/api/admin/seo/og-card', { layout: 'split', background: { kind: 'gradient', from: '#000000', to: '#ffffff' }, embedColor: '#ff0000' });
+    expect(ok.status).toBe(200);
+    const me = await h.agent().get('/api/auth/me');
+    expect(me.body.settings['seo.ogCard']).toMatchObject({ layout: 'split', embedColor: '#ff0000', font: 'sans' });
+    const bad = await admin.put('/api/admin/seo/og-card', { background: { kind: 'image', image: 'https://evil.example/x.png' } });
+    expect(bad.status).toBe(422);
+    expect((await h.agent().put('/api/admin/seo/og-card', {})).status).toBe(401);
+  });
 });

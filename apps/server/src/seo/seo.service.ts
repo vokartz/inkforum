@@ -1,8 +1,9 @@
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { plainExcerpt, pluginEnabled, type TopicEmbed } from '@forum/shared';
+import { plainExcerpt, pluginEnabled, type OgCard, type TopicEmbed } from '@forum/shared';
+import { renderCardSvg, type CardAssets, type CardContent } from './og-card.js';
 import { CONFIG, type AppConfig } from '../config/config.js';
 import { Db } from '../database/db.service.js';
 import { SettingsService } from '../settings/settings.service.js';
@@ -280,7 +281,6 @@ export class SeoService {
       title: card.title,
       meta: [card.author.name, this.i18n.t(locale, '{n} yanıt', { n: card.replyCount }), this.i18n.t(locale, '{n} görüntülenme', { n: card.viewCount })].join('  ·  '),
       forum: card.forum.name,
-      accent: card.forum.accent,
     });
     return this.render(sharp, svg, `t${id}`);
   }
@@ -299,7 +299,7 @@ export class SeoService {
     const sharp = await this.storage.loadSharp();
     if (!sharp) return null;
     const name = String(this.settings.get('general.forumName'));
-    const svg = this.cardSvg({ kicker: card.kicker, title: card.title, meta: card.meta ?? '', forum: name, accent: String(this.settings.get('appearance.accentColor') ?? '#7b61ff') });
+    const svg = this.cardSvg({ kicker: card.kicker, title: card.title, meta: card.meta ?? '', forum: name });
     return this.render(sharp, svg, `p${createHash('sha1').update(path).digest('hex').slice(0, 10)}`);
   }
 
@@ -369,13 +369,7 @@ export class SeoService {
     const sharp = await this.storage.loadSharp();
     if (!sharp) return null;
     const name = String(this.settings.get('general.forumName'));
-    const svg = this.cardSvg({
-      kicker: new URL(this.config.appUrl).host,
-      title: name,
-      meta: String(this.settings.get('general.forumDescription') ?? '').slice(0, 110),
-      forum: name,
-      accent: String(this.settings.get('appearance.accentColor') ?? '#7b61ff'),
-    });
+    const svg = this.cardSvg(this.siteContent());
     return this.render(sharp, svg, 'site');
   }
 
@@ -396,56 +390,71 @@ export class SeoService {
     }
   }
 
-  private cardSvg(c: { kicker: string; title: string; meta: string; forum: string; accent: string }): string {
-    const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    const accent = /^#[0-9a-f]{6}$/i.test(c.accent) ? c.accent : '#7b61ff';
-    const lines = wrap(c.title, 30, 3);
-    const size = lines.length > 2 ? 58 : 66;
-    const startY = 250 - (lines.length - 1) * (size * 0.6);
-    const title = lines.map((l, i) => `<text x="80" y="${Math.round(startY + i * size * 1.18)}" font-size="${size}" font-weight="800" fill="#ffffff">${esc(l)}</text>`).join('');
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
-<defs>
-<radialGradient id="g" cx="0.9" cy="0" r="0.9"><stop offset="0" stop-color="${accent}" stop-opacity="0.55"/><stop offset="1" stop-color="${accent}" stop-opacity="0"/></radialGradient>
-<linearGradient id="b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#151821"/><stop offset="1" stop-color="#0b0d12"/></linearGradient>
-</defs>
-<rect width="1200" height="630" fill="url(#b)"/>
-<rect width="1200" height="630" fill="url(#g)"/>
-<rect x="80" y="84" width="64" height="8" rx="4" fill="${accent}"/>
-<g font-family="'DejaVu Sans', 'Noto Sans', 'Noto Sans CJK SC', 'WenQuanYi Zen Hei', sans-serif">
-<text x="80" y="140" font-size="30" font-weight="600" fill="#ffffff" fill-opacity="0.7">${esc(truncate(c.kicker, 50))}</text>
-${title}
-<text x="80" y="520" font-size="28" fill="#ffffff" fill-opacity="0.72">${esc(truncate(c.meta, 70))}</text>
-<text x="80" y="572" font-size="30" font-weight="800" fill="${accent}">${esc(truncate(c.forum, 40))}</text>
-</g>
-</svg>`;
+  private siteContent(): CardContent {
+    const name = String(this.settings.get('general.forumName'));
+    return { kicker: new URL(this.config.appUrl).host, title: name, meta: String(this.settings.get('general.forumDescription') ?? '').slice(0, 110), forum: name };
+  }
+
+  /** Kart tasarımı (Yönetim → SEO → Paylaşım kartı) ile SVG */
+  private cardSvg(c: CardContent, design?: OgCard): string {
+    const card = design ?? this.settings.get('seo.ogCard');
+    return renderCardSvg(c, card, String(this.settings.get('appearance.accentColor') ?? '#7b61ff'), this.cardAssets(card));
+  }
+
+  /** Logo ve arka plan görseli: yalnızca bu forumun yüklemeleri, data: adresi olarak gömülür */
+  private assetCache = new Map<string, { mtime: number; uri: string }>();
+  private cardAssets(card: OgCard): CardAssets {
+    const logo = this.settings.get('appearance.logoUrl');
+    return { logo: card.logo ? this.uploadDataUri(typeof logo === 'string' ? logo : '') : null, background: card.background.kind === 'image' ? this.uploadDataUri(card.background.image) : null };
+  }
+  private uploadDataUri(url: string): string | null {
+    const m = /^\/uploads\/([\w./-]+)$/.exec(url);
+    if (!m || m[1]!.includes('..')) return null;
+    const mime = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif' }[m[1]!.split('.').pop()!.toLowerCase()];
+    if (!mime) return null;
+    const file = join(this.config.uploadsDir, m[1]!);
+    try {
+      const mtime = statSync(file).mtimeMs;
+      const hit = this.assetCache.get(file);
+      if (hit && hit.mtime === mtime) return hit.uri;
+      const uri = `data:${mime};base64,${readFileSync(file).toString('base64')}`;
+      if (this.assetCache.size > 20) this.assetCache.clear();
+      this.assetCache.set(file, { mtime, uri });
+      return uri;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Yönetimdeki tasarım ekranının canlı önizlemesi (kaydedilmemiş tasarımla, önbelleksiz) */
+  async previewImage(card: OgCard, sample: 'topic' | 'site' | 'board'): Promise<{ type: string; data: Buffer }> {
+    const locale = this.i18n.defaultLocale();
+    let content = this.siteContent();
+    if (sample === 'topic') {
+      const last = await this.db.q.selectFrom('topics').select('id').where('deleted_at', 'is', null).orderBy('id', 'desc').limit(20).execute();
+      for (const t of last) {
+        const e = await this.topicEmbed(t.id);
+        if (!e) continue;
+        content = {
+          kicker: e.board.name,
+          title: e.title,
+          meta: [e.author.name, this.i18n.t(locale, '{n} yanıt', { n: e.replyCount }), this.i18n.t(locale, '{n} görüntülenme', { n: e.viewCount })].join('  ·  '),
+          forum: e.forum.name,
+        };
+        break;
+      }
+    } else if (sample === 'board') {
+      const boards = [...(await this.access.visibleBoards(await this.guest())).values()].map((v) => v.board).filter((b) => !b.is_hidden);
+      const first = boards[0];
+      if (first) content = { ...(await this.pageCard(`/f/${first.id}`))!, forum: content.forum };
+    }
+    const svg = Buffer.from(this.cardSvg(content, card));
+    // sharp yoksa (ör. geliştirme ortamı) SVG'nin kendisi gösterilir; yazı tipleri tarayıcınınkidir
+    const sharp = await this.storage.loadSharp();
+    return sharp ? { type: 'image/png', data: await sharp(svg).png().toBuffer() } : { type: 'image/svg+xml', data: svg };
   }
 }
 
 /** Paylaşım görseli çizim sürümü (önbellek anahtarına girer) */
-const OG_RENDER = 2;
+const OG_RENDER = 3;
 
-function truncate(s: string, n: number): string {
-  return s.length > n ? `${s.slice(0, n - 1)}…` : s;
-}
-
-/** Başlığı satırlara böler (en fazla `max` satır, sonuncusu gerekirse kısaltılır) */
-function wrap(text: string, width: number, max: number): string[] {
-  const words = text.split(/\s+/).filter(Boolean);
-  const lines: string[] = [];
-  let cur = '';
-  for (const w of words) {
-    if (!cur) cur = w;
-    else if (`${cur} ${w}`.length <= width) cur = `${cur} ${w}`;
-    else {
-      lines.push(cur);
-      cur = w;
-    }
-  }
-  if (cur) lines.push(cur);
-  if (lines.length > max) {
-    const kept = lines.slice(0, max);
-    kept[max - 1] = truncate(`${kept[max - 1]} ${lines.slice(max).join(' ')}`, width);
-    return kept;
-  }
-  return lines.map((l) => truncate(l, width + 6));
-}

@@ -1,8 +1,11 @@
-import { Controller, Get, Header, Param, Query, Res } from '@nestjs/common';
+import { Body, Controller, Get, Header, HttpCode, Param, Post, Put, Query, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import { z } from 'zod';
 import { ZodPipe } from '../common/validation.js';
-import { AllowIncomplete, RateLimit } from '../common/decorators.js';
+import { AdminEndpoint, AllowIncomplete, RateLimit } from '../common/decorators.js';
+import { CurrentViewer, type RequestViewer } from '../common/request-context.js';
+import { ogCardSchema, ogPreviewInput, type OgCard } from '@forum/shared';
+import { SettingsService } from '../settings/settings.service.js';
 import { MINUTE } from '../common/clock.js';
 import { Errors } from '../common/errors.js';
 import { SeoService } from './seo.service.js';
@@ -20,7 +23,10 @@ const pageParam = z.coerce.number().int().min(1).max(10_000);
 @Controller()
 @AllowIncomplete()
 export class SeoController {
-  constructor(private readonly seo: SeoService) {}
+  constructor(
+    private readonly seo: SeoService,
+    private readonly settings: SettingsService,
+  ) {}
 
   @Get('seo/robots')
   @Header('Content-Type', 'text/plain; charset=utf-8')
@@ -91,6 +97,27 @@ export class SeoController {
   @Get('og/site.png')
   async siteImage(@Res() res: Response) {
     this.sendImage(res, await this.seo.siteImage());
+  }
+
+  // ----- Paylaşım kartı tasarımı (yönetim) -----
+
+  @Put('admin/seo/og-card')
+  @AdminEndpoint('admin.settings')
+  async saveCard(@Body(new ZodPipe(ogCardSchema)) body: OgCard, @CurrentViewer() v: RequestViewer) {
+    await this.settings.update({ 'seo.ogCard': body }, v.user!.id, { allowHidden: true });
+    return { ok: true };
+  }
+
+  @Post('admin/seo/og-preview')
+  @HttpCode(200)
+  @AdminEndpoint('admin.settings')
+  @RateLimit({ limit: 120, windowMs: MINUTE })
+  async preview(@Body(new ZodPipe(ogPreviewInput)) body: z.output<typeof ogPreviewInput>, @Res() res: Response) {
+    const img = await this.seo.previewImage(body.card, body.sample);
+    res.setHeader('Content-Type', img.type);
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Content-Security-Policy', "default-src 'none'; img-src data:; style-src 'unsafe-inline'");
+    res.end(img.data);
   }
 
   private sendImage(res: Response, png: Buffer | null): void {

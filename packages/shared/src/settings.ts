@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { LOCALES, LOCALE_INFO, type Locale } from './i18n.js';
+import { DEFAULT_OG_CARD, ogCardSchema, type OgCard } from './og-card.js';
 import { DEFAULT_CAPTCHA_CONFIG, captchaConfigSchema, type CaptchaConfig } from './captcha.js';
 import { DEFAULT_MAINTENANCE_PAGE, maintenancePageSchema, type MaintenancePage } from './maintenance-page.js';
 
@@ -184,6 +185,15 @@ export const SETTINGS = {
     description: 'Konular Discord, X, WhatsApp gibi yerlerde paylaşılınca başlık ve bilgilerle özel bir kart görseli oluşturulur (sunucuda sharp gerekir; yoksa logo/banner kullanılır).',
     input: 'boolean',
     public: true,
+  }),
+  'seo.ogCard': def({
+    section: 'seo',
+    schema: ogCardSchema,
+    default: DEFAULT_OG_CARD as OgCard,
+    label: 'Paylaşım kartı tasarımı',
+    input: 'list',
+    public: true,
+    hidden: true,
   }),
   'seo.twitterHandle': def({
     section: 'seo',
