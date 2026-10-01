@@ -9,6 +9,25 @@ güncelleme notuna dönüşür (panel yöneticinin diline uygun olanı gösterir
 
 ## [Yayımlanmamış]
 
+## [1.1.1] - 2026-10-01
+
+### Eklenenler
+
+- **Coolify'da güncelleme:** Coolify'a tek imaj olarak eklenen forumlar artık tek tıkla güncellenebilir — kaynağın Deploy
+  Webhook adresini ve API anahtarını Yönetim → Güncellemeler → Coolify ile güncelleme bölümüne girin.
+- **SQLite → PostgreSQL taşıma:** `node cli.mjs transfer-db postgres://…` tüm tabloları boş bir PostgreSQL veritabanına
+  kopyalar, satır sayılarını doğrular ve kaynağı hiç değiştirmez.
+- Açılışta yeni migration'lar uygulanmadan önce otomatik veritabanı yedeği (`pre-migrate`) alınır.
+
+### Düzeltilenler
+
+- Güncelleyici kapsayıcısı yokken güncelleme yalnızca "fetch failed" hatasıyla duruyordu; Güncellemeler sayfası artık
+  nedenini (bulunamadı / çalışmıyor / yanıt yok) ve çözümünü gösteriyor.
+- Yönetim → E-posta sayfası e-postaların gönderilmediği durumu (Günlük modu, SMTP ayarlı değil) açıkça bildiriyor;
+  "Bana örnek gönder" bu modda artık başarılı demiyor.
+- E-postalar: logo beyaz zeminde görünüyor, açık vurgu renklerinde düğme yazısı okunaklı; önizleme bağlantıları forumun
+  kendi adresini kullanıyor.
+
 ## [1.1.0] - 2026-10-01
 
 ### Eklenenler

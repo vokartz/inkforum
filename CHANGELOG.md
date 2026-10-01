@@ -8,6 +8,25 @@ Each version section becomes the GitHub release note and the update note in the 
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-10-01
+
+### Added
+
+- **Updates on Coolify:** forums added to Coolify as a single image can now update with one click — enter the
+  resource's Deploy Webhook URL and an API token under Admin → Updates → Update with Coolify.
+- **SQLite → PostgreSQL transfer:** `node cli.mjs transfer-db postgres://…` copies every table into an empty
+  PostgreSQL database, checks the row counts and never changes the source.
+- A database backup (`pre-migrate`) is taken automatically before new migrations run on start.
+
+### Fixed
+
+- Updates failed with only "fetch failed" when the updater container was missing; the Updates page now explains the
+  reason (not found / not running / no answer) and how to fix it.
+- The Admin → E-mail page now warns clearly when e-mails are not being sent (Log mode, no SMTP configured), and the
+  "send me a sample" button no longer claims success in that mode.
+- E-mails: the logo is visible on the white background and button text is readable on light accent colors; preview
+  links use the forum's own address.
+
 ## [1.1.0] - 2026-10-01
 
 ### Added
