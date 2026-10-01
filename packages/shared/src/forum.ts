@@ -590,3 +590,10 @@ export interface ModQueuePage {
   page: number;
   perPage: number;
 }
+
+/** Gizli konuya yetkililerin eklediği üye */
+export interface TopicMember {
+  user: UserSummary;
+  addedBy: UserSummary | null;
+  addedAt: number;
+}

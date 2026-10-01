@@ -19,7 +19,8 @@ güncelleme notuna dönüşür (panel yöneticinin diline uygun olanı gösterir
 - **Onay kuyruğu** (`/mod/queue`): onay bekleyen konu ve yanıtlar tek yerde; onayla / reddet düğmeleri ve
   moderatörler için kullanıcı menüsünde sayaç.
 - **Gizli konular:** moderatörler bir konuyu yalnızca yazarının ve yetkililerin göreceği şekilde gizleyebilir;
-  bölümler "konular gizli" olarak ayarlanabilir (başvuru, şikâyet, destek).
+  bölümler "konular gizli" olarak ayarlanabilir (başvuru, şikâyet, destek). Yetkililer gizli konuya başka üyeleri
+  ekleyebilir; eklenen üye konuyu görür, yanıtlayabilir, takibe alınır ve bildirim alır.
 - **Her sayfa için paylaşım kartı:** bölümler, profiller, wiki ve özel sayfalar, etiketler ve sabit sayfalar Discord,
   X, WhatsApp vb. için kendi önizleme görselini alır; `og:image` boyutu, doğru `og:locale` ve vurgu rengi (gömme
   kartı kenarı) eklenir.
@@ -28,6 +29,7 @@ güncelleme notuna dönüşür (panel yöneticinin diline uygun olanı gösterir
 
 - Docker kurulumlarında paylaşım görsellerinde yazılar kutucuk olarak çıkıyordu (imajda font yoktu); fontlar artık
   uygulamayla geliyor.
+- Gizli konulardaki bahsetme, alıntı ve yanıt bildirimleri yalnızca konuyu görebilen üyelere gider.
 - Diğer dillerde Türkçe metin görünmesi giderildi: alt bilgi bağlantıları, alıntı başlığı ("… yazdı:"), yedek
   etiketleri, bildirim ayarları, grup adları, destek kategorileri, wiki açıklaması, eklenti durumları, yetki profilleri,
   tepkiler, başarılar, politikalar, yönetim kenar çubuğu ve e-posta şablonları ziyaretçinin dilini izliyor.

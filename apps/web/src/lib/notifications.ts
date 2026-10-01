@@ -111,6 +111,8 @@ export function describeNotification(n: NotificationItem): { text: string; href:
       return { text: t('Yeni InkForum sürümü yayımlandı: v{version}. Sürüm notlarını incele.', { version: d.version }), href: '/admin/updates' };
     case 'system.updated':
       return { text: t('InkForum v{version} sürümüne güncellendi.', { version: d.version }), href: '/admin/updates' };
+    case 'forum.topicAccess':
+      return { text: t('{actor} sizi gizli "{topic}" konusuna ekledi.', { actor: d.actorName ?? t('Bir yetkili'), topic: d.topicTitle }), href: d.topicId ? `/t/${d.topicId}` : null };
     case 'forum.postApproved':
       return { text: t('"{topic}" konusundaki mesajınız onaylandı.', { topic: d.topicTitle }), href: d.postId ? `/p/${d.postId}` : null };
     default:
@@ -128,6 +130,7 @@ export function notificationVisual(n: NotificationItem): { icon: IconComponent; 
   if (t === 'forum.reaction') return { icon: HeartIcon, color: 'var(--destructive)' };
   if (t === 'forum.mention') return { icon: AtIcon, color: 'var(--primary)' };
   if (t === 'forum.reply') return { icon: ChatsIcon, color: 'var(--primary)' };
+  if (t === 'forum.topicAccess') return { icon: UsersIcon, color: 'var(--warning)' };
   if (t === 'forum.postApproved' || t === 'account.approved') return { icon: CheckCircleIcon, color: 'var(--success)' };
   if (t === 'system.update' || t === 'system.updated') return { icon: MegaphoneIcon, color: 'var(--success)' };
   if (t === 'system.message') return { icon: MegaphoneIcon, color: 'var(--primary)' };

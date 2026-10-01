@@ -21,6 +21,7 @@ export type NotificationType =
   | 'forum.quote'
   | 'forum.mention'
   | 'forum.postApproved'
+  | 'forum.topicAccess'
   | 'forum.reaction'
   | 'forum.reply'
   | 'application.new'
@@ -52,6 +53,7 @@ export const NOTIFICATION_TYPES: Array<{ type: NotificationType; label: string }
   { type: 'forum.quote', label: 'Mesajım alıntılandığında' },
   { type: 'forum.mention', label: 'Bir mesajda benden bahsedildiğinde' },
   { type: 'forum.postApproved', label: 'Onay bekleyen mesajım onaylandığında' },
+  { type: 'forum.topicAccess', label: 'Gizli bir konuya eklendiğimde' },
   { type: 'forum.reaction', label: 'Mesajıma tepki verildiğinde' },
   { type: 'forum.reply', label: 'Takip ettiğim konuya yanıt yazıldığında' },
   { type: 'application.decided', label: 'Başvurum sonuçlandığında' },

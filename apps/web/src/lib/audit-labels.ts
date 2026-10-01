@@ -89,6 +89,8 @@ const LABELS: Record<string, string> = {
   'topic.restore': 'konuyu geri getirdi',
   'topic.hide': 'konuyu gizledi',
   'topic.unhide': 'konuyu görünür yaptı',
+  'topic.member.add': 'gizli konuya üye ekledi',
+  'topic.member.remove': 'gizli konudan üye çıkardı',
   'user.approve': 'üyeliği onayladı',
   'user.reject': 'üyeliği reddetti',
   'user.delete': 'üye sildi',

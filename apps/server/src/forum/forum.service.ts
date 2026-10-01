@@ -391,7 +391,14 @@ export class ForumService {
     if (!access.can.approve) {
       const uid = viewer.user?.id ?? 0;
       q = q.where((eb: any) => eb.or([eb('topics.is_approved', '=', 1), eb('topics.user_id', '=', uid)]));
-      q = q.where((eb: any) => eb.or([eb('topics.is_hidden', '=', 0), eb('topics.user_id', '=', uid)]));
+      q = q.where((eb: any) =>
+        eb.or([
+          eb('topics.is_hidden', '=', 0),
+          eb('topics.user_id', '=', uid),
+          // Yetkililerin gizli konuya eklediği üyeler
+          eb.exists(eb.selectFrom('topic_members').select('topic_members.topic_id').whereRef('topic_members.topic_id', '=', 'topics.id').where('topic_members.user_id', '=', uid)),
+        ]),
+      );
     }
     return q;
   }
@@ -602,7 +609,7 @@ export class ForumService {
   async topicPage(viewer: RequestViewer, topicId: number, pageInput: number | 'last' | 'unread'): Promise<TopicPage> {
     const topic = await this.resolveTopic(topicId);
     const access = await this.access.require(viewer, topic.board_id);
-    this.posts.assertTopicVisible(viewer, access, topic);
+    await this.posts.assertTopicVisible(viewer, access, topic);
     const perPage = this.settings.get('forum.postsPerPage');
     const base = () => this.postVisibility(this.db.q.selectFrom('posts').where('posts.topic_id', '=', topic.id), viewer, access);
     const totalRow = await base().select((eb) => eb.fn.countAll<number>().as('n')).executeTakeFirst();
@@ -721,7 +728,7 @@ export class ForumService {
     if (!post) throw Errors.notFound('Mesaj bulunamadı.');
     const topic = await this.posts.requireTopic(post.topic_id);
     const access = await this.access.require(viewer, topic.board_id);
-    this.posts.assertTopicVisible(viewer, access, topic);
+    await this.posts.assertTopicVisible(viewer, access, topic);
     const own = !!viewer.user && post.user_id === viewer.user.id;
     if ((post.deleted_at && !access.can.viewDeleted) || (!post.is_approved && !own && !access.can.approve)) {
       throw Errors.notFound('Mesaj bulunamadı.');
@@ -894,7 +901,7 @@ export class ForumService {
   async related(viewer: RequestViewer, topicId: number): Promise<TopicRelated> {
     const topic = await this.posts.requireTopic(topicId);
     const access = await this.access.require(viewer, topic.board_id);
-    this.posts.assertTopicVisible(viewer, access, topic);
+    await this.posts.assertTopicVisible(viewer, access, topic);
     const visible = await this.visibleForumBoardIds(viewer);
     const boardIds = [...visible.keys()];
     const live = () =>

@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, HttpCode, Param, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put } from '@nestjs/common';
 import { z } from 'zod';
 import { idParam, mergeTopicSchema, moveTopicSchema, topicTitleSchema } from '@forum/shared';
 import { ZodPipe } from '../common/validation.js';
@@ -7,6 +7,7 @@ import { CurrentViewer, type RequestViewer } from '../common/request-context.js'
 import { ModerationService, type TopicFlag } from './moderation.service.js';
 
 const flagSchema = z.enum(['pin', 'unpin', 'lock', 'unlock', 'feature', 'unfeature', 'hide', 'unhide']);
+const memberSchema = z.object({ userId: z.number().int().positive() });
 const editTopicSchema = z.object({
   title: topicTitleSchema.optional(),
   prefixId: z.number().int().positive().nullable().optional(),
@@ -62,6 +63,24 @@ export class ForumModController {
   async restore(@Param('id', new ZodPipe(idParam)) id: number, @CurrentViewer() v: RequestViewer) {
     await this.mod.restore(v, id);
     return { ok: true };
+  }
+
+  @Get(':id/members')
+  async members(@Param('id', new ZodPipe(idParam)) id: number, @CurrentViewer() v: RequestViewer) {
+    return { items: await this.mod.members(v, id) };
+  }
+
+  @Post(':id/members')
+  @HttpCode(200)
+  async addMember(@Param('id', new ZodPipe(idParam)) id: number, @Body(new ZodPipe(memberSchema)) body: z.output<typeof memberSchema>, @CurrentViewer() v: RequestViewer) {
+    await this.mod.addMember(v, id, body.userId);
+    return { items: await this.mod.members(v, id) };
+  }
+
+  @Delete(':id/members/:userId')
+  async removeMember(@Param('id', new ZodPipe(idParam)) id: number, @Param('userId', new ZodPipe(idParam)) userId: number, @CurrentViewer() v: RequestViewer) {
+    await this.mod.removeMember(v, id, userId);
+    return { items: await this.mod.members(v, id) };
   }
 
   /** Genel bayrak uç noktası en sonda: ':id/move' gibi özel yolları gölgelemesin. */

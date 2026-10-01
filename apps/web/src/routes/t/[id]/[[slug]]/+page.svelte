@@ -5,7 +5,7 @@
   import { goto, invalidateAll, replaceState } from '$app/navigation';
   import { page } from '$app/state';
   import { toast } from 'svelte-sonner';
-  import type { ForumIndex, Paginated, PostRevisionItem, TopicRelated, TopicTag, TopicViewerItem } from '@forum/shared';
+  import type { ForumIndex, Paginated, PostRevisionItem, TopicMember, TopicRelated, TopicTag, TopicViewerItem, UserSummary } from '@forum/shared';
   import PinIcon from 'phosphor-svelte/lib/PushPin';
   import LockIcon from 'phosphor-svelte/lib/Lock';
   import LockOpenIcon from 'phosphor-svelte/lib/LockOpen';
@@ -50,6 +50,8 @@
   import Editor from '$lib/components/editor/Editor.svelte';
   import Combobox from '$lib/components/Combobox.svelte';
   import UserAvatar from '$lib/components/UserAvatar.svelte';
+  import UserPicker from '$lib/components/UserPicker.svelte';
+  import UserPlusIcon from 'phosphor-svelte/lib/UserPlus';
   import UserName from '$lib/components/UserName.svelte';
   import TimeAgo from '$lib/components/TimeAgo.svelte';
   import { api, errorMessage } from '$lib/api';
@@ -272,6 +274,36 @@
     }
   }
 
+  // ----- Gizli konu üyeleri (yetkililer başka üyeleri konuya ekleyebilir) -----
+  let membersOpen = $state(false);
+  let members = $state<TopicMember[] | null>(null);
+  async function openMembers() {
+    membersOpen = true;
+    members = null;
+    try {
+      members = (await api.get<{ items: TopicMember[] }>(`/api/mod/topics/${topic.id}/members`)).items;
+    } catch (e) {
+      toast.error(errorMessage(e));
+      members = [];
+    }
+  }
+  async function addMember(u: UserSummary) {
+    try {
+      members = (await api.post<{ items: TopicMember[] }>(`/api/mod/topics/${topic.id}/members`, { userId: u.id })).items;
+      toast.success(t('{name} konuya eklendi.', { name: u.displayName }));
+    } catch (e) {
+      toast.error(errorMessage(e));
+    }
+  }
+  async function removeMember(u: UserSummary) {
+    try {
+      members = (await api.delete<{ items: TopicMember[] }>(`/api/mod/topics/${topic.id}/members/${u.id}`)).items;
+      toast.success(t('{name} konudan çıkarıldı.', { name: u.displayName }));
+    } catch (e) {
+      toast.error(errorMessage(e));
+    }
+  }
+
   let mergeOpen = $state(false);
   let mergeInput = $state('');
   async function doMerge() {
@@ -422,6 +454,7 @@
             <DropdownMenu.Item onSelect={() => mod(topic.isHidden ? 'unhide' : 'hide', topic.isHidden ? t('Konu herkese görünür yapıldı.') : t('Konu gizlendi; yalnızca yazarı ve yetkililer görebilir.'))}>
               {#if topic.isHidden}<EyeIcon />{t('Herkese göster')}{:else}<HiddenIcon />{t('Konuyu gizle')}{/if}
             </DropdownMenu.Item>
+            {#if topic.isHidden}<DropdownMenu.Item onSelect={openMembers}><UserPlusIcon />{t('Konuya üye ekle')}</DropdownMenu.Item>{/if}
           {/if}
           {#if tv.can.pin}
             <DropdownMenu.Item onSelect={() => mod(topic.isPinned ? 'unpin' : 'pin', topic.isPinned ? t('Sabitleme kaldırıldı.') : t('Konu sabitlendi.'))}>
@@ -601,6 +634,34 @@
     >
   </div>
 {/if}
+
+<Dialog.Root bind:open={membersOpen}>
+  <Dialog.Content class="sm:max-w-md">
+    <Dialog.Header>
+      <Dialog.Title>{t('Gizli konunun üyeleri')}</Dialog.Title>
+      <Dialog.Description>{t('Eklediğin üyeler bu gizli konuyu görür, yanıtlayabilir ve yeni yanıtlarda bildirim alır. Konunun yazarı ve yetkililer zaten görür.')}</Dialog.Description>
+    </Dialog.Header>
+    <UserPicker placeholder={t('Üye ekle…')} exclude={[...(members ?? []).map((m) => m.user.id), ...(topic.author ? [topic.author.id] : [])]} onpick={addMember} />
+    {#if members === null}
+      <div class="flex justify-center py-6"><LoaderIcon class="size-5 animate-spin text-muted-foreground" /></div>
+    {:else if members.length}
+      <ul class="grid max-h-72 gap-1 overflow-y-auto">
+        {#each members as m (m.user.id)}
+          <li class="flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-accent">
+            <UserAvatar user={m.user} size={32} />
+            <span class="grid min-w-0 flex-1">
+              <span class="truncate text-sm font-semibold">{m.user.displayName}</span>
+              <span class="truncate text-xs text-muted-foreground">{#if m.addedBy}{t('{name} ekledi', { name: m.addedBy.displayName })} · {/if}<TimeAgo ms={m.addedAt} /></span>
+            </span>
+            <Button variant="ghost" size="icon-sm" class="text-destructive" onclick={() => removeMember(m.user)} title={t('Çıkar')} aria-label={t('Çıkar')}><XIcon /></Button>
+          </li>
+        {/each}
+      </ul>
+    {:else}
+      <p class="rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">{t('Henüz eklenmiş üye yok.')}</p>
+    {/if}
+  </Dialog.Content>
+</Dialog.Root>
 
 <Dialog.Root bind:open={editOpen}>
   <Dialog.Content class="sm:max-w-lg">

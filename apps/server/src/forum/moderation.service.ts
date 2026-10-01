@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { Row } from '@forum/db';
+import type { TopicMember } from '@forum/shared';
 import { Db } from '../database/db.service.js';
 import { Clock } from '../common/clock.js';
 import { Errors } from '../common/errors.js';
@@ -8,6 +9,9 @@ import type { RequestViewer } from '../common/request-context.js';
 import { ForumAccessService, type BoardAccess } from './forum-access.service.js';
 import { ForumCountersService } from './forum-counters.service.js';
 import { PostsService, topicSlug } from './posts.service.js';
+import { TopicExtrasService } from './topic-extras.service.js';
+import { UsersService } from '../users/users.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 
 export type TopicFlag = 'pin' | 'unpin' | 'lock' | 'unlock' | 'feature' | 'unfeature' | 'hide' | 'unhide';
 
@@ -21,12 +25,15 @@ export class ModerationService {
     private readonly access: ForumAccessService,
     private readonly counters: ForumCountersService,
     private readonly posts: PostsService,
+    private readonly extras: TopicExtrasService,
+    private readonly users: UsersService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   private async load(viewer: RequestViewer, topicId: number): Promise<{ topic: Row<'topics'>; access: BoardAccess }> {
     const topic = await this.posts.requireTopic(topicId);
     const access = await this.access.require(viewer, topic.board_id);
-    this.posts.assertTopicVisible(viewer, access, topic);
+    await this.posts.assertTopicVisible(viewer, access, topic);
     return { topic, access };
   }
 
@@ -169,5 +176,46 @@ export class ModerationService {
     if (!access.can.approve) throw Errors.forbidden();
     if (topic.is_approved || !topic.first_post_id) return;
     await this.posts.approve(viewer, topic.first_post_id);
+  }
+
+  // ---------- Gizli konu üyeleri ----------
+
+  /** Yetkililerin gizli konuya eklediği üyeler */
+  async members(viewer: RequestViewer, topicId: number): Promise<TopicMember[]> {
+    const { access } = await this.load(viewer, topicId);
+    if (!access.can.approve) throw Errors.forbidden();
+    const rows = await this.db.q.selectFrom('topic_members').selectAll().where('topic_id', '=', topicId).orderBy('created_at').execute();
+    const users = await this.users.summaries(rows.flatMap((r) => [r.user_id, r.added_by ?? 0]));
+    return rows
+      .filter((r) => users.has(r.user_id))
+      .map((r) => ({ user: users.get(r.user_id)!, addedBy: r.added_by ? (users.get(r.added_by) ?? null) : null, addedAt: r.created_at }));
+  }
+
+  /** Üyeyi gizli konuya ekler: konuyu görür, takibe alınır ve bildirim alır. */
+  async addMember(viewer: RequestViewer, topicId: number, userId: number): Promise<void> {
+    const { topic, access } = await this.load(viewer, topicId);
+    if (!access.can.approve) throw Errors.forbidden();
+    const user = await this.db.q.selectFrom('users').select(['id', 'status']).where('id', '=', userId).where('deleted_at', 'is', null).executeTakeFirst();
+    if (!user || user.status !== 'active') throw Errors.field('userId', 'Üye bulunamadı.');
+    if (topic.user_id === userId) throw Errors.field('userId', 'Konunun yazarı zaten görebilir.');
+    const exists = await this.posts.isTopicMember(topicId, userId);
+    if (exists) return;
+    await this.db.q.insertInto('topic_members').values({ topic_id: topicId, user_id: userId, added_by: viewer.user!.id, created_at: this.clock.now() }).execute();
+    if (!(await this.posts.userCanSeeTopic(userId, access.board, topicId))) {
+      // Bölümü göremeyen üye eklenemez (bölüm yetkisi gizli konudan önce gelir)
+      await this.db.q.deleteFrom('topic_members').where('topic_id', '=', topicId).where('user_id', '=', userId).execute();
+      throw Errors.field('userId', 'Bu üye konunun bulunduğu bölümü göremiyor.');
+    }
+    await this.extras.setSubscribed(userId, topicId, true);
+    await this.notifications.notify(userId, 'forum.topicAccess', { topicId, topicTitle: topic.title, actorName: viewer.user!.display_name }, viewer.user!.id);
+    await this.log(viewer, 'topic.member.add', topicId, { userId });
+  }
+
+  async removeMember(viewer: RequestViewer, topicId: number, userId: number): Promise<void> {
+    const { access } = await this.load(viewer, topicId);
+    if (!access.can.approve) throw Errors.forbidden();
+    await this.db.q.deleteFrom('topic_members').where('topic_id', '=', topicId).where('user_id', '=', userId).execute();
+    await this.extras.setSubscribed(userId, topicId, false);
+    await this.log(viewer, 'topic.member.remove', topicId, { userId });
   }
 }

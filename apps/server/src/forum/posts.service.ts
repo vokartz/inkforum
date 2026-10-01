@@ -340,7 +340,7 @@ export class PostsService {
   async reply(viewer: RequestViewer, topicId: number, bodyInput: string) {
     const topic = await this.requireTopic(topicId);
     const access = await this.access.require(viewer, topic.board_id);
-    this.assertTopicVisible(viewer, access, topic);
+    await this.assertTopicVisible(viewer, access, topic);
     if (topic.moved_to_topic_id) throw Errors.badRequest('Bu konu taşındı.');
     if (!access.can.reply) throw Errors.forbidden('Bu bölümde yanıt yazma yetkiniz yok.');
     if (topic.is_locked && !access.can.lock) throw Errors.forbidden('Bu konu kilitli; yanıt yazılamaz.');
@@ -435,12 +435,20 @@ export class PostsService {
     return topic;
   }
 
-  assertTopicVisible(viewer: RequestViewer, access: BoardAccess, topic: Row<'topics'>): void {
+  async assertTopicVisible(viewer: RequestViewer, access: BoardAccess, topic: Row<'topics'>): Promise<void> {
     const own = !!viewer.user && topic.user_id === viewer.user.id;
     if (topic.deleted_at && !access.can.viewDeleted) throw Errors.notFound('Konu bulunamadı.');
     if (!topic.is_approved && !own && !access.can.approve) throw Errors.notFound('Konu bulunamadı.');
-    // Gizli konu: yalnızca yazarı ve onay yetkisi olanlar görür
-    if (topic.is_hidden && !own && !access.can.approve) throw Errors.notFound('Konu bulunamadı.');
+    // Gizli konu: yazarı, onay yetkisi olanlar ve yetkililerin konuya eklediği üyeler görür
+    if (topic.is_hidden && !own && !access.can.approve && !(viewer.user && (await this.isTopicMember(topic.id, viewer.user.id)))) {
+      throw Errors.notFound('Konu bulunamadı.');
+    }
+  }
+
+  /** Yetkililerin gizli konuya eklediği üye mi? */
+  async isTopicMember(topicId: number, userId: number): Promise<boolean> {
+    const row = await this.db.q.selectFrom('topic_members').select('user_id').where('topic_id', '=', topicId).where('user_id', '=', userId).executeTakeFirst();
+    return !!row;
   }
 
   /** Görüntüleyenin görebildiği mesaj (yoksa 404). */
@@ -449,7 +457,7 @@ export class PostsService {
     if (!post) throw Errors.notFound('Mesaj bulunamadı.');
     const topic = await this.requireTopic(post.topic_id);
     const access = await this.access.require(viewer, topic.board_id);
-    this.assertTopicVisible(viewer, access, topic);
+    await this.assertTopicVisible(viewer, access, topic);
     const own = !!viewer.user && post.user_id === viewer.user.id;
     if (post.deleted_at && !access.can.viewDeleted) throw Errors.notFound('Mesaj bulunamadı.');
     if (!post.is_approved && !own && !access.can.approve) throw Errors.notFound('Mesaj bulunamadı.');
@@ -678,13 +686,13 @@ export class PostsService {
       for (const r of rows) {
         if (!r.user_id || notified.has(r.user_id)) continue;
         notified.add(r.user_id);
-        if (await this.userCanSeeBoard(r.user_id, board)) await this.notifications.notify(r.user_id, 'forum.quote', data, actorId || null);
+        if (await this.userCanSeeTopic(r.user_id, board, topicId)) await this.notifications.notify(r.user_id, 'forum.quote', data, actorId || null);
       }
     }
     for (const id of body.mentions.slice(0, 20)) {
       if (notified.has(id) || skipUsers.has(id)) continue;
       notified.add(id);
-      if (await this.userCanSeeBoard(id, board)) await this.notifications.notify(id, 'forum.mention', data, actorId || null);
+      if (await this.userCanSeeTopic(id, board, topicId)) await this.notifications.notify(id, 'forum.mention', data, actorId || null);
     }
     return notified;
   }
@@ -695,16 +703,26 @@ export class PostsService {
     const data = { postId, topicId: topic.id, topicTitle: topic.title, actorName: viewer.user?.display_name ?? '' };
     for (const id of await this.extras.subscriberIds(topic.id)) {
       if (id === actorId || already.has(id)) continue;
-      if (await this.userCanSeeBoard(id, board)) await this.notifications.notify(id, 'forum.reply', data, actorId || null);
+      if (await this.userCanSeeTopic(id, board, topic.id)) await this.notifications.notify(id, 'forum.reply', data, actorId || null);
     }
   }
 
-  private async userCanSeeBoard(userId: number, board: CachedBoard): Promise<boolean> {
+  /** Bildirim alacak üye konuyu görebiliyor mu (bölüm yetkisi; gizli konuda yazar / yetkili / eklenen üye) */
+  async userCanSeeTopic(userId: number, board: CachedBoard, topicId: number): Promise<boolean> {
     const user = await this.db.q.selectFrom('users').selectAll().where('id', '=', userId).where('deleted_at', 'is', null).executeTakeFirst();
     if (!user || user.status !== 'active') return false;
     const perms = await this.permissions.forUser(user);
     const v: RequestViewer = { user, session: null, groupIds: perms.groupIds, permissions: perms.permissions, isAdmin: perms.isAdmin, ip: null, userAgent: null };
-    return !!(await this.access.access(v, board.id));
+    const access = await this.access.access(v, board.id);
+    if (!access) return false;
+    const topic = await this.db.q.selectFrom('topics').selectAll().where('id', '=', topicId).executeTakeFirst();
+    if (!topic) return false;
+    try {
+      await this.assertTopicVisible(v, access, topic);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /** Flood tablosunu küçük tutar. */

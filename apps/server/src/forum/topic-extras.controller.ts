@@ -32,7 +32,7 @@ export class TopicExtrasController {
   private async topicContext(v: RequestViewer, topicId: number) {
     const topic = await this.posts.requireTopic(topicId);
     const access = await this.access.require(v, topic.board_id);
-    this.posts.assertTopicVisible(v, access, topic);
+    await this.posts.assertTopicVisible(v, access, topic);
     return { topic, access };
   }
 

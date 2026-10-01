@@ -947,6 +947,13 @@ export interface TagsTable {
   created_at: number;
 }
 
+export interface TopicMembersTable {
+  topic_id: number;
+  user_id: number;
+  added_by: number | null;
+  created_at: number;
+}
+
 export interface TopicTagsTable {
   topic_id: number;
   tag_id: number;
@@ -1220,6 +1227,7 @@ export interface DB {
   custom_snippets: CustomSnippetsTable;
   tags: TagsTable;
   topic_tags: TopicTagsTable;
+  topic_members: TopicMembersTable;
   polls: PollsTable;
   poll_options: PollOptionsTable;
   poll_votes: PollVotesTable;

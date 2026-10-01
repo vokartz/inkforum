@@ -110,3 +110,28 @@ describe('approval queue and hidden topics', () => {
     expect((await ayse.get(`/api/topics/${topicId}`)).status).toBe(404);
   });
 });
+
+describe('hidden topic members', () => {
+  it('lets moderators add and remove members', async () => {
+    const ayseId = (await h.db.q.selectFrom('users').select('id').where('username', '=', 'Ayse').executeTakeFirstOrThrow()).id;
+    expect((await ayse.get(`/api/topics/${topicId}`)).status).toBe(404);
+    expect((await ali.post(`/api/mod/topics/${topicId}/members`, { userId: ayseId })).status).toBe(403);
+
+    const added = await admin.post(`/api/mod/topics/${topicId}/members`, { userId: ayseId });
+    expect(added.status).toBe(200);
+    expect(added.body.items.map((m: { user: { id: number } }) => m.user.id)).toEqual([ayseId]);
+
+    // Eklenen üye konuyu görür, listede bulur ve bildirim alır
+    expect((await ayse.get(`/api/topics/${topicId}`)).status).toBe(200);
+    const list = await ayse.get(`/api/boards/${boardId}`);
+    expect(list.body.topics.items.map((t: { id: number }) => t.id)).toContain(topicId);
+    const notes = await ayse.get('/api/me/notifications');
+    expect(JSON.stringify(notes.body)).toContain('forum.topicAccess');
+    expect((await h.agent().get(`/api/topics/${topicId}`)).status).toBe(404);
+
+    const removed = await admin.delete(`/api/mod/topics/${topicId}/members/${ayseId}`);
+    expect(removed.status).toBe(200);
+    expect(removed.body.items).toEqual([]);
+    expect((await ayse.get(`/api/topics/${topicId}`)).status).toBe(404);
+  });
+});

@@ -18,7 +18,8 @@ Each version section becomes the GitHub release note and the update note in the 
 - **Approval queue** (`/mod/queue`): topics and replies waiting for approval in one place, with approve / reject
   buttons and a counter in the user menu for moderators.
 - **Hidden topics:** moderators can hide a topic so only its author and staff can see it; a board can be set to
-  "topics are private" (applications, complaints, support).
+  "topics are private" (applications, complaints, support). Staff can add other members to a hidden topic; they
+  can see and reply to it, are subscribed and get a notification.
 - **Share cards for every page:** boards, profiles, wiki and custom pages, tags and static pages get their own
   preview image on Discord, X, WhatsApp and others; `og:image` size, the correct `og:locale` and the accent color
   (embed stripe) are set.
@@ -26,6 +27,7 @@ Each version section becomes the GitHub release note and the update note in the 
 ### Fixed
 
 - Share images showed boxes instead of text on Docker installs (no fonts in the image); fonts now ship with the app.
+- Mention, quote and reply notifications from hidden topics are only sent to members who can see the topic.
 - Turkish text no longer leaks into other languages: footer links, the quote header ("… wrote:"), backup labels,
   notification settings, group names, support categories, the wiki description, plugin status, permission profiles,
   reactions, achievements, policies, the admin sidebar and e-mail templates follow the visitor's language.
