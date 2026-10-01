@@ -60,19 +60,18 @@
 <div class="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]" data-part="application-form">
   <div class="grid min-w-0 content-start gap-5">
     <a href="/applications" class="inline-flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"><ArrowLeftIcon class="size-4" />{t('Başvurular')}</a>
-    <header class="relative isolate overflow-hidden rounded-2xl border bg-card p-6 sm:p-8">
-      <div class="absolute -top-20 -right-10 -z-10 size-64 rounded-full bg-primary/10 blur-3xl"></div>
-      <div class="flex items-start gap-4">
-        <span class="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-primary-soft text-primary">{#if f.iconNodes}<NodeIcon nodes={f.iconNodes} size={28} />{:else}<ClipboardIcon class="size-7" weight="duotone" />{/if}</span>
+    <header class="rounded-2xl border bg-card p-6">
+      <div class="flex items-start gap-3.5">
+        <span class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-muted text-primary">{#if f.iconNodes}<NodeIcon nodes={f.iconNodes} size={22} />{:else}<ClipboardIcon class="size-6" weight="duotone" />{/if}</span>
         <div class="min-w-0">
-          <h1 class="text-2xl font-extrabold tracking-tight sm:text-3xl">{f.title}</h1>
+          <h1 class="text-2xl font-bold tracking-tight">{f.title}</h1>
           <p class="mt-1 flex flex-wrap items-center gap-x-3 text-sm text-muted-foreground">
             <span>{t('{n} soru', { n: f.questions.length })}</span>
             {#if f.targetGroup}<span class="inline-flex items-center gap-1"><UsersIcon class="size-4" />{t('Onaylanınca:')} <b style={f.targetGroup.color ? `color:${f.targetGroup.color}` : ''}>{f.targetGroup.name}</b></span>{/if}
           </p>
         </div>
       </div>
-      {#if f.descriptionHtml}<div class="prose-forum mt-5 text-[15px]">{@html f.descriptionHtml}</div>{/if}
+      {#if f.descriptionHtml}<div class="prose-forum mt-4 border-t pt-4 text-[15px]">{@html f.descriptionHtml}</div>{/if}
     </header>
 
     {#if !data.viewer.user}

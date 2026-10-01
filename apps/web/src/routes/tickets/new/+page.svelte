@@ -55,7 +55,7 @@
 <div class="mx-auto grid max-w-4xl gap-6" data-part="ticket-new">
   <a href="/tickets" class="inline-flex w-fit items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"><ArrowLeftIcon class="size-4" />{t('Destek')}</a>
   <div>
-    <h1 class="text-2xl font-extrabold tracking-tight">{t('Yeni destek talebi')}</h1>
+    <h1 class="text-2xl font-bold tracking-tight">{t('Yeni destek talebi')}</h1>
     <p class="text-sm text-muted-foreground">{t('Önce konuyu seç; talebin ilgili ekibe iletilir.')}</p>
   </div>
 
@@ -65,7 +65,7 @@
       <button
         type="button"
         onclick={() => (categoryId = c.id)}
-        class={cn('flex items-start gap-3 rounded-xl border bg-card p-4 text-left transition-[border-color,transform] duration-200 hover:-translate-y-0.5', on ? 'border-primary ring-2 ring-primary/25' : 'hover:border-primary/40')}
+        class={cn('flex items-start gap-3 rounded-xl border bg-card p-4 text-left transition-colors', on ? 'border-primary ring-2 ring-primary/25' : 'hover:border-primary/40')}
         aria-pressed={on}
       >
         <span class="flex size-10 shrink-0 items-center justify-center rounded-lg" style="background:color-mix(in oklch, {c.color ?? 'var(--primary)'} 15%, transparent);color:{c.color ?? 'var(--primary)'}">
