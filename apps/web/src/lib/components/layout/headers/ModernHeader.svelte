@@ -17,6 +17,7 @@
   import UserMenu from '../UserMenu.svelte';
   import MobileNav from '../MobileNav.svelte';
   import SiteBanner from '../SiteBanner.svelte';
+  import { themeOptions } from '$lib/theme-options';
 
   let { viewer, nav, onsearch }: { viewer: Viewer; nav: NavEntry[]; onsearch: () => void } = $props();
   let scrolled = $state(false);
@@ -24,6 +25,10 @@
   const s = $derived(viewer.settings);
   const forumName = $derived(String(s['general.forumName'] ?? 'Forum'));
   const banner = $derived(s['appearance.bannerEnabled'] !== false);
+  const opts = $derived(themeOptions(s));
+  const sticky = $derived(opts?.header.sticky ?? true);
+  const height = $derived({ compact: 'h-14', normal: 'h-16', tall: 'h-20' }[opts?.header.height ?? 'normal']);
+  const navVariant = $derived(opts?.header.nav ?? 'pill');
   const newTopicHref = $derived.by(() => {
     const m = /^\/f\/(\d+)/.exec(page.url.pathname);
     return m ? `/f/${m[1]}/new` : '/new';
@@ -36,9 +41,9 @@
 
 <header
   data-part="topbar"
-  class={cn('sticky top-0 z-40 border-b bg-topbar backdrop-blur-xl transition-shadow duration-300', scrolled && 'shadow-sm')}
+  class={cn('z-40 border-b bg-topbar transition-shadow duration-300', sticky && 'sticky top-0', (opts?.header.blur ?? true) && 'backdrop-blur-xl', scrolled && 'shadow-sm')}
 >
-  <div class="mx-auto flex h-16 w-full max-w-7xl items-center gap-1.5 px-3 sm:gap-2 sm:px-6">
+  <div class="mx-auto flex {height} w-full max-w-[var(--page-width,80rem)] items-center gap-1.5 px-3 sm:gap-2 sm:px-6">
     <MobileNav {nav} />
     <!-- Banner kapalıysa ya da sayfa kaydırıldıysa logo üst çubukta -->
     {#if !banner}
@@ -46,7 +51,7 @@
     {:else if scrolled}
       <a href="/" class="mr-3 hidden min-w-0 shrink-0 items-center animate-in fade-in md:flex" aria-label={t('{name} ana sayfa', { name: forumName })}><BrandMark size={28} withName={false} /></a>
     {/if}
-    <div class="hidden min-w-0 flex-1 md:flex"><MainNav items={nav} /></div>
+    <div class="hidden min-w-0 flex-1 md:flex"><MainNav items={nav} variant={navVariant} /></div>
     <div class="flex-1 md:hidden"></div>
 
     <button

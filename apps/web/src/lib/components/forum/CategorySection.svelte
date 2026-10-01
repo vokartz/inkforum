@@ -4,6 +4,8 @@
   import CaretDownIcon from 'phosphor-svelte/lib/CaretDown';
   import { cn } from '$lib/utils';
   import { t } from '$lib/i18n.svelte';
+  import { page } from '$app/state';
+  import { themeOptions } from '$lib/theme-options';
 
   interface Props {
     id: number;
@@ -18,8 +20,9 @@
     columns?: boolean;
     children: Snippet;
   }
-  let { id, name, description = null, collapsible = true, background = null, count = null, columns = true, children }: Props = $props();
+  let { id, name, description = null, collapsible = true, background = null, children }: Props = $props();
 
+  const listStyle = $derived(themeOptions(page.data.viewer?.settings)?.forumList.style ?? 'table');
   const KEY = 'forum:collapsed-categories';
   let collapsed = $state(false);
 
@@ -49,7 +52,7 @@
   <header
     data-part="category-header"
     data-has-bg={background ? '' : undefined}
-    class={cn('relative isolate flex items-center gap-4 overflow-hidden px-5', background ? 'min-h-24 py-5 text-white' : 'py-4')}
+    class={cn('relative isolate flex items-center gap-4 overflow-hidden px-5', background ? 'min-h-24 py-5 text-white' : 'py-3.5')}
   >
     {#if background}
       <!-- Görsel + okunurluk için soldan koyulaşan örtü -->
@@ -58,14 +61,11 @@
     {/if}
 
     <div class="min-w-0 flex-1">
-      <h2 class={cn('flex items-center gap-2 font-extrabold tracking-tight', background ? 'text-xl drop-shadow' : 'text-base')}>
+      <h2 class={cn('flex items-center gap-2 font-bold tracking-tight', background ? 'text-xl drop-shadow' : 'text-[15px]')}>
         <span class="truncate">{name}</span>
-        {#if count}
-          <span class={cn('rounded-md px-1.5 py-0.5 text-[11px] font-bold tabular-nums', background ? 'bg-white/15 backdrop-blur' : 'bg-muted text-muted-foreground')}>{count}</span>
-        {/if}
       </h2>
       {#if description}
-        <p class={cn('mt-0.5 truncate text-sm', background ? 'text-white/80' : 'text-muted-foreground')}>{description}</p>
+        <p class={cn('mt-0.5 truncate text-[13px]', background ? 'text-white/80' : 'text-muted-foreground')}>{description}</p>
       {/if}
     </div>
     {#if collapsible}
@@ -85,14 +85,11 @@
   </header>
   {#if !collapsed}
     <div transition:slide={{ duration: 240 }} class="border-t">
-      {#if columns}
-        <div class="@container" data-part="board-columns">
-          <div class="hidden grid-cols-[46px_1fr_8.5rem_17rem] gap-x-4 border-b px-5 py-2 text-[11px] font-semibold text-muted-foreground @3xl:grid">
-            <span></span><span>{t('Bölüm')}</span><span class="text-right">{t('Konu / Mesaj')}</span><span class="pl-4">{t('Son mesaj')}</span>
-          </div>
-        </div>
+      {#if listStyle === 'cards'}
+        <div class="grid gap-3 p-3 sm:grid-cols-2 sm:p-4">{@render children()}</div>
+      {:else}
+        <div class="divide-y">{@render children()}</div>
       {/if}
-      <div class="divide-y">{@render children()}</div>
     </div>
   {/if}
 </section>

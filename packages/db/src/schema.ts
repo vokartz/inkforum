@@ -947,6 +947,20 @@ export interface TagsTable {
   created_at: number;
 }
 
+export interface ThemesTable {
+  id: Generated<number>;
+  name: string;
+  description: Generated<string>;
+  is_system: Generated<number>;
+  preset: string | null;
+  config_json: string;
+  css: Generated<string>;
+  html_json: Generated<string>;
+  created_by: number | null;
+  created_at: number;
+  updated_at: number;
+}
+
 export interface ShoutsTable {
   id: Generated<number>;
   user_id: number;
@@ -1238,6 +1252,7 @@ export interface DB {
   topic_tags: TopicTagsTable;
   topic_members: TopicMembersTable;
   shouts: ShoutsTable;
+  themes: ThemesTable;
   polls: PollsTable;
   poll_options: PollOptionsTable;
   poll_votes: PollVotesTable;

@@ -5,7 +5,7 @@
   import { fly } from 'svelte/transition';
   import { dndzone, type DndEvent } from 'svelte-dnd-action';
   import { toast } from 'svelte-sonner';
-  import { FONT_OPTIONS, GLOBAL_PERMISSIONS, type IconNode, type ThemeStyle } from '@forum/shared';
+  import { GLOBAL_PERMISSIONS, type IconNode } from '@forum/shared';
   import ChevronUpIcon from 'phosphor-svelte/lib/CaretUp';
   import UploadIcon from 'phosphor-svelte/lib/UploadSimple';
   import Trash2Icon from 'phosphor-svelte/lib/Trash';
@@ -14,13 +14,11 @@
   import GripVerticalIcon from 'phosphor-svelte/lib/DotsSixVertical';
   import SaveIcon from 'phosphor-svelte/lib/FloppyDisk';
   import LoaderIcon from 'phosphor-svelte/lib/CircleNotch';
-  import MoonIcon from 'phosphor-svelte/lib/Moon';
-  import SunIcon from 'phosphor-svelte/lib/Sun';
-  import MonitorIcon from 'phosphor-svelte/lib/Monitor';
   import EyeOffIcon from 'phosphor-svelte/lib/EyeSlash';
   import ExternalLinkIcon from 'phosphor-svelte/lib/ArrowSquareOut';
   import ChevronDownIcon from 'phosphor-svelte/lib/CaretDown';
   import LayoutTemplateIcon from 'phosphor-svelte/lib/Layout';
+  import BrushIcon from 'phosphor-svelte/lib/PaintBrushBroad';
   import * as Card from '$lib/components/ui/card';
   import * as Tabs from '$lib/components/ui/tabs';
   import * as Dialog from '$lib/components/ui/dialog';
@@ -59,24 +57,18 @@
 
   // ---------- Marka ----------
   let accent = $state('#7b61ff');
-  let mode = $state<'dark' | 'light' | 'system'>('dark');
   let showName = $state(true);
   let bannerHeight = $state(160);
   let bannerEnabled = $state(true);
   let bannerTagline = $state('');
   let bannerColor = $state('#16171b');
-  let colorSpread = $state<'none' | 'soft' | 'medium' | 'strong'>('none');
   let backgroundDim = $state(80);
-  let themeStyle = $state<ThemeStyle>('modern');
-  let radius = $state('auto');
-  let postLayout = $state<'side' | 'top'>('side');
   let authLayout = $state<'split' | 'centered' | 'cover'>('split');
   let authSide = $state<'left' | 'right'>('left');
   let authHeadline = $state('');
   let authText = $state('');
   let footerText = $state('');
   let footerLinks = $state<Array<{ label: string; url: string; newTab: boolean }>>([]);
-  let fontFamily = $state('roboto');
   let cookieBanner = $state(true);
   let poweredBy = $state(true);
   let cookieText = $state('');
@@ -85,20 +77,14 @@
   function syncState1() {
     if (!data.settings || !a) return;
     accent = String(settingValue('appearance.accentColor') ?? '#7b61ff');
-    mode = (settingValue('appearance.defaultMode') ?? 'dark') as typeof mode;
     showName = settingValue('appearance.showForumName') === true;
     bannerHeight = Number(settingValue('appearance.bannerHeight') ?? 160);
     bannerEnabled = settingValue('appearance.bannerEnabled') !== false;
     bannerTagline = String(settingValue('appearance.bannerTagline') ?? '');
     bannerColor = String(settingValue('appearance.bannerColor') ?? '#16171b');
-    colorSpread = (settingValue('appearance.colorSpread') ?? 'none') as typeof colorSpread;
     backgroundDim = Number(settingValue('appearance.backgroundDim') ?? 80);
     footerText = String(settingValue('appearance.footerText') ?? '');
     footerLinks = a.footerLinks.map((l) => ({ ...l, newTab: !!l.newTab }));
-    fontFamily = String(settingValue('appearance.fontFamily') ?? 'roboto');
-    themeStyle = (settingValue('appearance.themeStyle') ?? 'modern') as typeof themeStyle;
-    radius = String(settingValue('appearance.radius') ?? 'auto');
-    postLayout = (settingValue('appearance.postLayout') ?? 'side') as typeof postLayout;
     authLayout = (settingValue('appearance.authLayout') ?? 'split') as typeof authLayout;
     authSide = (settingValue('appearance.authImageSide') ?? 'left') as typeof authSide;
     authHeadline = String(settingValue('appearance.authHeadline') ?? '');
@@ -110,44 +96,18 @@
     navTree = buildTree();
   }
 
-  const THEMES = [
-    { key: 'modern', label: 'Modern', description: 'Sade, düz ve koyu; ince üst çubuk. Günümüz web uygulamaları gibi.', bg: '#09090b' },
-    { key: 'community', label: 'Topluluk', description: 'Bannerlı üst alan, altında menü çubuğu; koyu gri geniş kartlar.', bg: '#262626' },
-  ] as const;
-  const RADII = [
-    { value: 'auto', label: 'Temaya göre', css: '0.5rem' },
-    { value: 'none', label: 'Köşeli', css: '0' },
-    { value: 'sm', label: 'Az', css: '0.25rem' },
-    { value: 'md', label: 'Orta', css: '0.5rem' },
-    { value: 'lg', label: 'Yuvarlak', css: '0.875rem' },
-    { value: 'xl', label: 'Çok', css: '1.25rem' },
-  ];
-  const SPREADS = [
-    { v: 'none', l: 'Yalnızca butonlar', pct: 0 },
-    { v: 'soft', l: 'Hafif', pct: 3 },
-    { v: 'medium', l: 'Belirgin', pct: 6 },
-    { v: 'strong', l: 'Güçlü', pct: 11 },
-  ] as const;
-  const PALETTE = ['#9c9c9c', '#7b61ff', '#f5a524', '#ef4444', '#f97316', '#eab308', '#22c55e', '#10b981', '#06b6d4', '#3b82f6', '#6366f1', '#8b5cf6', '#ec4899', '#e11d48'];
 
   let savingBrand = $state(false);
   async function saveBrand() {
     savingBrand = true;
     try {
       await api.put('/api/admin/settings', {
-        'appearance.accentColor': accent,
-        'appearance.defaultMode': mode,
         'appearance.showForumName': showName,
         'appearance.bannerHeight': bannerHeight,
         'appearance.bannerEnabled': bannerEnabled,
         'appearance.bannerTagline': bannerTagline,
         'appearance.bannerColor': bannerColor,
-        'appearance.colorSpread': colorSpread,
         'appearance.backgroundDim': backgroundDim,
-        'appearance.fontFamily': fontFamily,
-        'appearance.themeStyle': themeStyle,
-        'appearance.radius': radius,
-        'appearance.postLayout': postLayout,
         'appearance.authLayout': authLayout,
         'appearance.authImageSide': authSide,
         'appearance.authHeadline': authHeadline,
@@ -397,128 +357,20 @@
 
     <!-- Marka -->
     <Tabs.Content value="brand" class="grid gap-6">
-      <!-- Tema seçimi -->
-      <section class="grid gap-4 rounded-xl border bg-card p-5">
-        <div class="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h2 class="font-bold">{t('Tema')}</h2>
-            <p class="text-sm text-muted-foreground">{t('Forumun genel görünümü. Renk, yazı tipi ve görseller her temada geçerlidir.')}</p>
-          </div>
-          <Button onclick={saveBrand} disabled={savingBrand}>{#if savingBrand}<LoaderIcon class="animate-spin" />{:else}<SaveIcon />{/if}{t('Temayı uygula')}</Button>
+      <!-- Tema: tema stüdyosunda -->
+      <section class="flex flex-wrap items-center gap-4 rounded-xl border bg-card p-5" data-part="active-theme">
+        <span class="flex size-11 items-center justify-center rounded-xl bg-primary-soft text-primary"><BrushIcon class="size-6" weight="duotone" /></span>
+        <div class="min-w-0 flex-1">
+          <h2 class="font-bold">{t('Tema, renkler ve yazı tipi')}</h2>
+          <p class="text-sm text-muted-foreground">{t('Renkler, açık / koyu mod, yazı tipi, köşeler, üst alan düzeni ve forum listesi artık Temalar ekranında, canlı önizlemeyle düzenleniyor.')}</p>
         </div>
-        <div class="grid gap-4 sm:grid-cols-2">
-          {#each THEMES as th (th.key)}
-            <button
-              type="button"
-              onclick={() => (themeStyle = th.key)}
-              class={cn('group grid gap-3 rounded-lg border p-3 text-left transition-colors hover:border-primary/50', themeStyle === th.key && 'border-primary ring-2 ring-primary/30')}
-              aria-pressed={themeStyle === th.key}
-            >
-              <!-- Mini önizleme -->
-              <div class="h-32 overflow-hidden rounded-md border" style="background:{th.bg}">
-                {#if th.key === 'community'}
-                  <div class="flex h-10 items-center justify-between bg-neutral-900 px-2"><span class="h-2.5 w-12 rounded-full bg-white/80"></span><span class="size-4 rounded-full bg-white/40"></span></div>
-                  <div class="flex h-5 items-center gap-2 bg-neutral-800 px-2"><span class="h-1 w-6 rounded-full" style="background:{accent}"></span><span class="h-1 w-6 rounded-full bg-white/40"></span></div>
-                  <div class="grid grid-cols-[1fr_28%] gap-1.5 p-2">
-                    <div class="space-y-1 rounded-md bg-neutral-900 p-1.5"><div class="h-2 w-10 rounded bg-white/70"></div><div class="h-3 rounded bg-white/10"></div><div class="h-3 rounded bg-white/10"></div></div>
-                    <div class="rounded-md bg-neutral-900"></div>
-                  </div>
-                {:else}
-                  <div class="flex h-7 items-center gap-1.5 border-b border-white/10 px-2"><span class="h-2 w-10 rounded-full bg-white/80"></span><span class="h-3 w-8 rounded-full" style="background:{accent}55"></span><span class="ml-auto h-3 w-8 rounded" style="background:{accent}"></span></div>
-                  <div class="grid grid-cols-[1fr_28%] gap-1.5 p-2">
-                    <div class="space-y-1 rounded-md border border-white/10 p-1.5"><div class="h-2 w-10 rounded bg-white/70"></div><div class="h-3 rounded bg-white/5"></div><div class="h-3 rounded bg-white/5"></div></div>
-                    <div class="rounded-md border border-white/10"></div>
-                  </div>
-                {/if}
-              </div>
-              <div>
-                <p class="font-bold">{t(th.label)}</p>
-                <p class="text-xs text-muted-foreground">{t(th.description)}</p>
-              </div>
-            </button>
-          {/each}
-        </div>
-        <div class="grid gap-5 border-t pt-4 md:grid-cols-2">
-          <Field label={t('Köşe yuvarlaklığı')} hint={t('Buton, kart ve kutuların köşeleri.')}>
-            <div class="flex flex-wrap gap-1.5">
-              {#each RADII as r (r.value)}
-                <button
-                  type="button"
-                  onclick={() => (radius = r.value)}
-                  class={cn('flex items-center gap-2 border px-3 py-1.5 text-sm font-medium transition-colors hover:bg-accent', radius === r.value && 'border-primary bg-primary-soft')}
-                  style="border-radius:{r.css}"
-                >
-                  {t(r.label)}
-                </button>
-              {/each}
-            </div>
-          </Field>
-          <Field label={t('Konularda mesaj düzeni')}>
-            <div class="grid grid-cols-2 gap-2">
-              {#each [{ v: 'side', l: t('Yazar solda'), d: t('Klasik sütun') }, { v: 'top', l: t('Yazar üstte'), d: t('Yatay şerit') }] as o (o.v)}
-                <button type="button" onclick={() => (postLayout = o.v as typeof postLayout)} class={cn('grid gap-2 rounded-md border p-2.5 text-left transition-colors hover:bg-accent', postLayout === o.v && 'border-primary bg-primary-soft')}>
-                  <div class={cn('flex h-10 gap-1 rounded border bg-muted/40 p-1', o.v === 'top' && 'flex-col')}>
-                    <span class={cn('rounded-sm bg-muted-foreground/40', o.v === 'side' ? 'w-5' : 'h-2.5')}></span>
-                    <span class="flex-1 rounded-sm bg-muted-foreground/15"></span>
-                  </div>
-                  <span class="text-sm font-semibold">{o.l}<span class="block text-xs font-normal text-muted-foreground">{o.d}</span></span>
-                </button>
-              {/each}
-            </div>
-          </Field>
-        </div>
+        <Button href="/admin/themes"><BrushIcon />{t('Temaları aç')}</Button>
       </section>
 
       <div class="grid gap-6 lg:grid-cols-2">
         <Card.Root>
-          <Card.Header><Card.Title class="text-base">{t('Renkler ve üst alan')}</Card.Title></Card.Header>
+          <Card.Header><Card.Title class="text-base">{t('Üst alan ve banner')}</Card.Title></Card.Header>
           <Card.Content class="grid gap-5">
-            <Field label={t('Vurgu rengi')}>
-              <div class="flex flex-wrap items-center gap-2">
-                {#each PALETTE as c (c)}
-                  <button type="button" class={cn('size-7 rounded-full transition-transform hover:scale-110', accent === c && 'ring-2 ring-ring ring-offset-2 ring-offset-card')} style="background:{c}" aria-label={c} onclick={() => (accent = c)}></button>
-                {/each}
-                <input type="color" bind:value={accent} class="size-8 cursor-pointer rounded-md border bg-transparent" aria-label={t('Özel renk')} />
-                <Input bind:value={accent} class="w-28 font-mono" maxlength={7} />
-              </div>
-            </Field>
-            <Field label={t('Renk yayılımı')} hint={t('Vurgu renginin arka plan, kart, kenarlık ve üst alana ne kadar yansıyacağı.')}>
-              <div class="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
-                {#each SPREADS as o (o.v)}
-                  <button
-                    type="button"
-                    onclick={() => (colorSpread = o.v)}
-                    class={cn('grid gap-1.5 rounded-md border p-2 text-left text-xs font-semibold transition-colors hover:bg-accent', colorSpread === o.v && 'border-primary bg-primary-soft')}
-                  >
-                    <span class="h-6 rounded-sm border" style="background:color-mix(in oklch, {accent} {o.pct * 2.2}%, var(--muted))"></span>{t(o.l)}
-                  </button>
-                {/each}
-              </div>
-            </Field>
-            <Field label={t('Varsayılan renk modu')} hint={t('Tercih yapmamış ziyaretçilere uygulanır.')}>
-              <div class="flex gap-1 rounded-lg bg-muted p-1">
-                {#each [{ v: 'dark', l: t('Koyu'), i: MoonIcon }, { v: 'light', l: t('Açık'), i: SunIcon }, { v: 'system', l: t('Cihaza göre'), i: MonitorIcon }] as o (o.v)}
-                  <button type="button" class={cn(segBtn, mode === o.v ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground')} onclick={() => (mode = o.v as typeof mode)}>
-                    <o.i class="size-4" />{o.l}
-                  </button>
-                {/each}
-              </div>
-            </Field>
-            <Field label={t('Yazı tipi')} hint={t('Tüm forumda kullanılır; yalnızca seçilen yazı tipi indirilir.')}>
-              <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {#each FONT_OPTIONS as f (f.key)}
-                  <button
-                    type="button"
-                    class={cn('rounded-xl border px-3 py-2.5 text-left transition-colors hover:bg-accent', fontFamily === f.key && 'border-primary bg-primary-soft')}
-                    style="font-family:{f.family}"
-                    onclick={() => (fontFamily = f.key)}
-                  >
-                    <span class="block text-base font-bold">{f.label}</span>
-                    <span class="block text-xs text-muted-foreground">{t('Çağrı, şöyle öğüt İ')}</span>
-                  </button>
-                {/each}
-              </div>
-            </Field>
             <div class="grid gap-3 rounded-lg border p-3">
               <label class="flex items-center gap-3 text-sm font-medium"><Switch bind:checked={bannerEnabled} />{t('Banner göster')}</label>
               <p class="-mt-1 text-xs text-muted-foreground">{t('Tüm temalarda üst alanda logolu banner. Görsel yüklenmediyse aşağıdaki düz renkle gösterilir.')}</p>

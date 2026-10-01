@@ -3,7 +3,7 @@
   import { FONT_OPTIONS } from '@forum/shared';
   import { onMount } from 'svelte';
   import { page, navigating } from '$app/state';
-  import { afterNavigate, beforeNavigate, onNavigate } from '$app/navigation';
+  import { afterNavigate, beforeNavigate, invalidate, onNavigate } from '$app/navigation';
   import { tick, untrack } from 'svelte';
   import { browser } from '$app/environment';
   import type { SnippetPlacement, SnippetView } from '@forum/shared';
@@ -27,6 +27,8 @@
   import { installEmbedRuntime } from '$lib/embed-runtime';
   import { counters } from '$lib/counters.svelte';
   import { realtime } from '$lib/realtime.svelte';
+  import { THEME_PREVIEW_MESSAGE } from '$lib/theme-preview';
+  import { themeHtmlAttrs, type ActiveTheme } from '@forum/shared';
 
   let { data, children } = $props();
   const viewer = $derived(data.viewer);
@@ -154,6 +156,25 @@
     document.documentElement.dataset.style = themeStyle;
     document.documentElement.dataset.radius = String(s['appearance.radius'] ?? 'auto');
   });
+  // Tema stüdyosunda oluşturulan etkin tema: derlenmiş CSS, <html> öznitelikleri ve HTML bölmeleri
+  const activeTheme = $derived(s['appearance.theme'] as ActiveTheme | null | undefined);
+  const themed = $derived(!!activeTheme && !page.url.pathname.startsWith('/admin'));
+  $effect(() => {
+    const el = document.documentElement;
+    for (const k of ['data-custom-theme', 'data-sidebar', 'data-forum-list', 'data-header']) el.removeAttribute(k);
+    if (themed && activeTheme) for (const [k, v] of Object.entries(themeHtmlAttrs(activeTheme))) el.setAttribute(k, v);
+  });
+  // Stüdyo önizlemesi: düzenleyici taslağı güncelleyince çerçeve yeniden çizilir
+  onMount(() => {
+    if (window.self === window.top) return;
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin === location.origin && (e.data as { type?: string } | null)?.type === THEME_PREVIEW_MESSAGE) void invalidate('app:theme-preview');
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  });
+  const themeSlot = (k: 'beforeHeader' | 'afterHeader' | 'beforeFooter' | 'afterFooter') => (themed && !data.safeMode ? (activeTheme?.html?.[k] ?? '').trim() : '');
+
   const pageBg = $derived(s['appearance.backgroundUrl'] as string | null | undefined);
   const pageBgDim = $derived(Math.min(95, Math.max(0, Number(s['appearance.backgroundDim'] ?? 80))));
 
@@ -173,6 +194,7 @@
   <!-- Vurgu rengi: mobil tarayıcı çubuğu ve Discord / Slack gömme kartının kenar rengi -->
   <meta name="theme-color" content={/^#[0-9a-fA-F]{6}$/.test(accent) ? accent : theme.resolved === 'dark' ? '#0f1219' : '#f6f7fb'} />
   {#if accentCss}{@html `<style>${accentCss}</style>`}{/if}
+  {#if themed && activeTheme?.css}{@html `<style data-forum-theme>${activeTheme.css.replace(/<\/style/gi, '<\\/style')}</style>`}{/if}
   {#if !isAdminArea && !isEmbed}
     {#if customCss}{@html customCss}{/if}
     {#if headHtml}{@html deferScripts(headHtml)}{/if}
@@ -215,7 +237,9 @@
   <div class="flex min-h-dvh flex-col">
     <!-- Klasik temada (SMF) üst alan ve içerik ortalanmış tek bir çerçevede -->
     <div data-part="site-shell" class="contents">
+    {#if themeSlot('beforeHeader')}<CustomHtml html={themeSlot('beforeHeader')} part="theme-before-header" />{/if}
     <SiteHeader {viewer} nav={data.nav} />
+    {#if themeSlot('afterHeader')}<CustomHtml html={themeSlot('afterHeader')} part="theme-after-header" />{/if}
     {#if viewer.flags.ban && !viewer.flags.ban.cannotAccess}
       <div class="border-b border-destructive/30 bg-destructive/10 text-sm text-destructive">
         <div class="mx-auto flex max-w-7xl items-center gap-2 px-4 py-2 sm:px-6">
@@ -237,7 +261,7 @@
     {/if}
     <main
       data-part="page"
-      class="mx-auto w-full max-w-7xl flex-1 px-4 py-6 transition-opacity duration-300 sm:px-6 sm:py-8 {slow ? 'opacity-60' : ''}"
+      class="mx-auto w-full max-w-[var(--page-width,80rem)] flex-1 px-4 py-6 transition-opacity duration-300 sm:px-6 sm:py-8 {slow ? 'opacity-60' : ''}"
       style="view-transition-name: page"
     >
       {#if byPlacement.afterHeader}<div class="mb-6 grid gap-4" data-part="custom-after-header">{@render placement('afterHeader')}</div>{/if}
@@ -245,7 +269,9 @@
       {#if byPlacement.beforeFooter}<div class="mt-6 grid gap-4" data-part="custom-before-footer">{@render placement('beforeFooter')}</div>{/if}
     </main>
     </div>
+    {#if themeSlot('beforeFooter')}<CustomHtml html={themeSlot('beforeFooter')} part="theme-before-footer" />{/if}
     <SiteFooter {viewer} />
+    {#if themeSlot('afterFooter')}<CustomHtml html={themeSlot('afterFooter')} part="theme-after-footer" />{/if}
   </div>
   {@render placement('bodyEnd')}
   {#if s['cookies.bannerEnabled'] !== false}<CookieBanner text={String(s['cookies.bannerText'] ?? '')} />{/if}

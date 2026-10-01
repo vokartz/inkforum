@@ -15,12 +15,16 @@
   import MobileNav from '../MobileNav.svelte';
   import CreateMenu from '../CreateMenu.svelte';
   import SiteBanner from '../SiteBanner.svelte';
+  import { themeOptions } from '$lib/theme-options';
 
   let { viewer, nav, onsearch }: { viewer: Viewer; nav: NavEntry[]; onsearch: () => void } = $props();
 
   const s = $derived(viewer.settings);
   const forumName = $derived(String(s['general.forumName'] ?? 'Forum'));
   const banner = $derived(s['appearance.bannerEnabled'] !== false);
+  const opts = $derived(themeOptions(s));
+  const sticky = $derived(opts?.header.sticky ?? true);
+  const navVariant = $derived(opts?.header.nav ?? 'underline');
 </script>
 
 {#snippet account()}
@@ -42,7 +46,7 @@
   {#if banner}
     <SiteBanner aside={account} />
   {:else}
-    <div class="mx-auto flex h-[88px] w-full max-w-7xl items-center gap-3 px-4 sm:px-6">
+    <div class="mx-auto flex h-[88px] w-full max-w-[var(--page-width,80rem)] items-center gap-3 px-4 sm:px-6">
       <a href="/" class="min-w-0" aria-label={t('{name} ana sayfa', { name: forumName })}><BrandMark size={44} nameClass="text-white" /></a>
       <div class="ml-auto flex items-center gap-1 sm:gap-2">{@render account()}</div>
     </div>
@@ -50,10 +54,10 @@
 </header>
 
 <!-- Menü çubuğu -->
-<nav data-part="site-nav" class="sticky top-0 z-40 border-b bg-topbar text-topbar-foreground" aria-label={t('Site menüsü')}>
-  <div class="mx-auto flex h-14 w-full max-w-7xl items-center gap-2 px-3 sm:px-6">
+<nav data-part="site-nav" class={cn('z-40 border-b bg-topbar text-topbar-foreground', sticky && 'sticky top-0')} aria-label={t('Site menüsü')}>
+  <div class="mx-auto flex h-14 w-full max-w-[var(--page-width,80rem)] items-center gap-2 px-3 sm:px-6">
     <MobileNav {nav} />
-    <div class="hidden min-w-0 flex-1 md:flex"><MainNav items={nav} variant="underline" /></div>
+    <div class="hidden min-w-0 flex-1 md:flex"><MainNav items={nav} variant={navVariant} /></div>
     <div class="flex-1 md:hidden"></div>
     <button
       type="button"

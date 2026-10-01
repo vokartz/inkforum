@@ -48,14 +48,14 @@
       <div class="absolute inset-0 -z-10 bg-cover bg-center" style="background-image:url('{bg}')"></div>
       <div class="absolute inset-0 -z-10 bg-black/60"></div>
     {/if}
-    <div class="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-x-8 gap-y-4 px-4 py-6 sm:px-6">
+    <div class="mx-auto flex w-full max-w-[var(--page-width,80rem)] flex-wrap items-center justify-between gap-x-8 gap-y-4 px-4 py-6 sm:px-6">
       <nav class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm font-medium" aria-label={t('Alt bilgi')}>
         {@render linkList(bg ? 'text-white/90 hover:text-white' : 'text-foreground/80 hover:text-foreground')}
       </nav>
       {#if social.length}<div class="flex items-center gap-4">{@render socialList()}</div>{/if}
     </div>
     <div class={cn('border-t', bg && 'border-white/15')}>
-      <div class={cn('mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 text-xs sm:px-6', bg ? 'text-white/75' : 'text-muted-foreground')}>
+      <div class={cn('mx-auto flex w-full max-w-[var(--page-width,80rem)] flex-wrap items-center justify-between gap-3 px-4 py-3 text-xs sm:px-6', bg ? 'text-white/75' : 'text-muted-foreground')}>
         <p class="whitespace-pre-line">{copyright}</p>
         <span class="flex flex-wrap items-center gap-x-4 gap-y-2">
           {@render powered('opacity-75')}

@@ -20,6 +20,7 @@ export * from './wiki.js';
 export * from './builder.js';
 export * from './applications.js';
 export * from './plugins.js';
+export * from './themes.js';
 export * from './tickets.js';
 export * from './waf.js';
 export * from './install.js';

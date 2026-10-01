@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { themeOptions } from '$lib/theme-options';
   import ModeratorList from '$lib/components/forum/ModeratorList.svelte';
   import { page } from '$app/state';
   import { goto, invalidateAll } from '$app/navigation';
@@ -126,7 +127,7 @@
 {#if b.children.length}
   <section class="mb-6 overflow-hidden rounded-2xl border bg-card shadow-card">
     <h2 class="border-b bg-panel-header px-5 py-2.5 text-sm font-semibold">{t('Alt bölümler')}</h2>
-    <div class="divide-y">
+    <div class={themeOptions(data.viewer.settings)?.forumList.style === 'cards' ? 'grid gap-3 p-3 sm:grid-cols-2 sm:p-4' : 'divide-y'}>
       {#each b.children as child (child.id)}<BoardRow board={child} />{/each}
     </div>
   </section>

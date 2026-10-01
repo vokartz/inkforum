@@ -10,6 +10,8 @@
   import { api } from '$lib/api';
   import { cn } from '$lib/utils';
   import { t } from '$lib/i18n.svelte';
+  import { page } from '$app/state';
+  import { themeOptions } from '$lib/theme-options';
 
   interface Props {
     loggedIn: boolean;
@@ -35,6 +37,8 @@
     }
   }
 
+  // Etkin tema tek bir renk modu kullanıyorsa seçici gizlenir
+  const locked = $derived(themeOptions(page.data.viewer?.settings)?.mode.toggle === false);
   const defaultLabel = $derived(theme.forumDefault === 'dark' ? t('Koyu') : theme.forumDefault === 'light' ? t('Açık') : t('Cihaz'));
   const options = $derived<Array<{ value: ThemePreference; label: string; icon: typeof SunIcon }>>([
     { value: 'dark', label: t('Koyu'), icon: MoonIcon },
@@ -43,6 +47,7 @@
   ]);
 </script>
 
+{#if !locked}
 <DropdownMenu.Root>
   {#if variant === 'icon'}
     <DropdownMenu.Trigger class={cn(buttonVariants({ variant: 'ghost', size: 'icon' }), className)} aria-label={t('Renk modu')}>
@@ -60,3 +65,4 @@
     {/each}
   </DropdownMenu.Content>
 </DropdownMenu.Root>
+{/if}

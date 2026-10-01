@@ -303,6 +303,23 @@ export const SETTINGS = {
     public: true,
     hidden: true,
   }),
+  'appearance.themeId': def({
+    section: 'appearance',
+    schema: z.number().int().nullable(),
+    default: null as number | null,
+    label: 'Etkin tema',
+    input: 'number',
+    hidden: true,
+  }),
+  'appearance.theme': def({
+    section: 'appearance',
+    schema: z.unknown(),
+    default: null as unknown,
+    label: 'Etkin tema (derlenmiş)',
+    input: 'list',
+    public: true,
+    hidden: true,
+  }),
   'shoutbox.config': def({
     section: 'general',
     schema: z.object({ maxLength: z.number().int(), history: z.number().int(), guests: z.boolean() }),

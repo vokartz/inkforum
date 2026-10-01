@@ -34,6 +34,8 @@ declare global {
       safeMode: boolean;
       /** Yönetimden izin verilen ek CSP kaynakları (özel kod için) */
       customCsp: { script: string[]; connect: string[]; style: string[]; font: string[] } | null;
+      /** Etkin temanın <html> öznitelikleri (data-custom-theme, data-sidebar…) */
+      attrs: string;
     }
   }
 

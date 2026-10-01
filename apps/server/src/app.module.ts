@@ -52,6 +52,8 @@ import { DiscordController } from './discord/discord.controller.js';
 import { DiscordService } from './discord/discord.service.js';
 import { GameServerController } from './gameserver/gameserver.controller.js';
 import { GameServerService } from './gameserver/gameserver.service.js';
+import { ThemesController } from './themes/themes.controller.js';
+import { ThemesService } from './themes/themes.service.js';
 import { ReactionsService } from './forum/reactions.service.js';
 import { HomeController } from './home/home.controller.js';
 import { TopicExtrasService } from './forum/topic-extras.service.js';
@@ -124,6 +126,7 @@ export class AppModule {
         ShoutboxController,
         DiscordController,
         GameServerController,
+        ThemesController,
         CustomController,
         WikiController,
         ApplicationsController,
@@ -163,6 +166,7 @@ export class AppModule {
         ShoutboxService,
         DiscordService,
         GameServerService,
+        ThemesService,
         CustomService,
         BuilderService,
         WikiService,

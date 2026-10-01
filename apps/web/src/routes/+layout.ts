@@ -1,4 +1,5 @@
 import { redirect } from '@sveltejs/kit';
+import { previewDraft } from '$lib/theme-preview';
 import { loadCatalog } from '$lib/i18n.svelte';
 import type { LayoutLoad } from './$types';
 
@@ -17,7 +18,19 @@ const OPEN = [
   /^\/settings\/security/,
 ];
 
-export const load: LayoutLoad = async ({ data, url }) => {
+export const load: LayoutLoad = async ({ data: serverData, url, depends }) => {
+  depends('app:theme-preview');
+  let data = serverData;
+  const draft = previewDraft();
+  if (draft) {
+    const settings = { ...data.viewer.settings, ...draft.settings, 'appearance.theme': draft.active };
+    data = {
+      ...data,
+      viewer: { ...data.viewer, settings },
+      theme: draft.active.options.mode.toggle ? data.theme : 'system',
+      themeDefault: (draft.settings['appearance.defaultMode'] as typeof data.themeDefault) ?? data.themeDefault,
+    };
+  }
   const { viewer } = data;
   // Seçili dilin kataloğu çizimden önce hazır olmalı (t() eşzamanlıdır)
   await loadCatalog(viewer.locale, viewer.settings['i18n.defaultLocale']);

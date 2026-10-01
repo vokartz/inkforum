@@ -736,6 +736,24 @@
   background: var(--primary);
 }
 
+/* ================================================================
+ * Tema stüdyosu: düzen seçenekleri (<html data-sidebar / data-forum-list>)
+ * ================================================================ */
+@media (min-width: 64rem) {
+  [data-sidebar='left'] [data-part='home-grid'] {
+    grid-template-columns: 20rem minmax(0, 1fr) !important;
+  }
+  [data-sidebar='left'] [data-part='home-sidebar'] {
+    order: -1;
+  }
+}
+[data-sidebar='hidden'] [data-part='home-sidebar'] {
+  display: none;
+}
+[data-sidebar='hidden'] [data-part='home-grid'] {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
 /* Kaydırınca beliren içerik (use:reveal) — yalnızca ilk ekranın altındakilere uygulanır */
 .reveal {
   opacity: 0;

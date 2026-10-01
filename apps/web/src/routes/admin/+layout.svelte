@@ -3,6 +3,7 @@
   import ApplicationsIcon from 'phosphor-svelte/lib/ClipboardText';
   import TicketsIcon from 'phosphor-svelte/lib/Lifebuoy';
   import PluginsIcon from 'phosphor-svelte/lib/PuzzlePiece';
+  import ThemesIcon from 'phosphor-svelte/lib/PaintBrushBroad';
   import ShoutboxIcon from 'phosphor-svelte/lib/ChatCenteredDots';
   import DiscordIcon from 'phosphor-svelte/lib/DiscordLogo';
   import GameIcon from 'phosphor-svelte/lib/GameController';
@@ -70,6 +71,7 @@
         items: [
           { href: '/admin', label: t('Pano'), icon: LayoutDashboardIcon, show: true, exact: true },
           { href: '/admin/settings', label: t('Ayarlar'), icon: SettingsIcon, show: can(v, 'admin.settings') },
+          { href: '/admin/themes', label: t('Temalar'), icon: ThemesIcon, show: can(v, 'admin.settings') },
           { href: '/admin/appearance', label: t('Görünüm'), icon: PaletteIcon, show: can(v, 'admin.settings') },
           { href: '/admin/home', label: t('Ana sayfa düzeni'), icon: HomeLayoutIcon, show: can(v, 'admin.settings') },
           { href: '/admin/plugins', label: t('Eklentiler'), icon: PluginsIcon, show: can(v, 'admin.settings') },

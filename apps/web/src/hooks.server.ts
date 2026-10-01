@@ -11,6 +11,7 @@ export const handle: Handle = async ({ event, resolve }) => {
   event.locals.lang = 'tr';
   event.locals.favicon = '/brand/inkforum-icon-192.png';
   event.locals.customCsp = null;
+  event.locals.attrs = '';
 
   // Güvenli mod: bozuk bir özel kod siteyi kilitlerse ?safemode=1 ile kapatılır (oturum boyunca).
   const safeParam = event.url.searchParams.get('safemode');
@@ -37,11 +38,14 @@ export const handle: Handle = async ({ event, resolve }) => {
         .replace('%forum.theme%', event.locals.theme)
         .replace('%forum.style%', event.locals.style)
         .replace('%forum.radius%', event.locals.radius)
+        .replace('%forum.attrs%', event.locals.attrs)
         .replace('%forum.lang%', event.locals.lang)
         .replace('%forum.favicon%', escapeAttr(event.locals.favicon)),
   });
   // Stüdyo önizleme çerçevesi yalnızca aynı siteden gömülebilir (diğer tüm sayfalar gömülemez)
-  if (event.url.pathname === '/studio/frame') {
+  // Tema stüdyosunun canlı önizlemesi aynı sitenin çerçevesinde açılır (yönetim sayfaları hariç)
+  const sameOriginFrame = event.request.headers.get('sec-fetch-dest') === 'iframe' && event.request.headers.get('sec-fetch-site') === 'same-origin';
+  if (event.url.pathname === '/studio/frame' || (sameOriginFrame && !event.url.pathname.startsWith('/admin'))) {
     const csp = response.headers.get('content-security-policy');
     if (csp) response.headers.set('content-security-policy', csp.replace("frame-ancestors 'none'", "frame-ancestors 'self'"));
   }

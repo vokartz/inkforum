@@ -86,7 +86,7 @@
 
 {#snippet underline(_on: boolean)}{/snippet}
 
-<div bind:this={container} class={'relative flex min-w-0 flex-1 items-center overflow-x-clip'} data-part="main-nav">
+<div bind:this={container} class="relative flex min-w-0 flex-1 items-center overflow-x-clip" data-part="main-nav">
   <!-- Genişlik ölçümü için görünmez kopya -->
   <div bind:this={measure} class="pointer-events-none invisible absolute top-0 left-0 flex" aria-hidden="true">
     {#each items as e (e.id)}
