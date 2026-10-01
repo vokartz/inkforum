@@ -14,7 +14,6 @@
   import OnlineUsers from '../forum/OnlineUsers.svelte';
   import AnnouncementBlock from './AnnouncementBlock.svelte';
   import TilesBlock from './TilesBlock.svelte';
-  import ShoutboxBlock from './ShoutboxBlock.svelte';
   import DiscordBlock from './DiscordBlock.svelte';
   import CustomHtml from '../CustomHtml.svelte';
   import { formatCompact, formatNumber } from '$lib/format';
@@ -99,8 +98,6 @@
   </Widget>
 {:else if block.kind === 'online'}
   {#if forum.online}<OnlineUsers online={forum.online} title={block.title} />{/if}
-{:else if block.kind === 'shoutbox'}
-  <ShoutboxBlock title={block.title} {compact} />
 {:else if block.kind === 'discord'}
   <DiscordBlock title={block.title} />
 {:else if block.kind === 'birthdays'}

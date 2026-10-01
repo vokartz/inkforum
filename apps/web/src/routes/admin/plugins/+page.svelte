@@ -4,7 +4,6 @@
   import { toast } from 'svelte-sonner';
   import PageHeaderIcon from 'phosphor-svelte/lib/PuzzlePiece';
   import HouseIcon from 'phosphor-svelte/lib/HouseLine';
-  import ShoutIcon from 'phosphor-svelte/lib/ChatCenteredDots';
   import DiscordIcon from 'phosphor-svelte/lib/DiscordLogo';
   import BookIcon from 'phosphor-svelte/lib/BookOpenText';
   import ClipboardIcon from 'phosphor-svelte/lib/ClipboardText';
@@ -21,7 +20,7 @@
   import { t } from '$lib/i18n.svelte';
 
   let { data } = $props();
-  const ICONS: Record<PluginKey, typeof HouseIcon> = { landing: HouseIcon, wiki: BookIcon, applications: ClipboardIcon, tickets: LifebuoyIcon, shoutbox: ShoutIcon, discord: DiscordIcon };
+  const ICONS: Record<PluginKey, typeof HouseIcon> = { landing: HouseIcon, wiki: BookIcon, applications: ClipboardIcon, tickets: LifebuoyIcon, discord: DiscordIcon };
 
   let q = $state('');
   let filter = $state<'all' | 'on' | 'off'>('all');

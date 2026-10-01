@@ -28,7 +28,6 @@
   import RocketIcon from 'phosphor-svelte/lib/RocketLaunch';
   import GaugeIcon from 'phosphor-svelte/lib/Gauge';
   import HouseIcon from 'phosphor-svelte/lib/HouseLine';
-  import ShoutIcon from 'phosphor-svelte/lib/ChatCenteredDots';
   import DiscordIcon from 'phosphor-svelte/lib/DiscordLogo';
   import BookIcon from 'phosphor-svelte/lib/BookOpenText';
   import ClipboardIcon from 'phosphor-svelte/lib/ClipboardText';
@@ -88,7 +87,7 @@
   };
   let sampleContent = $state(true);
   let plugins = $state<PluginKey[]>(['wiki']);
-  const PLUGIN_ICONS: Record<PluginKey, typeof HouseIcon> = { landing: HouseIcon, wiki: BookIcon, applications: ClipboardIcon, tickets: LifebuoyIcon, shoutbox: ShoutIcon, discord: DiscordIcon };
+  const PLUGIN_ICONS: Record<PluginKey, typeof HouseIcon> = { landing: HouseIcon, wiki: BookIcon, applications: ClipboardIcon, tickets: LifebuoyIcon, discord: DiscordIcon };
 
   // Adım 6
   let mailOn = $state(false);

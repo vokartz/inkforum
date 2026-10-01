@@ -9,7 +9,7 @@ import { ICON_NAME } from './forum.js';
 export const HOME_POSITIONS = ['top', 'sidebar', 'bottom'] as const;
 export type HomePosition = (typeof HOME_POSITIONS)[number];
 
-export const HOME_BLOCK_KINDS = ['announcement', 'tiles', 'text', 'html', 'recent', 'stats', 'online', 'birthdays', 'shoutbox', 'discord'] as const;
+export const HOME_BLOCK_KINDS = ['announcement', 'tiles', 'text', 'html', 'recent', 'stats', 'online', 'birthdays', 'discord'] as const;
 export type HomeBlockKind = (typeof HOME_BLOCK_KINDS)[number];
 
 /** Yönetim panelindeki blok türü açıklamaları */
@@ -22,12 +22,11 @@ export const HOME_BLOCK_INFO: Record<HomeBlockKind, { label: string; description
   stats: { label: 'İstatistikler', description: 'Konu, mesaj ve üye sayıları.', icon: 'chart-line-up' },
   online: { label: 'Çevrimiçi üyeler', description: 'Şu an forumda olanlar.', icon: 'broadcast' },
   birthdays: { label: 'Doğum günleri', description: 'Bugün doğum günü olan üyeler (yoksa gizlenir).', icon: 'cake' },
-  shoutbox: { label: 'Sohbet kutusu', description: 'Üyelerin anlık kısa mesajlaştığı kutu ("Sohbet kutusu" eklentisi).', icon: 'chat-centered-dots' },
   discord: { label: 'Discord sunucusu', description: 'Discord sunucunuzun çevrimiçi sayısı ve katıl düğmesi ("Discord entegrasyonu" eklentisi).', icon: 'discord-logo' },
 };
 
 /** Eklentiye bağlı bloklar: eklenti kapalıyken eklenemez ve gösterilmez */
-export const HOME_BLOCK_PLUGIN: Partial<Record<HomeBlockKind, 'shoutbox' | 'discord'>> = { shoutbox: 'shoutbox', discord: 'discord' };
+export const HOME_BLOCK_PLUGIN: Partial<Record<HomeBlockKind, 'discord'>> = { discord: 'discord' };
 
 export const ANNOUNCEMENT_STYLES = ['accent', 'info', 'success', 'warning', 'danger', 'neutral'] as const;
 export type AnnouncementStyle = (typeof ANNOUNCEMENT_STYLES)[number];
@@ -100,7 +99,6 @@ export const homeBlockInput = z.discriminatedUnion('kind', [
   blockBase.extend({ kind: z.literal('stats'), config: z.object({}).default({}) }),
   blockBase.extend({ kind: z.literal('online'), config: z.object({}).default({}) }),
   blockBase.extend({ kind: z.literal('birthdays'), config: z.object({}).default({}) }),
-  blockBase.extend({ kind: z.literal('shoutbox'), config: z.object({}).default({}) }),
   blockBase.extend({ kind: z.literal('discord'), config: z.object({}).default({}) }),
 ]);
 export type HomeBlockInput = z.output<typeof homeBlockInput>;
@@ -123,6 +121,6 @@ export type HomeBlock =
   /** `html` yöneticinin ham kodudur; istemcide özel kod çalıştırıcısıyla işlenir. */
   | { id: number; kind: 'html'; title: string | null; html: string; boxed: boolean }
   | { id: number; kind: 'recent'; title: string | null; limit: number }
-  | { id: number; kind: 'stats' | 'online' | 'birthdays' | 'shoutbox' | 'discord'; title: string | null };
+  | { id: number; kind: 'stats' | 'online' | 'birthdays' | 'discord'; title: string | null };
 
 export type HomeLayout = Record<HomePosition, HomeBlock[]>;

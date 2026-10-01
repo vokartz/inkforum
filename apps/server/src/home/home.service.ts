@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { renderBBCode, type AdminHomeBlock, type HomeBlock, type HomeBlockInput, type HomeLayout, type HomeLayoutInput } from '@forum/shared';
+import { HOME_BLOCK_KINDS, renderBBCode, type AdminHomeBlock, type HomeBlock, type HomeBlockInput, type HomeLayout, type HomeLayoutInput } from '@forum/shared';
 import type { Row } from '@forum/db';
 import { Db } from '../database/db.service.js';
 import { Clock } from '../common/clock.js';
@@ -60,7 +60,7 @@ export class HomeService {
   }
 
   /** Eklenti açılınca bloğu (yoksa) verilen konuma ekler */
-  async ensureBlock(kind: 'shoutbox' | 'discord', position: 'top' | 'sidebar' | 'bottom', actorId: number): Promise<void> {
+  async ensureBlock(kind: 'discord', position: 'top' | 'sidebar' | 'bottom', actorId: number): Promise<void> {
     const exists = await this.db.q.selectFrom('home_blocks').select('id').where('kind', '=', kind).executeTakeFirst();
     if (exists) return;
     const last = await this.db.q.selectFrom('home_blocks').select((eb) => eb.fn.max('sort_order').as('m')).where('position', '=', position).executeTakeFirst();
@@ -142,7 +142,6 @@ export class HomeService {
       case 'online':
       case 'birthdays':
         return { ...base, kind: r.kind };
-      case 'shoutbox':
       case 'discord':
         // Eklenti kapalıysa blok gösterilmez (yerleşimde kalır, açılınca geri gelir)
         if (!this.settings.plugin(r.kind)) return null;
@@ -166,7 +165,8 @@ export class HomeService {
   }
 
   async adminList(): Promise<AdminHomeBlock[]> {
-    return (await this.rows()).map(
+    // Kaldırılan eklentilerin blokları (sohbet kutusu, oyun sunucusu) listede gösterilmez
+    return (await this.rows()).filter((r) => (HOME_BLOCK_KINDS as readonly string[]).includes(r.kind)).map(
       (r) =>
         ({
           id: r.id,

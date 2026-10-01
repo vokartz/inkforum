@@ -10,7 +10,6 @@ import { Db } from '../database/db.service.js';
 import { TicketsService } from '../tickets/tickets.service.js';
 import { AppearanceService } from '../appearance/appearance.service.js';
 import { I18nService } from '../i18n/i18n.service.js';
-import { ShoutboxService } from '../shoutbox/shoutbox.service.js';
 import { DiscordService } from '../discord/discord.service.js';
 import { HomeService } from '../home/home.service.js';
 
@@ -28,7 +27,6 @@ export class PluginsController {
     private readonly tickets: TicketsService,
     private readonly appearance: AppearanceService,
     private readonly i18n: I18nService,
-    private readonly shoutbox: ShoutboxService,
     private readonly discord: DiscordService,
     private readonly home: HomeService,
   ) {}
@@ -55,10 +53,6 @@ export class PluginsController {
         const cats = await count(this.db.q.selectFrom('ticket_categories').select((eb) => eb.fn.countAll<number>().as('n')).executeTakeFirst());
         return [tr('{n, plural, other {# kategori}}', { n: cats }), tr('{n, plural, other {# açık talep}}', { n: open })];
       }
-      case 'shoutbox': {
-        const s = await this.shoutbox.stats();
-        return [tr('{n, plural, other {# mesaj}}', { n: s.total }), tr('Son 24 saatte {n}', { n: s.today })];
-      }
       case 'discord': {
         const c = this.discord.adminView();
         return [c.hasWebhook ? tr('Webhook bağlı') : tr('Webhook ayarlı değil'), c.guildId ? tr('Sunucu widget\'ı açık') : tr('Widget ayarlı değil')];
@@ -84,8 +78,8 @@ export class PluginsController {
     const nav = ({ wiki: 'wiki', applications: 'applications', tickets: 'tickets' } as const)[key as 'wiki'];
     if (nav && body.enabled) await this.appearance.ensureBuiltin(nav);
     // Bloğu olan eklentiler açılınca ana sayfaya (yoksa) eklenir
-    const block = ({ shoutbox: 'top', discord: 'sidebar' } as const)[key as 'shoutbox'];
-    if (block && body.enabled) await this.home.ensureBlock(key as 'shoutbox', block, v.user!.id);
+    const block = ({ discord: 'sidebar' } as const)[key as 'discord'];
+    if (block && body.enabled) await this.home.ensureBlock(key as 'discord', block, v.user!.id);
     await this.audit.log({ type: 'admin', action: body.enabled ? 'plugin.enable' : 'plugin.disable', actorId: v.user!.id, ip: v.ip, data: { key } });
     return { ok: true };
   }

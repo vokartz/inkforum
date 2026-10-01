@@ -42,7 +42,7 @@ class Realtime {
     on('notification', () => void this.onNotification());
     on('message', (e) => e.type === 'message' && this.onMessage(e));
     // Yalnızca sayfalara iletilen olaylar (konuşma "görüldü", sohbet kutusu)
-    for (const type of ['conversationRead', 'shout', 'shoutDeleted'] as const) on(type, () => undefined);
+    for (const type of ['conversationRead'] as const) on(type, () => undefined);
     es.onerror = () => {
       this.connected = false;
       counters.live = false;

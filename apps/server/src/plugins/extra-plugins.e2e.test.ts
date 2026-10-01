@@ -16,47 +16,6 @@ afterAll(async () => {
   await h.close();
 });
 
-describe('shoutbox plugin', () => {
-  it('is off until an admin enables it, then adds its home block', async () => {
-    expect((await ali.get('/api/shoutbox')).status).toBe(404);
-    const plugins = await admin.get('/api/admin/plugins');
-    expect(plugins.body.items.find((p: { key: string }) => p.key === 'shoutbox')).toMatchObject({
-      enabled: false,
-    });
-    expect((await admin.put('/api/admin/plugins/shoutbox', { enabled: true })).status).toBe(200);
-    const home = await admin.get('/api/admin/home');
-    expect(JSON.stringify(home.body)).toContain('"kind":"shoutbox"');
-  });
-
-  it('lets members post, everyone read and authors delete', async () => {
-    const posted = await ali.post('/api/shoutbox', { body: '  Selam   millet!  ' });
-    expect(posted.status).toBe(201);
-    expect(posted.body).toMatchObject({
-      body: 'Selam millet!',
-      user: { displayName: 'Ali' },
-      canDelete: true,
-    });
-    expect((await h.agent().post('/api/shoutbox', { body: 'misafir' })).status).toBe(401);
-    const guest = await h.agent().get('/api/shoutbox');
-    expect(guest.body.items.map((s: { body: string }) => s.body)).toEqual(['Selam millet!']);
-    expect(guest.body.canPost).toBe(false);
-    expect((await ali.post('/api/shoutbox', { body: 'çok hızlı' })).status).toBe(400);
-
-    expect((await ali.delete(`/api/shoutbox/${posted.body.id}`)).status).toBe(200);
-    expect((await h.agent().get('/api/shoutbox')).body.items).toEqual([]);
-  });
-
-  it('honours its settings', async () => {
-    expect(
-      (await admin.put('/api/admin/shoutbox', { maxLength: 20, history: 10, guests: false })).status,
-    ).toBe(200);
-    expect((await h.agent().get('/api/shoutbox')).status).toBe(401);
-    await new Promise((r) => setTimeout(r, 3100));
-    const long = await ali.post('/api/shoutbox', { body: 'x'.repeat(21) });
-    expect(long.status).toBe(422);
-  });
-});
-
 describe('discord plugin', () => {
   it('posts new public topics to the webhook and shows the widget', async () => {
     expect((await admin.put('/api/admin/plugins/discord', { enabled: true })).status).toBe(200);

@@ -29,7 +29,6 @@
   import ChartIcon from 'phosphor-svelte/lib/ChartLineUp';
   import BroadcastIcon from 'phosphor-svelte/lib/Broadcast';
   import CakeIcon from 'phosphor-svelte/lib/Cake';
-  import ShoutIcon from 'phosphor-svelte/lib/ChatCenteredDots';
   import DiscordIcon from 'phosphor-svelte/lib/DiscordLogo';
   import ImageIcon from 'phosphor-svelte/lib/Image';
   import UploadIcon from 'phosphor-svelte/lib/UploadSimple';
@@ -72,7 +71,6 @@
     stats: ChartIcon,
     online: BroadcastIcon,
     birthdays: CakeIcon,
-    shoutbox: ShoutIcon,
     discord: DiscordIcon,
   };
   const ZONES: Array<{ key: HomePosition; label: string; hint: string }> = [

@@ -6,7 +6,7 @@ import type { UserSummary } from './dto.js';
  * API uç noktaları 404 döner, menü öğeleri ve yönetim sayfaları gizlenir. Veriler silinmez.
  */
 
-export const PLUGIN_KEYS = ['landing', 'wiki', 'applications', 'tickets', 'shoutbox', 'discord'] as const;
+export const PLUGIN_KEYS = ['landing', 'wiki', 'applications', 'tickets', 'discord'] as const;
 export type PluginKey = (typeof PLUGIN_KEYS)[number];
 
 export interface PluginDef {
@@ -84,19 +84,6 @@ export const PLUGINS: PluginDef[] = [
     publicHref: '/tickets',
   },
   {
-    key: 'shoutbox',
-    name: 'Sohbet kutusu',
-    description: 'Ana sayfada üyelerin kısa mesajlarla anlık sohbet ettiği kutu. Yeni mesajlar sayfa yenilenmeden gelir.',
-    icon: 'chat-centered-dots',
-    version: '1.0.0',
-    author: 'InkForum',
-    category: 'community',
-    features: ['Anlık mesajlar (sayfa yenilemeden)', 'Moderatörler mesaj silebilir', 'Ana sayfa bloğu olarak üste, yana ya da alta'],
-    adminHref: '/admin/shoutbox',
-    publicHref: null,
-    defaultEnabled: false,
-  },
-  {
     key: 'discord',
     name: 'Discord entegrasyonu',
     description: 'Yeni konuları Discord kanalınıza gönderir ve ana sayfada Discord sunucunuzun çevrimiçi sayısını gösterir.',
@@ -130,25 +117,6 @@ export interface AdminPlugin extends PluginDef {
   /** Kısa özet (ör. "7 sayfa", "3 bekleyen talep") */
   stats: string[];
 }
-
-// ----- Sohbet kutusu -----
-
-export interface Shout {
-  id: number;
-  user: UserSummary;
-  body: string;
-  createdAt: number;
-  canDelete: boolean;
-}
-
-export const shoutInput = z.object({ body: z.string().trim().min(1, 'Mesaj boş olamaz.').max(1000) });
-
-export const shoutboxSettingsInput = z.object({
-  maxLength: z.number().int().min(20).max(1000).default(300),
-  history: z.number().int().min(5).max(100).default(30),
-  guests: z.boolean().default(true),
-});
-export type ShoutboxSettings = z.output<typeof shoutboxSettingsInput>;
 
 // ----- Discord -----
 

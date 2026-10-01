@@ -349,15 +349,6 @@ export const SETTINGS = {
     public: true,
     hidden: true,
   }),
-  'shoutbox.config': def({
-    section: 'general',
-    schema: z.object({ maxLength: z.number().int(), history: z.number().int(), guests: z.boolean() }),
-    default: { maxLength: 300, history: 30, guests: true },
-    label: 'Sohbet kutusu',
-    input: 'list',
-    public: true,
-    hidden: true,
-  }),
   'discord.config': def({
     section: 'general',
     schema: z.object({ webhookEnc: z.string(), boardIds: z.array(z.number().int()), replies: z.boolean(), guildId: z.string(), inviteUrl: z.string() }),
