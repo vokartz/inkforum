@@ -12,7 +12,7 @@
   import { reveal } from '$lib/reveal';
   import NodeIcon from '$lib/components/NodeIcon.svelte';
   import FileTextIcon from 'phosphor-svelte/lib/FileText';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
 
   let { data } = $props();
   const w = $derived(data.wiki);
@@ -27,7 +27,7 @@
     <div class="absolute -top-24 left-1/2 -z-10 h-64 w-[36rem] -translate-x-1/2 rounded-full bg-primary/15 blur-3xl"></div>
     <span class="mx-auto mb-4 flex size-14 animate-rise items-center justify-center rounded-2xl bg-primary-soft text-primary"><BookOpenIcon class="size-7" weight="duotone" /></span>
     <h1 class="animate-rise text-3xl font-black tracking-tight sm:text-4xl" style="--i:1">{w.title}</h1>
-    {#if w.description}<p class="mx-auto mt-2 max-w-xl animate-rise text-muted-foreground" style="--i:2">{w.description}</p>{/if}
+    {#if w.description}<p class="mx-auto mt-2 max-w-xl animate-rise text-muted-foreground" style="--i:2">{tc(w.description)}</p>{/if}
     <div class="mx-auto mt-6 max-w-xl animate-rise" style="--i:3"><WikiSearch large /></div>
     <p class="mt-3 text-xs text-muted-foreground">{t('{n} sayfa', { n: w.pageCount })}</p>
     {#if w.canEdit}

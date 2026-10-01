@@ -10,7 +10,7 @@
   import TicketStatus from '$lib/components/tickets/TicketStatus.svelte';
   import TicketPriority from '$lib/components/tickets/TicketPriority.svelte';
   import { cn } from '$lib/utils';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
 
   let { data } = $props();
   const d = $derived(data.desk);
@@ -48,7 +48,7 @@
       <p class="mt-3 px-3 text-[11px] font-bold tracking-wider text-muted-foreground uppercase">{t('Kategoriler')}</p>
       <a href={link({ category: '', page: '1' })} class={cn('rounded-lg px-3 py-1.5 text-sm transition-colors', !data.category ? 'font-semibold text-highlight' : 'text-muted-foreground hover:text-foreground')}>{t('Tümü')}</a>
       {#each d.categories as c (c.id)}
-        <a href={link({ category: String(c.id), page: '1' })} class={cn('flex items-center justify-between rounded-lg px-3 py-1.5 text-sm transition-colors', data.category === String(c.id) ? 'font-semibold text-highlight' : 'text-muted-foreground hover:text-foreground')}>{c.name}{#if c.open}<span class="text-xs">{c.open}</span>{/if}</a>
+        <a href={link({ category: String(c.id), page: '1' })} class={cn('flex items-center justify-between rounded-lg px-3 py-1.5 text-sm transition-colors', data.category === String(c.id) ? 'font-semibold text-highlight' : 'text-muted-foreground hover:text-foreground')}>{tc(c.name)}{#if c.open}<span class="text-xs">{c.open}</span>{/if}</a>
       {/each}
     </nav>
 
@@ -63,7 +63,7 @@
               <span class="min-w-0 flex-1">
                 <b class="block truncate">{t.subject}</b>
                 <span class="flex items-center gap-1.5 truncate text-xs text-muted-foreground">
-                  {#if t.user}<UserAvatar user={t.user} size={16} />{t.user.displayName}{/if} · #{t.id} · {t.category.name} · <TimeAgo ms={t.lastReplyAt} />
+                  {#if t.user}<UserAvatar user={t.user} size={16} />{t.user.displayName}{/if} · #{t.id} · {tc(t.category.name)} · <TimeAgo ms={t.lastReplyAt} />
                   {#if t.assignee} · {t.assignee.displayName}{/if}
                 </span>
               </span>

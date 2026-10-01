@@ -27,7 +27,7 @@
   import TimeAgo from './TimeAgo.svelte';
   import { formatDate, formatNumber } from '$lib/format';
   import { profileUrl } from '$lib/viewer';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
 
   let { user, children }: { user: UserSummary; children: Snippet } = $props();
   let data = $state<PublicProfile | null | undefined>(undefined);
@@ -62,7 +62,7 @@
           </a>
           <div class="min-w-0 pb-1">
             <a href={profileUrl(user)} class="block truncate text-base font-bold hover:underline" style={user.color ? `color:${user.color}` : undefined}>{user.displayName}</a>
-            <p class="truncate text-xs text-muted-foreground">{user.primaryGroup?.name ?? `@${user.username}`}</p>
+            <p class="truncate text-xs text-muted-foreground">{user.primaryGroup ? tc(user.primaryGroup.name) : `@${user.username}`}</p>
           </div>
         </div>
         {#if data === undefined}

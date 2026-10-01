@@ -17,7 +17,7 @@
   import { can, profileUrl } from '$lib/viewer';
   import { theme } from '$lib/theme.svelte';
   import { cn } from '$lib/utils';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
   import UserAvatar from '../UserAvatar.svelte';
 
   interface Props {
@@ -66,7 +66,7 @@
       <UserAvatar user={user} size={40} />
       <span class="grid min-w-0">
         <span class="truncate font-bold" style={user.color ? `color:${user.color}` : undefined}>{user.displayName}</span>
-        <span class="truncate text-xs text-muted-foreground">{user.primaryGroup?.name ?? t('Profilini görüntüle')}</span>
+        <span class="truncate text-xs text-muted-foreground">{user.primaryGroup ? tc(user.primaryGroup.name) : t('Profilini görüntüle')}</span>
       </span>
     </a>
     <DropdownMenu.Separator />

@@ -122,8 +122,10 @@
   const TINT: Record<string, number> = { none: 0, soft: 3, medium: 6, strong: 11 };
   const tint = $derived(TINT[String(s['appearance.colorSpread'] ?? 'none')] ?? 0);
   // `html` önekiyle tema dosyasındaki varsayılanlardan her zaman baskın gelir (yükleme sırasından bağımsız).
+  // BBCode alıntı başlığındaki "yazdı:" / "Alıntı:" kayıtlı HTML'de yer almaz; ziyaretçinin dilinde buradan gelir (app.css)
+  const cssString = (v: string) => `"${v.replace(/[\\"]/g, '\\$&').replace(/</g, '\\3c ').replace(/\n/g, ' ')}"`;
   const accentCss = $derived(
-    `html:root{--app-font:${fontFamily};--tint:${tint}}` +
+    `html:root{--app-font:${fontFamily};--tint:${tint};--bb-quote-says:${cssString(t('yazdı:'))};--bb-quote-label:${cssString(t('Alıntı:'))}}` +
       (/^#[0-9a-fA-F]{6}$/.test(accent) ? `html:root,html[data-theme]{--primary:${accent};--primary-foreground:${readableOn(accent)}}` : ''),
   );
   const favicon = $derived(s['appearance.faviconUrl'] as string | null | undefined);

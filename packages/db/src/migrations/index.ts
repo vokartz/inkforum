@@ -21,6 +21,7 @@ import * as m0019 from './0019_applications.js';
 import * as m0020 from './0020_tickets.js';
 import * as m0021 from './0021_language.js';
 import * as m0022 from './0022_import.js';
+import * as m0023 from './0023_quote_i18n.js';
 
 /** Statik liste: paketlenmiş (bundle) sunucuda da dosya sistemi taraması gerekmez. */
 export const migrations: Record<string, Migration> = {
@@ -46,6 +47,7 @@ export const migrations: Record<string, Migration> = {
   '0020_tickets': m0020,
   '0021_language': m0021,
   '0022_import': m0022,
+  '0023_quote_i18n': m0023,
 };
 
 export const migrationProvider: MigrationProvider = {

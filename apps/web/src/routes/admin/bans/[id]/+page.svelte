@@ -18,7 +18,7 @@
   </PageHeader>
   <div class="grid gap-6 lg:grid-cols-[1fr_280px]">
     <Card.Root>
-      <Card.Content class="pt-6">
+      <Card.Content>
         {#key b.id}
           <BanForm banId={b.id} initial={{ ...b, triggers: b.triggers.map((t) => ({ type: t.type === 'ip_range' ? 'ip' : t.type, value: t.value })) }} ondone={() => goto('/admin/bans')} />
         {/key}

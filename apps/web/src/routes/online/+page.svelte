@@ -3,7 +3,7 @@
   import UserAvatar from '$lib/components/UserAvatar.svelte';
   import UserName from '$lib/components/UserName.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
 
   let { data } = $props();
   const o = $derived(data.online);
@@ -29,7 +29,7 @@
         </span>
         <span class="min-w-0">
           <UserName user={u} class={u.hidden ? 'italic opacity-70' : ''} />
-          <span class="block truncate text-xs text-muted-foreground">{u.primaryGroup?.name ?? t('Üye')}{u.hidden ? ` · ${t('gizli')}` : ''}</span>
+          <span class="block truncate text-xs text-muted-foreground">{u.primaryGroup ? tc(u.primaryGroup.name) : t('Üye')}{u.hidden ? ` · ${t('gizli')}` : ''}</span>
         </span>
       </div>
     {/each}

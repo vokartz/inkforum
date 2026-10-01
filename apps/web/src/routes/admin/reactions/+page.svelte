@@ -20,7 +20,7 @@
   import { api, ApiError, errorMessage } from '$lib/api';
   import { formatNumber } from '$lib/format';
   import { cn } from '$lib/utils';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
 
   let { data } = $props();
 
@@ -92,7 +92,7 @@
       <span class="mr-2 text-sm font-semibold text-muted-foreground">{t('Önizleme:')}</span>
       <div class="flex items-center gap-0.5 rounded-full border bg-popover p-1.5 shadow-lift">
         {#each rows.filter((r) => r.isEnabled) as r (r.uid)}
-          <span class="flex size-10 items-center justify-center rounded-full transition-transform hover:-translate-y-1 hover:scale-125" title={r.label}><Emoji emoji={r.emoji} size={28} /></span>
+          <span class="flex size-10 items-center justify-center rounded-full transition-transform hover:-translate-y-1 hover:scale-125" title={tc(r.label)}><Emoji emoji={r.emoji} size={28} /></span>
         {/each}
       </div>
     </div>

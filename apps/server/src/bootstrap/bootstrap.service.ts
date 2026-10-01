@@ -29,6 +29,7 @@ import { LEGACY_ICONS } from '../common/icons.js';
 import { HomeService } from '../home/home.service.js';
 import { ReactionsService } from '../forum/reactions.service.js';
 import { InstallService } from '../install/install.service.js';
+import { I18nService } from '../i18n/i18n.service.js';
 
 const SEEDED_KEY = 'seeded:v1';
 const APPLIED_PERMISSIONS_KEY = 'permissions:applied_defaults';
@@ -63,6 +64,7 @@ export class BootstrapService implements OnModuleInit {
     private readonly home: HomeService,
     private readonly reactions: ReactionsService,
     private readonly install: InstallService,
+    private readonly i18n: I18nService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -304,7 +306,9 @@ export class BootstrapService implements OnModuleInit {
   /** Örnek forum yapısı ve hoş geldin konusu (bir kez). */
   private async seedForum(): Promise<void> {
     if (await this.getState(SEEDED_FORUM_KEY)) return;
-    await this.forumSeed.seed();
+    // Otomatik kurulumda (ADMIN_PASSWORD) örnek içerik forumun varsayılan dilinde oluşturulur
+    const locale = this.i18n.defaultLocale();
+    await this.forumSeed.seed((text) => this.i18n.t(locale, text));
     await this.setState(SEEDED_FORUM_KEY, String(this.clock.now()));
   }
 

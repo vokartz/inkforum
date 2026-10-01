@@ -26,7 +26,7 @@
   import LoaderIcon from 'phosphor-svelte/lib/CircleNotch';
   import { fly } from 'svelte/transition';
   import { Button } from '$lib/components/ui/button';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
 
   interface Props {
     categories: Array<{ key: string; label: string; description?: string }>;
@@ -103,7 +103,7 @@
         <th class="sticky left-0 z-20 min-w-72 bg-card px-3 py-2 text-left font-medium">{t('Yetki')}</th>
         {#each groups as g (g.id)}
           <th class="min-w-24 px-2 py-2 text-center text-xs font-medium" style={g.color ? `color:${g.color}` : undefined}>
-            {g.name}
+            {tc(g.name)}
             {#if g.inheritsFrom}<span class="block font-normal text-muted-foreground">{t('(miras)')}</span>{/if}
           </th>
         {/each}
@@ -147,7 +147,7 @@
                         : 'bg-muted text-muted-foreground hover:bg-accent'} {value !== (values[g.id]?.[p.key] ?? 0) ? 'ring-2 ring-primary' : ''}"
                     title={blocked ? t('Bu yetki misafirlere verilemez') : undefined}
                     onclick={() => cycle(g.id, p.key, blocked)}
-                    aria-label="{g.name}: {t(p.label)}"
+                    aria-label="{tc(g.name)}: {t(p.label)}"
                   >
                     {#if value === 1}<CheckIcon class="size-4" />{:else if value === -1}<XIcon class="size-4" />{:else}<MinusIcon class="size-4" />{/if}
                   </button>

@@ -30,7 +30,7 @@
   import { formatDateTime, formatNumber, formatDate } from '$lib/format';
   import { profileUrl } from '$lib/viewer';
   import { cn } from '$lib/utils';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
 
   interface Props {
     post: PostItem;
@@ -241,7 +241,7 @@
               <div class="flex items-center justify-center gap-1 text-warning"><TriangleAlertIcon class="size-3.5" />{t('{n} uyarı puanı', { n: author.warningPoints })}</div>
             {/if}
           </dl>
-          <p class="text-xs text-muted-foreground md:hidden">{author.primaryGroup?.name ?? ''}{author.primaryGroup ? ' · ' : ''}{t('{n} mesaj', { n: formatNumber(author.postCount) })}</p>
+          <p class="text-xs text-muted-foreground md:hidden">{tc(author.primaryGroup?.name)}{author.primaryGroup ? ' · ' : ''}{t('{n} mesaj', { n: formatNumber(author.postCount) })}</p>
         {:else}
           <span class="font-medium text-muted-foreground">{post.authorName}</span>
           <p class="text-xs text-muted-foreground">{t('Misafir / silinmiş üye')}</p>

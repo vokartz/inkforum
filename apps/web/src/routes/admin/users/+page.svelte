@@ -21,7 +21,7 @@
   import { confirmAction } from '$lib/confirm.svelte';
   import { formatDate, formatNumber } from '$lib/format';
   import { can } from '$lib/viewer';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
 
   let { data } = $props();
 
@@ -105,7 +105,7 @@
       bind:value={group}
       onchange={() => go({ group: group || null })}
       class="w-48"
-      options={[{ value: '', label: t('Tüm gruplar') }, ...data.groups.filter((g) => g.systemKey !== 'guest').map((g) => ({ value: String(g.id), label: g.name }))]}
+      options={[{ value: '', label: t('Tüm gruplar') }, ...data.groups.filter((g) => g.systemKey !== 'guest').map((g) => ({ value: String(g.id), label: tc(g.name) }))]}
     />
     <NativeSelect
       bind:value={sort}

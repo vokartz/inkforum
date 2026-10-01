@@ -38,7 +38,7 @@
   import BrandIcon from '$lib/components/BrandIcon.svelte';
   import AppearanceReset from './AppearanceReset.svelte';
   import { api, ApiError, errorMessage } from '$lib/api';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
   import { cn } from '$lib/utils';
 
   let { data } = $props();
@@ -351,7 +351,7 @@
     </span>
     <div class="min-w-0 flex-1">
       <p class="flex items-center gap-2 text-sm font-medium">
-        {n.label}
+        {tc(n.label)}
         {#if n.kind === 'builtin'}<Badge variant="secondary" class="text-[10px]">{t('Sistem')}</Badge>{/if}
         {#if n.kind === 'dropdown'}<Badge variant="outline" class="text-[10px]">{t('Açılır menü')}</Badge>{/if}
         {#if n.visibility !== 'all'}<Badge variant="outline" class="text-[10px]">{n.visibility === 'members' ? t('Üyeler') : t('Misafirler')}</Badge>{/if}

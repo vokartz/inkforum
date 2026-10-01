@@ -37,7 +37,7 @@
 <PageHeader title={t('Şifre')} description={t('Şifrenizi değiştirdiğinizde diğer cihazlardaki oturumlarınız kapatılır.')} />
 
 <Card.Root class="max-w-lg">
-  <Card.Content class="pt-6">
+  <Card.Content>
     <form class="grid gap-4" onsubmit={submit}>
       <FormMessage message={form.message} />
       {#if done}<FormMessage variant="success" message={t('Şifreniz değiştirildi. Diğer oturumlarınız kapatıldı.')} />{/if}

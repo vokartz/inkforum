@@ -14,7 +14,7 @@
   import { toast } from 'svelte-sonner';
   import ImageField from './ImageField.svelte';
   import ButtonsField from './ButtonsField.svelte';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
 
   let { block = $bindable(), canCode, groups }: { block: BuilderBlock; canCode: boolean; groups: Array<{ id: number; name: string }> } = $props();
   let tab = $state<'content' | 'style'>('content');
@@ -323,7 +323,7 @@
           >{@render label(t('Grup'))}
           <select bind:value={block.groupId} class="h-9 rounded-md border bg-background px-2 text-sm">
             <option value={null}>{t('Seçin…')}</option>
-            {#each groups as g (g.id)}<option value={g.id}>{g.name}</option>{/each}
+            {#each groups as g (g.id)}<option value={g.id}>{tc(g.name)}</option>{/each}
           </select>
         </label>
         <label class="grid gap-1.5">{@render label(t('En fazla: {n} kişi', { n: block.limit }))}<input type="range" min={1} max={48} bind:value={block.limit} class="accent-[var(--primary)]" /></label>

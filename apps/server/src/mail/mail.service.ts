@@ -246,11 +246,15 @@ export class MailService implements OnModuleInit {
     return composeMail({ ...this.composeContext(), lang, footer: this.i18n.t(lang, 'Bu e-posta {forum} tarafından otomatik gönderildi.') }, subject, body, values);
   }
 
-  async adminTemplates(): Promise<AdminMailTemplate[]> {
+  /** Yönetim listesi: özelleştirilmemiş şablonlar yöneticinin dilinde gösterilir */
+  async adminTemplates(locale?: Locale | null): Promise<AdminMailTemplate[]> {
     const custom = await this.overrides();
+    const lang = this.i18n.resolve({ preference: locale });
     return MAIL_TEMPLATES.map((d) => {
       const c = custom.get(d.key);
-      return { ...d, subject: c?.subject ?? d.subject, body: c?.body ?? d.body, isCustom: !!c, defaultSubject: d.subject, defaultBody: d.body, updatedAt: c?.updated_at ?? null };
+      const defaultSubject = this.i18n.t(lang, d.subject);
+      const defaultBody = this.i18n.html(lang, d.body);
+      return { ...d, subject: c?.subject ?? defaultSubject, body: c?.body ?? defaultBody, isCustom: !!c, defaultSubject, defaultBody, updatedAt: c?.updated_at ?? null };
     });
   }
 

@@ -11,7 +11,7 @@
   import Field from '$lib/components/Field.svelte';
   import PermissionMatrix from '$lib/components/admin/PermissionMatrix.svelte';
   import { api, errorMessage } from '$lib/api';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
 
   let { data } = $props();
   const m = $derived(data.matrix);
@@ -45,7 +45,7 @@
 </script>
 
 {#if m}
-  <PageHeader icon={PageHeaderIcon} title={m.profile.name} description={m.profile.description || t('Bölüm yetki profili')}>
+  <PageHeader icon={PageHeaderIcon} title={tc(m.profile.name)} description={tc(m.profile.description) || t('Bölüm yetki profili')}>
     {#snippet actions()}
       <Button variant="ghost" href="/admin/forum/profiles"><ArrowLeftIcon />{t('Profiller')}</Button>
       <Button

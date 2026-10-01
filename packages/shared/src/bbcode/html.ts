@@ -270,8 +270,9 @@ function tagHtml(tag: BBTag, ctx: Ctx): string {
       if (validPost) ctx.quotedPosts.add(postId);
       let head = '';
       if (author || validPost) {
-        const who = author ? `<span class="bb-quote-author">${escapeHtml(author)}</span> yazdı:` : 'Alıntı:';
-        const link = validPost ? ` <a class="bb-quote-link" href="${escapeHtml(ctx.opts.postHref?.(postId) ?? `/p/${postId}`)}" aria-label="Alıntılanan mesaja git">↑</a>` : '';
+        // "yazdı:" / "Alıntı:" metni kayıtlı HTML'e yazılmaz; CSS ile ziyaretçinin dilinde gösterilir (app.css, +layout.svelte)
+        const who = author ? `<span class="bb-quote-author">${escapeHtml(author)}</span><span class="bb-quote-says"></span>` : '<span class="bb-quote-label"></span>';
+        const link = validPost ? ` <a class="bb-quote-link" href="${escapeHtml(ctx.opts.postHref?.(postId) ?? `/p/${postId}`)}">↑</a>` : '';
         head = `<div class="bb-quote-head">${who}${link}</div>`;
       }
       ctx.quoteDepth++;

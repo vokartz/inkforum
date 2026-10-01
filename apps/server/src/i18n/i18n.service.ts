@@ -4,11 +4,13 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   LANG_COOKIE,
   LOCALES,
+  FALLBACK_LOCALE,
   SOURCE_LOCALE,
   createMessageTranslator,
   isLocale,
   matchAcceptLanguage,
   translate,
+  withFallback,
   type Catalog,
   type Locale,
   type TParams,
@@ -43,13 +45,20 @@ export class I18nService {
     private readonly settings: SettingsService,
   ) {
     const dir = [join(config.root, 'i18n'), join(config.root, 'packages/shared/i18n')].find((d) => existsSync(d));
-    for (const l of LOCALES) {
-      if (l === SOURCE_LOCALE) continue;
+    const read = (l: Locale): Catalog | undefined => {
       try {
-        if (dir) this.catalogs.set(l, JSON.parse(readFileSync(join(dir, `${l}.json`), 'utf8')) as Catalog);
+        if (dir) return JSON.parse(readFileSync(join(dir, `${l}.json`), 'utf8')) as Catalog;
       } catch {
         this.logger.warn(`${l} dil dosyası okunamadı; Türkçe gösterilecek.`);
       }
+      return undefined;
+    };
+    // Çevrilmemiş metinler Türkçe yerine İngilizce görünür
+    const fallback = read(FALLBACK_LOCALE);
+    for (const l of LOCALES) {
+      if (l === SOURCE_LOCALE) continue;
+      const catalog = l === FALLBACK_LOCALE ? fallback : read(l);
+      if (catalog) this.catalogs.set(l, l === FALLBACK_LOCALE ? catalog : withFallback(catalog, fallback));
     }
   }
 

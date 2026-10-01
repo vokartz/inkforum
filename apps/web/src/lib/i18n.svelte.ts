@@ -1,4 +1,4 @@
-import { LOCALE_INFO, SOURCE_LOCALE, isLocale, translate, type Catalog, type Locale, type TParams } from '@forum/shared';
+import { FALLBACK_LOCALE, LOCALE_INFO, SOURCE_LOCALE, isLocale, translate, withFallback, type Catalog, type Locale, type TParams } from '@forum/shared';
 
 /**
  * Arayüz çevirisi. Kullanım: `t('Kaydet')`, `t('{n} konu', { n })`.
@@ -18,16 +18,26 @@ class I18nState {
 }
 export const i18n = new I18nState();
 
+async function fetchCatalog(locale: Locale): Promise<Catalog | undefined> {
+  const key = Object.keys(loaders).find((k) => k.endsWith(`/${locale}.json`));
+  if (!key) return undefined;
+  try {
+    return (await loaders[key]!()).default;
+  } catch {
+    return undefined; /* katalog yüklenemezse Türkçe gösterilir */
+  }
+}
+
 export async function loadCatalog(locale: Locale): Promise<void> {
   if (locale === SOURCE_LOCALE || catalogs.has(locale)) return;
-  const key = Object.keys(loaders).find((k) => k.endsWith(`/${locale}.json`));
-  if (!key) return;
-  try {
-    const mod = await loaders[key]!();
-    catalogs.set(locale, mod.default);
-  } catch {
-    /* katalog yüklenemezse Türkçe gösterilir */
+  if (locale === FALLBACK_LOCALE) {
+    const c = await fetchCatalog(locale);
+    if (c) catalogs.set(locale, c);
+    return;
   }
+  // Çevrilmemiş metinler Türkçe yerine İngilizce görünür
+  const [c, fallback] = await Promise.all([fetchCatalog(locale), fetchCatalog(FALLBACK_LOCALE)]);
+  if (c || fallback) catalogs.set(locale, withFallback(c, fallback));
 }
 
 export function setLocale(locale: string | null | undefined): void {

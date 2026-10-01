@@ -366,6 +366,13 @@
 .prose-forum .bb-quote-author {
   color: var(--foreground);
 }
+/* Dile göre metin: --bb-quote-says / --bb-quote-label kök düzende (+layout.svelte) ayarlanır */
+.prose-forum .bb-quote-says::before {
+  content: var(--bb-quote-says, 'yazdı:');
+}
+.prose-forum .bb-quote-label::before {
+  content: var(--bb-quote-label, 'Alıntı:');
+}
 .prose-forum .bb-quote-link {
   text-decoration: none;
   opacity: 0.7;

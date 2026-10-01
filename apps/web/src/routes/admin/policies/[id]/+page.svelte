@@ -14,7 +14,7 @@
   import { createForm } from '$lib/form.svelte';
   import { confirmAction } from '$lib/confirm.svelte';
   import { formatDateTime, formatNumber } from '$lib/format';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
 
   let { data } = $props();
   const p = $derived(data.policy);
@@ -80,7 +80,7 @@
 </script>
 
 {#if p}
-  <PageHeader icon={PageHeaderIcon} title={latest?.title ?? p.key} description="/policies/{p.key}">
+  <PageHeader icon={PageHeaderIcon} title={tc(latest?.title) || p.key} description="/policies/{p.key}">
     {#snippet actions()}
       <Button href="/admin/policies" variant="outline" size="sm">{t('Tüm politikalar')}</Button>
       <Button href="/policies/{p.key}" variant="ghost" size="sm" target="_blank">{t('Yayındaki sürümü gör')}</Button>

@@ -22,7 +22,7 @@
   import { api, errorMessage } from '$lib/api';
   import { formatDateTime } from '$lib/format';
   import { cn } from '$lib/utils';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
 
   let { data } = $props();
   const ticket = $derived(data.ticket);
@@ -69,7 +69,7 @@
       </span>
       <div class="min-w-0 flex-1">
         <h1 class="text-xl font-extrabold tracking-tight sm:text-2xl">{ticket.subject}</h1>
-        <p class="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">#{ticket.id} · {ticket.category.name} · <TicketStatusPill status={ticket.status} /><TicketPriority priority={ticket.priority} /></p>
+        <p class="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">#{ticket.id} · {tc(ticket.category.name)} · <TicketStatusPill status={ticket.status} /><TicketPriority priority={ticket.priority} /></p>
       </div>
     </header>
 
@@ -143,7 +143,7 @@
         </label>
         <label class="grid gap-1 text-xs font-semibold text-muted-foreground">{t('Kategori')}
           <select class={sel} value={ticket.category.id} onchange={(e) => update({ categoryId: Number((e.currentTarget as HTMLSelectElement).value) }, t('Kategori değişti.'))}>
-            {#each ticket.categories as c (c.id)}<option value={c.id}>{c.name}</option>{/each}
+            {#each ticket.categories as c (c.id)}<option value={c.id}>{tc(c.name)}</option>{/each}
           </select>
         </label>
       </section>

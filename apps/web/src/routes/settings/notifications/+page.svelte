@@ -6,7 +6,7 @@
   import PageHeader from '$lib/components/PageHeader.svelte';
   import { api } from '$lib/api';
   import { createForm } from '$lib/form.svelte';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
 
   let { data } = $props();
   type Pref = { type: string; label: string; enabled: boolean | null; email: boolean | null };
@@ -33,9 +33,9 @@
   </div>
   {#each prefs as p (p.type)}
     <div class="grid grid-cols-[1fr_5rem_5rem] items-center gap-2 border-b px-5 py-3 last:border-b-0">
-      <span class="text-sm">{p.label}</span>
-      <span class="flex justify-center">{#if p.enabled !== null}<Switch bind:checked={p.enabled as boolean} aria-label={t('{label} — site içi', { label: p.label })} />{:else}<span class="text-muted-foreground">—</span>{/if}</span>
-      <span class="flex justify-center">{#if p.email !== null}<Switch bind:checked={p.email as boolean} aria-label={t('{label} — e-posta', { label: p.label })} />{:else}<span class="text-muted-foreground">—</span>{/if}</span>
+      <span class="text-sm">{tc(p.label)}</span>
+      <span class="flex justify-center">{#if p.enabled !== null}<Switch bind:checked={p.enabled as boolean} aria-label={t('{label} — site içi', { label: tc(p.label) })} />{:else}<span class="text-muted-foreground">—</span>{/if}</span>
+      <span class="flex justify-center">{#if p.email !== null}<Switch bind:checked={p.email as boolean} aria-label={t('{label} — e-posta', { label: tc(p.label) })} />{:else}<span class="text-muted-foreground">—</span>{/if}</span>
     </div>
   {/each}
 </div>

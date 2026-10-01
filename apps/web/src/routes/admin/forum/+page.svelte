@@ -34,7 +34,7 @@
   import { api, errorMessage } from '$lib/api';
   import { confirmAction } from '$lib/confirm.svelte';
   import { formatNumber } from '$lib/format';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
 
   let { data } = $props();
   const tree = $derived(data.tree);
@@ -69,7 +69,7 @@
 
   const profileName = (id: number | null) => {
     const p = tree?.profiles.find((x) => (id ? x.id === id : x.key === 'default'));
-    return p?.name ?? t('Varsayılan');
+    return p ? tc(p.name) : t('Varsayılan');
   };
   const allBoards = $derived(tree ? tree.categories.flatMap((c) => c.boards.map((b) => ({ ...b, category: c.name }))) : []);
 

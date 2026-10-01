@@ -507,12 +507,12 @@
             <p><b>phpMyAdmin:</b> {t('forum veritabanını seç → Dışa Aktar → Özel → Biçim: SQL, Sıkıştırma: gzip → Git.')}</p>
             <p><b>{t('Komut satırı')}:</b></p>
             <pre class="overflow-x-auto rounded-lg bg-muted px-3 py-2 text-xs">mysqldump --default-character-set=utf8mb4 \
-  -u KULLANICI -p VERITABANI | gzip &gt; forum.sql.gz</pre>
+  -u {t('KULLANICI')} -p {t('VERITABANI')} | gzip &gt; forum.sql.gz</pre>
             <p class="text-muted-foreground">{t('SMF, phpBB ve MyBB’de kendi yedekleme aracının ürettiği SQL dosyası da kullanılabilir.')}</p>
           </Card.Content>
         </Card.Root>
         <Card.Root>
-          <Card.Content class="grid gap-3 pt-6 text-sm">
+          <Card.Content class="grid gap-3 text-sm">
             <p class="flex gap-2"><KeyIcon class="mt-0.5 size-4 shrink-0 text-primary" />{t('Üyeler eski şifreleriyle giriş yapar; ilk girişte şifreleri InkForum’un güvenli biçimine (argon2id) çevrilir.')}</p>
             <p class="flex gap-2"><LinkIcon class="mt-0.5 size-4 shrink-0 text-primary" />{t('Eski konu, bölüm ve profil bağlantıları (viewtopic.php, index.php?topic=…) yeni sayfalara yönlenir; arama motoru sıralaman korunur.')}</p>
             <p class="flex gap-2"><ShieldCheckIcon class="mt-0.5 size-4 shrink-0 text-primary" />{t('Grup renkleri, rütbe görselleri, bölüm erişimleri ve moderatörler de aktarılır.')}</p>

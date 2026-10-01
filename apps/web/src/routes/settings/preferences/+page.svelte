@@ -35,7 +35,7 @@
 <PageHeader title={t('Tercihler')} description={t('Görünüm ve saat dilimi.')} />
 
 <Card.Root class="max-w-2xl">
-  <Card.Content class="grid gap-5 pt-6">
+  <Card.Content class="grid gap-5">
     <Field label={t('Tema')} for="theme">
       <NativeSelect
         id="theme"

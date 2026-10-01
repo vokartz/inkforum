@@ -247,19 +247,19 @@
   }
 
   // Belgelerdeki örnek kodlar (kapanış etiketleri Svelte betiğini bitirmesin diye kaçışlı).
-  const SAMPLE_FORUM = [
-    '<div id="ucp-karakterler">Yükleniyor…</div>',
+  const SAMPLE_FORUM = $derived([
+    `<div id="ucp-characters">${t('Yükleniyor…')}</div>`,
     '<script>',
     '  window.forum.token().then(function (token) {',
-    "    return fetch('https://ucp.ornek.com/api/karakterler', {",
+    "    return fetch('https://ucp.example.com/api/characters', {",
     "      headers: { Authorization: 'Bearer ' + token }",
     '    });',
     '  }).then(function (r) { return r.json(); }).then(function (list) {',
-    "    document.getElementById('ucp-karakterler').textContent = list.length + ' karakter';",
+    `    document.getElementById('ucp-characters').textContent = list.length + ' ${t('karakter')}';`,
     '  });',
     '</' + 'script>',
-  ].join('\n');
-  const SAMPLE_NODE = [
+  ].join('\n'));
+  const SAMPLE_NODE = $derived([
     "import { createHmac, timingSafeEqual } from 'node:crypto';",
     '',
     'export function verifyForumToken(token, secret) {',
@@ -268,10 +268,10 @@
     "  const expected = createHmac('sha256', secret).update(h + '.' + p).digest('base64url');",
     '  if (s.length !== expected.length || !timingSafeEqual(Buffer.from(s), Buffer.from(expected))) return null;',
     "  const claims = JSON.parse(Buffer.from(p, 'base64url').toString('utf8'));",
-    '  return claims.exp * 1000 > Date.now() ? claims : null; // claims.sub = forum üye numarası',
+    `  return claims.exp * 1000 > Date.now() ? claims : null; // claims.sub = ${t('forum üye numarası')}`,
     '}',
-  ].join('\n');
-  const SAMPLE_PHP = [
+  ].join('\n'));
+  const SAMPLE_PHP = $derived([
     '<?php',
     'function forum_verify_token(string $token, string $secret): ?array {',
     "    $parts = explode('.', $token);",
@@ -280,9 +280,9 @@
     "    $b64 = fn($d) => rtrim(strtr(base64_encode($d), '+/', '-_'), '=');",
     "    if (!hash_equals($b64(hash_hmac('sha256', $h . '.' . $p, $secret, true)), $s)) return null;",
     "    $claims = json_decode(base64_decode(strtr($p, '-_', '+/')), true);",
-    "    return ($claims['exp'] ?? 0) > time() ? $claims : null; // $claims['sub'] = forum üye numarası",
+    `    return ($claims['exp'] ?? 0) > time() ? $claims : null; // $claims['sub'] = ${t('forum üye numarası')}`,
     '}',
-  ].join('\n');
+  ].join('\n'));
   const CLAIMS: Array<[string, string]> = [
     ['sub', 'Forum üye numarası (metin)'],
     ['username / name', 'Kullanıcı adı ve görünen ad'],

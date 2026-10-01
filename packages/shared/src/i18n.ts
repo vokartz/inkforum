@@ -125,6 +125,15 @@ export function format(message: string, params: TParams | undefined, locale: Loc
   return out;
 }
 
+/** Dil kataloğu, çevrilmemiş metinlerde yedek dile (İngilizce) düşer; Türkçe kaynak metin yalnızca ikisi de boşsa görünür */
+export const FALLBACK_LOCALE: Locale = 'en';
+export function withFallback(catalog: Catalog | null | undefined, fallback: Catalog | null | undefined): Catalog {
+  const out: Catalog = {};
+  for (const [k, v] of Object.entries(fallback ?? {})) if (v) out[k] = v;
+  for (const [k, v] of Object.entries(catalog ?? {})) if (v) out[k] = v;
+  return out;
+}
+
 /** Katalogdan çeviri (yoksa kaynak metin) + biçimlendirme */
 export function translate(catalog: Catalog | null | undefined, locale: Locale, source: string, params?: TParams): string {
   const msg = (locale !== SOURCE_LOCALE && catalog?.[source]) || source;

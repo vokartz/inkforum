@@ -189,7 +189,7 @@
             <div class="grid gap-4 2xl:grid-cols-2">
               <div class="grid content-start gap-4">
                 <Field label={t('Konu')}><Input bind:value={subject} maxlength={200} /></Field>
-                <Field label={t('İçerik (HTML)')} hint={t('<a class="button" href="{{url}}">…</a> düğme, <p class="muted"> soluk yazı olarak biçimlenir.')}>
+                <Field label={t('İçerik (HTML)')} hint={t('{button} düğme, {muted} soluk yazı olarak biçimlenir.', { button: '<a class="button" href="{{url}}">…</a>', muted: '<p class="muted">' })}>
                   <CodeEditor bind:value={body} minHeight={320} maxLength={50000} />
                 </Field>
                 <div class="rounded-lg border bg-muted/20 p-3">

@@ -49,9 +49,16 @@
     sql: { label: 'SQL dökümü', hint: 'Okunabilir, taşınabilir .sql.gz dosyası', icon: FileSqlIcon },
     full: { label: 'Tam yedek', hint: 'Veritabanı + yüklenen tüm dosyalar (.tar.gz)', icon: ArchiveIcon },
   };
-  const LABELS: Record<string, string> = { manual: 'Elle', daily: 'Günlük', uploaded: 'Yüklendi', 'pre-restore': 'Geri yükleme öncesi' };
-  const labelOf = (l: string) =>
-    LABELS[l] ? t(LABELS[l]) : l.startsWith('pre-update') ? t('Güncelleme öncesi ({version})', { version: l.replace('pre-update-', 'v').replace(/-/g, '.') }) : l;
+  function labelOf(l: string): string {
+    if (l === 'manual') return t('Elle alındı');
+    if (l === 'daily') return t('Günlük');
+    if (l === 'uploaded') return t('Yüklendi');
+    if (l === 'pre-restore') return t('Geri yükleme öncesi');
+    if (l.startsWith('pre-update')) return t('Güncelleme öncesi ({version})', { version: l.replace('pre-update-', 'v').replace(/-/g, '.') });
+    return l;
+  }
+  // Geri yükleme onayı için yazılacak sözcük (ziyaretçinin dilinde)
+  const confirmWord = $derived(t('GERİ YÜKLE'));
 
   const last = $derived(b?.items[0] ?? null);
   const total = $derived((b?.items ?? []).reduce((s, x) => s + x.size, 0));
@@ -130,7 +137,7 @@
     if (!restoreTarget) return;
     restoring = true;
     try {
-      await api.post(`/api/admin/backups/${encodeURIComponent(restoreTarget.name)}/restore`, { confirm: confirmText });
+      await api.post(`/api/admin/backups/${encodeURIComponent(restoreTarget.name)}/restore`, { confirm: 'GERİ YÜKLE' });
       restoreTarget = null;
       restarting = true;
       // Uygulama yeniden başlıyor: sağlık denetimi yanıt verene kadar bekle
@@ -437,12 +444,12 @@
         {#if restoreTarget.kind === 'full'}<li class="flex gap-2"><ArchiveIcon class="mt-0.5 size-4 shrink-0" />{t('Yüklenen dosyalar da yedektekilerle değiştirilir.')}</li>{/if}
       </ul>
       <label class="grid gap-1.5 text-sm">
-        <span>{t('Onaylamak için')} <b>GERİ YÜKLE</b> {t('yazın')}</span>
+        <span>{t('Onaylamak için')} <b>{confirmWord}</b> {t('yazın')}</span>
         <Input bind:value={confirmText} autocomplete="off" />
       </label>
       <Dialog.Footer>
         <Button variant="ghost" onclick={() => (restoreTarget = null)}>{t('Vazgeç')}</Button>
-        <Button variant="destructive" disabled={restoring || confirmText.trim() !== 'GERİ YÜKLE'} onclick={restore}>
+        <Button variant="destructive" disabled={restoring || confirmText.trim() !== confirmWord} onclick={restore}>
           {#if restoring}<LoaderIcon class="animate-spin" />{:else}<ArrowCounterClockwiseIcon />{/if}{t('Geri yükle')}
         </Button>
       </Dialog.Footer>

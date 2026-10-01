@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Put } from '@nestjs/common';
 import { z } from 'zod';
-import { PLUGIN_KEYS, PLUGINS, type AdminPlugin, type PluginKey } from '@forum/shared';
+import { PLUGIN_KEYS, PLUGINS, type AdminPlugin, type Locale, type PluginKey, type TParams } from '@forum/shared';
 import { ZodPipe } from '../common/validation.js';
 import { AdminEndpoint } from '../common/decorators.js';
 import { CurrentViewer, type RequestViewer } from '../common/request-context.js';
@@ -9,6 +9,7 @@ import { AuditService } from '../audit/audit.service.js';
 import { Db } from '../database/db.service.js';
 import { TicketsService } from '../tickets/tickets.service.js';
 import { AppearanceService } from '../appearance/appearance.service.js';
+import { I18nService } from '../i18n/i18n.service.js';
 
 // eslint-disable-next-line no-useless-assignment -- dekoratörde (@Param) kullanılıyor
 const keyParam = z.enum(PLUGIN_KEYS);
@@ -23,34 +24,39 @@ export class PluginsController {
     private readonly db: Db,
     private readonly tickets: TicketsService,
     private readonly appearance: AppearanceService,
+    private readonly i18n: I18nService,
   ) {}
 
-  private async stats(key: PluginKey): Promise<string[]> {
+  private async stats(key: PluginKey, locale: Locale): Promise<string[]> {
     const count = async (q: Promise<{ n: number | string | bigint } | undefined>) => Number((await q)?.n ?? 0);
+    const tr = (text: string, params?: TParams) => this.i18n.t(locale, text, params);
     switch (key) {
       case 'landing': {
         const slug = this.settings.get('home.landingPage');
-        return [slug ? `Ana sayfa: /pages/${slug}` : 'Açılış sayfası seçilmedi'];
+        return [slug ? tr('Ana sayfa: /pages/{slug}', { slug }) : tr('Açılış sayfası seçilmedi')];
       }
-      case 'wiki':
-        return [`${await count(this.db.q.selectFrom('wiki_pages').select((eb) => eb.fn.countAll<number>().as('n')).executeTakeFirst())} sayfa`];
+      case 'wiki': {
+        const n = await count(this.db.q.selectFrom('wiki_pages').select((eb) => eb.fn.countAll<number>().as('n')).executeTakeFirst());
+        return [tr('{n, plural, other {# sayfa}}', { n })];
+      }
       case 'applications': {
         const forms = await count(this.db.q.selectFrom('application_forms').select((eb) => eb.fn.countAll<number>().as('n')).executeTakeFirst());
         const pending = await count(this.db.q.selectFrom('applications').select((eb) => eb.fn.countAll<number>().as('n')).where('status', 'in', ['pending', 'reviewing']).executeTakeFirst());
-        return [`${forms} form`, `${pending} bekleyen başvuru`];
+        return [tr('{n, plural, other {# form}}', { n: forms }), tr('{n, plural, other {# bekleyen başvuru}}', { n: pending })];
       }
       case 'tickets': {
         const open = await count(this.db.q.selectFrom('tickets').select((eb) => eb.fn.countAll<number>().as('n')).where('status', '!=', 'closed').executeTakeFirst());
         const cats = await count(this.db.q.selectFrom('ticket_categories').select((eb) => eb.fn.countAll<number>().as('n')).executeTakeFirst());
-        return [`${cats} kategori`, `${open} açık talep`];
+        return [tr('{n, plural, other {# kategori}}', { n: cats }), tr('{n, plural, other {# açık talep}}', { n: open })];
       }
     }
   }
 
   @Get()
   @AdminEndpoint('admin.settings')
-  async list(): Promise<{ items: AdminPlugin[] }> {
-    return { items: await Promise.all(PLUGINS.map(async (p) => ({ ...p, enabled: this.settings.plugin(p.key), stats: await this.stats(p.key) }))) };
+  async list(@CurrentViewer() v: RequestViewer): Promise<{ items: AdminPlugin[] }> {
+    const locale = v.locale ?? this.i18n.defaultLocale();
+    return { items: await Promise.all(PLUGINS.map(async (p) => ({ ...p, enabled: this.settings.plugin(p.key), stats: await this.stats(p.key, locale) }))) };
   }
 
   @Put(':key')

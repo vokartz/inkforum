@@ -7,7 +7,7 @@
   import PageHeader from '$lib/components/PageHeader.svelte';
   import GroupBadge from '$lib/components/GroupBadge.svelte';
   import { formatNumber } from '$lib/format';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
 
   let { data } = $props();
 
@@ -28,7 +28,7 @@
           <GroupBadge group={{ id: g.id, name: g.name, color: g.color, iconUrl: g.iconUrl, iconCount: g.iconCount }} />
           {#if g.isMember}<span class="text-xs font-medium text-success">{t('Üyesiniz')}</span>{/if}
         </div>
-        {#if g.description}<Card.Description class="line-clamp-2">{g.description}</Card.Description>{/if}
+        {#if g.description}<Card.Description class="line-clamp-2">{tc(g.description)}</Card.Description>{/if}
       </Card.Header>
       <Card.Content class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
         <span class="inline-flex items-center gap-1"><UsersIcon class="size-3.5" />{t('{n} üye', { n: formatNumber(g.memberCount) })}</span>

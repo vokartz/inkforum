@@ -13,7 +13,7 @@
   import TimeAgo from '$lib/components/TimeAgo.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
   import { formatDate, formatNumber } from '$lib/format';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
 
   let { data } = $props();
 
@@ -50,7 +50,7 @@
     onchange={apply}
     class="w-48"
     aria-label={t('Grup')}
-    options={[{ value: '', label: t('Tüm gruplar') },...data.groups.map((g) => ({ value: String(g.id), label: g.name }))]}
+    options={[{ value: '', label: t('Tüm gruplar') },...data.groups.map((g) => ({ value: String(g.id), label: tc(g.name) }))]}
   />
   <NativeSelect
     bind:value={sort}

@@ -5,7 +5,7 @@
   import ThemeToggle from './ThemeToggle.svelte';
   import LanguagePicker from './LanguagePicker.svelte';
   import { cn } from '$lib/utils';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
 
   let { viewer }: { viewer: Viewer } = $props();
   const s = $derived(viewer.settings);
@@ -29,7 +29,7 @@
 
 {#snippet linkList(cls: string)}
   {#each links as l, i (l.url + i)}
-    <a href={l.url} target={l.newTab ? '_blank' : undefined} rel={l.newTab ? 'noopener noreferrer' : undefined} class={cls}>{l.label}</a>
+    <a href={l.url} target={l.newTab ? '_blank' : undefined} rel={l.newTab ? 'noopener noreferrer' : undefined} class={cls}>{tc(l.label)}</a>
   {/each}
 {/snippet}
 

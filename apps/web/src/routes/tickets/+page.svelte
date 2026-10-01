@@ -9,7 +9,7 @@
   import TicketStatus from '$lib/components/tickets/TicketStatus.svelte';
   import TicketPriority from '$lib/components/tickets/TicketPriority.svelte';
   import { cn } from '$lib/utils';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
 
   let { data } = $props();
   let tab = $state<'active' | 'closed'>('active');
@@ -52,7 +52,7 @@
             </span>
             <span class="min-w-0 flex-1">
               <span class="flex items-center gap-2"><b class="truncate">{ticket.subject}</b>{#if ticket.status === 'answered'}<span class="size-2 shrink-0 rounded-full bg-success" title={t('Yeni yanıt')}></span>{/if}</span>
-              <span class="block truncate text-xs text-muted-foreground">#{ticket.id} · {ticket.category.name} · {t('son etkinlik')} <TimeAgo ms={ticket.lastReplyAt} /></span>
+              <span class="block truncate text-xs text-muted-foreground">#{ticket.id} · {tc(ticket.category.name)} · {t('son etkinlik')} <TimeAgo ms={ticket.lastReplyAt} /></span>
             </span>
             <span class="hidden items-center gap-1 text-xs text-muted-foreground sm:inline-flex"><ChatsIcon class="size-3.5" />{ticket.messageCount}</span>
             <TicketPriority priority={ticket.priority} class="hidden md:inline-flex" />

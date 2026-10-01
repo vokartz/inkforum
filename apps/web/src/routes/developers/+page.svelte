@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { API_SCOPES, API_SCOPE_INFO, WEBHOOK_EVENTS, WEBHOOK_EVENT_INFO } from '@forum/shared';
+  import { API_SCOPES, API_SCOPE_INFO, WEBHOOK_EVENTS, WEBHOOK_EVENT_INFO, slugify } from '@forum/shared';
   import { page } from '$app/state';
   import { toast } from 'svelte-sonner';
   import CodeIcon from 'phosphor-svelte/lib/Code';
   import CopyIcon from 'phosphor-svelte/lib/Copy';
   import { cn } from '$lib/utils';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
 
   let { data } = $props();
   const base = $derived(page.url.origin);
@@ -22,27 +22,33 @@
     { id: 'hatalar', label: 'Hatalar ve sınırlar' },
   ];
 
+  // Kod örneklerindeki açıklamalar ve örnek değerler de çevrilir: anahtar, ${…} yerine {0}, {1}… içeren şablondur
+  function ts(strings: TemplateStringsArray, ...values: string[]): string {
+    const key = strings.reduce((acc, part, i) => acc + (i ? `{${i - 1}}` : '') + part, '');
+    return tc(key).replace(/\{(\d+)\}/g, (m, i: string) => values[Number(i)] ?? m);
+  }
+
   const S = '</' + 'script>';
   const samples = $derived({
-    authorizeUrl: `${base}/oauth/authorize
+    authorizeUrl: ts`${base}/oauth/authorize
   ?response_type=code
   &client_id=fc_XXXXXXXX
   &redirect_uri=https://ucp.ornek.com/auth/forum/callback
   &scope=profile%20email
   &state=RASTGELE_DEGER`,
-    tokenCurl: `curl -X POST ${base}/api/oauth/token \\
+    tokenCurl: ts`curl -X POST ${base}/api/oauth/token \\
   -u "fc_XXXXXXXX:fcs_GIZLI_ANAHTAR" \\
   -d grant_type=authorization_code \\
   -d code=GELEN_KOD \\
   -d redirect_uri=https://ucp.ornek.com/auth/forum/callback`,
-    tokenResponse: `{
+    tokenResponse: ts`{
   "access_token": "fat_…",
   "token_type": "Bearer",
   "expires_in": 3600,
   "refresh_token": "frt_…",
   "scope": "profile email"
 }`,
-    userinfo: `curl ${base}/api/oauth/userinfo -H "Authorization: Bearer fat_…"
+    userinfo: ts`curl ${base}/api/oauth/userinfo -H "Authorization: Bearer fat_…"
 
 {
   "sub": "42",
@@ -55,58 +61,58 @@
   "email": "ayse@ornek.com",        // yalnızca "email" izniyle
   "email_verified": true
 }`,
-    php: `<?php
-// 1) Giriş düğmesi: kullanıcıyı foruma yönlendir
+    php: ts`<?php
+// 1) ${t('Giriş düğmesi: kullanıcıyı foruma yönlendir')}
 session_start();
 $_SESSION['state'] = bin2hex(random_bytes(16));
 header('Location: ${base}/oauth/authorize?' . http_build_query([
   'response_type' => 'code',
   'client_id'     => 'fc_XXXXXXXX',
-  'redirect_uri'  => 'https://ucp.ornek.com/callback.php',
+  'redirect_uri'  => 'https://ucp.example.com/callback.php',
   'scope'         => 'profile email',
   'state'         => $_SESSION['state'],
 ]));
 
-// 2) callback.php: kodu belirtece çevir, üyeyi al
-if (!hash_equals($_SESSION['state'], $_GET['state'] ?? '')) exit('Geçersiz istek');
+// 2) callback.php: ${t('kodu belirtece çevir, üyeyi al')}
+if (!hash_equals($_SESSION['state'], $_GET['state'] ?? '')) exit('${t('Geçersiz istek')}');
 $ch = curl_init('${base}/api/oauth/token');
 curl_setopt_array($ch, [
   CURLOPT_POST => true,
   CURLOPT_RETURNTRANSFER => true,
-  CURLOPT_USERPWD => 'fc_XXXXXXXX:fcs_GIZLI_ANAHTAR',
+  CURLOPT_USERPWD => 'fc_XXXXXXXX:fcs_SECRET',
   CURLOPT_POSTFIELDS => http_build_query([
     'grant_type' => 'authorization_code',
     'code' => $_GET['code'],
-    'redirect_uri' => 'https://ucp.ornek.com/callback.php',
+    'redirect_uri' => 'https://ucp.example.com/callback.php',
   ]),
 ]);
 $token = json_decode(curl_exec($ch), true);
 $ch = curl_init('${base}/api/oauth/userinfo');
 curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $token['access_token']]]);
 $user = json_decode(curl_exec($ch), true);
-// $user['sub'] forumdaki üye numarası: kendi veritabanındaki hesapla eşleştir.`,
-    pkce: `// Tarayıcıda / mobilde: gizli anahtar yok, PKCE zorunlu
+// $user['sub']: ${t('forumdaki üye numarası; kendi veritabanındaki hesapla eşleştir.')}`,
+    pkce: ts`// ${t('Tarayıcıda / mobilde: gizli anahtar yok, PKCE zorunlu')}
 const verifier = base64url(crypto.getRandomValues(new Uint8Array(32)));
 const challenge = base64url(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier))));
-// yetkilendirme adresine ekle:  &code_challenge=\${challenge}&code_challenge_method=S256
-// token isteğinde:              client_id=fc_…&code_verifier=\${verifier}  (client_secret yok)`,
-    api: `# Konuları listele (read)
+// ${t('yetkilendirme adresine ekle:')}  &code_challenge=\${challenge}&code_challenge_method=S256
+// ${t('token isteğinde:')}  client_id=fc_…&code_verifier=\${verifier}  (${t('client_secret yok')})`,
+    api: ts`# ${t('Konuları listele')} (read)
 curl ${base}/api/boards/2 -H "Authorization: Bearer fat_…"
 
-# Üye adına konu aç (write)
+# ${t('Üye adına konu aç')} (write)
 curl -X POST ${base}/api/boards/2/topics \\
   -H "Authorization: Bearer fat_…" -H "Content-Type: application/json" \\
-  -d '{"title":"Sunucu bakımı","body":"[b]Bu gece[/b] 02:00-03:00 arası bakım var.","tags":["duyuru"]}'
+  -d '{"title":"${t('Sunucu bakımı')}","body":"${t('[b]Bu gece[/b] 02:00-03:00 arası bakım var.')}","tags":["${t('duyuru')}"]}'
 
-# Yanıt yaz
+# ${t('Yanıt yaz')}
 curl -X POST ${base}/api/topics/15/posts -H "Authorization: Bearer fat_…" \\
-  -H "Content-Type: application/json" -d '{"body":"Teşekkürler!"}'`,
-    apikey: `# Sunucudan sunucuya (UCP arka ucu, bot): API anahtarı
+  -H "Content-Type: application/json" -d '{"body":"${t('Teşekkürler!')}"}'`,
+    apikey: ts`# ${t('Sunucudan sunucuya (UCP arka ucu, bot): API anahtarı')}
 curl "${base}/api/members?q=ali" -H "Authorization: Bearer fk_…"
 
-# "admin" izinli anahtar: yönetim uç noktaları (ör. üye gruplarını eşitleme)
+# ${t('"admin" izinli anahtar: yönetim uç noktaları (ör. üye gruplarını eşitleme)')}
 curl ${base}/api/admin/users/42 -H "Authorization: Bearer fk_…"`,
-    webhook: `POST https://bot.ornek.com/forum-webhook
+    webhook: ts`POST https://bot.example.com/forum-webhook
 Content-Type: application/json
 X-Forum-Event: topic.created
 X-Forum-Delivery: 5b1d…
@@ -118,34 +124,34 @@ X-Forum-Signature: t=1790780000,v1=9f86d081884c7d65…
   "createdAt": 1790780000000,
   "forum": "${base}",
   "data": {
-    "topic": { "id": 15, "title": "Sunucu bakımı", "url": "${base}/t/15/sunucu-bakimi" },
-    "post": { "id": 88, "url": "${base}/p/88", "excerpt": "Bu gece 02:00-03:00 arası…" },
-    "board": { "id": 2, "name": "Duyurular" },
-    "author": { "id": 1, "username": "Yönetim", "displayName": "Yönetim" }
+    "topic": { "id": 15, "title": "${t('Sunucu bakımı')}", "url": "${base}/t/15/${slugify(t('Sunucu bakımı'))}" },
+    "post": { "id": 88, "url": "${base}/p/88", "excerpt": "${t('Bu gece 02:00-03:00 arası…')}" },
+    "board": { "id": 2, "name": "${t('Duyurular')}" },
+    "author": { "id": 1, "username": "Admin", "displayName": "Admin" }
   }
 }`,
-    verifyNode: `import { createHmac, timingSafeEqual } from 'node:crypto';
+    verifyNode: ts`import { createHmac, timingSafeEqual } from 'node:crypto';
 
 function verify(req, rawBody, secret) {
   const [t, v1] = String(req.headers['x-forum-signature']).split(',').map((p) => p.split('=')[1]);
-  if (Math.abs(Date.now() / 1000 - Number(t)) > 300) return false; // 5 dk'dan eski istekleri reddet
+  if (Math.abs(Date.now() / 1000 - Number(t)) > 300) return false; // ${t('5 dakikadan eski istekleri reddet')}
   const expected = createHmac('sha256', secret).update(\`\${t}.\${rawBody}\`).digest('hex');
   return v1.length === expected.length && timingSafeEqual(Buffer.from(v1), Buffer.from(expected));
 }`,
-    verifyPhp: `<?php
+    verifyPhp: ts`<?php
 $raw = file_get_contents('php://input');
 parse_str(str_replace(',', '&', $_SERVER['HTTP_X_FORUM_SIGNATURE'] ?? ''), $sig);
 $expected = hash_hmac('sha256', $sig['t'] . '.' . $raw, 'whsec_…');
 if (!hash_equals($expected, $sig['v1'] ?? '') || abs(time() - (int) $sig['t']) > 300) { http_response_code(401); exit; }
 $event = json_decode($raw, true);`,
-    error: `HTTP/1.1 403 Forbidden
+    error: ts`HTTP/1.1 403 Forbidden
 { "error": { "code": "FORBIDDEN", "message": "Bu erişim belirtecinin \\"write\\" izni yok." } }
 
 // OAuth token uç noktası RFC 6749 biçiminde döner:
 { "error": "invalid_grant", "error_description": "Kod geçersiz ya da süresi dolmuş." }`,
-    lightweight: `<!-- Forumun kendi sayfalarında (Yönetim → Özel kod) çalışan hafif yol -->
+    lightweight: ts`<!-- ${t('Forumun kendi sayfalarında (Yönetim → Özel kod) çalışan hafif yol')} -->
 <script>
-  window.forum.token().then((jwt) => fetch('https://ucp.ornek.com/api/me', { headers: { Authorization: 'Bearer ' + jwt } }));
+  window.forum.token().then((jwt) => fetch('https://ucp.example.com/api/me', { headers: { Authorization: 'Bearer ' + jwt } }));
 ${S}`,
   });
 

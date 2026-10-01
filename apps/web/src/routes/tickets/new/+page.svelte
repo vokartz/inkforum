@@ -16,7 +16,7 @@
   import NodeIcon from '$lib/components/NodeIcon.svelte';
   import { api, ApiError, errorMessage } from '$lib/api';
   import { cn } from '$lib/utils';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
 
   let { data } = $props();
   let categoryId = $state<number | null>(untrack(() => data.preselect ?? (data.categories.length === 1 ? data.categories[0]!.id : null)));
@@ -71,7 +71,7 @@
         <span class="flex size-10 shrink-0 items-center justify-center rounded-lg" style="background:color-mix(in oklch, {c.color ?? 'var(--primary)'} 15%, transparent);color:{c.color ?? 'var(--primary)'}">
           {#if c.iconNodes}<NodeIcon nodes={c.iconNodes} size={20} />{:else}<LifebuoyIcon class="size-5" />{/if}
         </span>
-        <span class="min-w-0 flex-1"><b class="block">{c.name}</b>{#if c.description}<span class="text-sm text-muted-foreground">{c.description}</span>{/if}</span>
+        <span class="min-w-0 flex-1"><b class="block">{tc(c.name)}</b>{#if c.description}<span class="text-sm text-muted-foreground">{tc(c.description)}</span>{/if}</span>
         {#if on}<CheckCircleIcon class="size-5 shrink-0 text-primary" weight="fill" />{/if}
       </button>
     {/each}

@@ -24,7 +24,7 @@
   import Editor from '$lib/components/editor/Editor.svelte';
   import { api } from '$lib/api';
   import { createForm } from '$lib/form.svelte';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
   import { cn } from '$lib/utils';
 
   let { data } = $props();
@@ -340,7 +340,7 @@
             <div class="flex gap-2">
               <Combobox
                 class="flex-1"
-                options={tree.profiles.map((p) => ({ value: p.id, label: p.name, description: p.description }))}
+                options={tree.profiles.map((p) => ({ value: p.id, label: tc(p.name), description: tc(p.description) }))}
                 bind:value={profileId}
                 placeholder={t('Varsayılan')}
                 clearable

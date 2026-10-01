@@ -54,7 +54,7 @@
   import { can } from '$lib/viewer';
   import { SETTING_SECTIONS } from '@forum/shared';
   import { cn } from '$lib/utils';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
 
   let { data, children } = $props();
   const v = $derived(data.viewer);
@@ -276,7 +276,7 @@
         <UserAvatar user={v.user} size={34} />
         <span class="grid min-w-0 flex-1 leading-tight">
           <span class="truncate text-sm font-semibold">{v.user.displayName}</span>
-          <span class="truncate text-[11px] text-sidebar-foreground/55">{v.user.primaryGroup?.name ?? t('Yönetici')}</span>
+          <span class="truncate text-[11px] text-sidebar-foreground/55">{v.user.primaryGroup ? tc(v.user.primaryGroup.name) : t('Yönetici')}</span>
         </span>
         <a href="/" class={cn(buttonVariants({ variant: 'ghost', size: 'icon-sm' }))} title={t('Foruma dön')} aria-label={t('Foruma dön')}><ArrowLeftIcon /></a>
       </div>

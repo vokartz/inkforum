@@ -30,7 +30,7 @@
   import CheckIcon from 'phosphor-svelte/lib/Check';
   import QuotesIcon from 'phosphor-svelte/lib/Quotes';
   import CountUp from './CountUp.svelte';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
 
   let { block: b, editing = false }: { block: ResolvedBlock; editing?: boolean } = $props();
 
@@ -377,7 +377,7 @@
           <a href={profileUrl(m)} class={cn('group grid w-32 justify-items-center gap-2 rounded-xl border px-3 py-4 text-center transition-transform duration-300 hover:-translate-y-1', onDark ? 'border-white/15 bg-white/5' : 'bg-card')} use:reveal={rv(i * 50)}>
             <UserAvatar user={m} size={64} />
             <UserName user={m} class="max-w-full truncate text-sm font-bold" />
-            {#if m.customTitle || m.primaryGroup}<span class={cn('max-w-full truncate text-xs', onDark ? 'text-white/65' : 'text-muted-foreground')}>{m.customTitle ?? m.primaryGroup?.name}</span>{/if}
+            {#if m.customTitle || m.primaryGroup}<span class={cn('max-w-full truncate text-xs', onDark ? 'text-white/65' : 'text-muted-foreground')}>{m.customTitle ?? tc(m.primaryGroup?.name)}</span>{/if}
           </a>
         {:else}
           {#if editing}<p class="text-sm text-muted-foreground">{t('Bir grup seçin.')}</p>{/if}

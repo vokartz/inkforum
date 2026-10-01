@@ -24,7 +24,7 @@
   import { createForm } from '$lib/form.svelte';
   import { confirmAction } from '$lib/confirm.svelte';
   import { formatDate, formatNumber } from '$lib/format';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
   import type { AchievementDto } from '$lib/types';
 
   let { data } = $props();
@@ -211,7 +211,7 @@
     {#each grouped as c (c.id)}
       <section>
         <div class="mb-3 flex items-center gap-2">
-          <h2 class="text-lg font-semibold">{c.name}</h2>
+          <h2 class="text-lg font-semibold">{tc(c.name)}</h2>
           {#if c.id}
             <Button size="xs" variant="ghost" onclick={() => editCat(c)}>{t('Düzenle')}</Button>
             <Button size="xs" variant="ghost" onclick={() => deleteCat(c.id)}>{t('Sil')}</Button>
@@ -220,14 +220,14 @@
         <div class="grid gap-3 md:grid-cols-2">
           {#each c.items as a (a.id)}
             <Card.Root class={a.isActive ? '' : 'opacity-60'}>
-              <Card.Content class="flex gap-3 pt-6">
+              <Card.Content class="flex gap-3">
                 <AchievementIcon iconUrl={a.iconUrl} tier={a.tier} size={52} />
                 <div class="grid min-w-0 flex-1 gap-1">
                   <div class="flex items-center gap-1.5">
-                    <span class="font-medium">{a.name}</span>
+                    <span class="font-medium">{tc(a.name)}</span>
                     {#if a.isHidden}<EyeOffIcon class="size-3.5 text-muted-foreground" />{/if}
                   </div>
-                  <p class="line-clamp-2 text-sm text-muted-foreground">{a.description}</p>
+                  <p class="line-clamp-2 text-sm text-muted-foreground">{tc(a.description)}</p>
                   <p class="text-xs text-muted-foreground">
                     {tierLabel(a.tier)} · {t('{n} puan', { n: a.points })} ·
                     {a.criteriaType ? t(d.criteriaTypes.find((x) => x.type === a.criteriaType)?.label ?? a.criteriaType) : t('Elle verilir')}

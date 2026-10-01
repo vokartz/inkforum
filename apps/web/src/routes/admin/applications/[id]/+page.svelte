@@ -26,7 +26,7 @@
   import { api, ApiError, errorMessage } from '$lib/api';
   import { confirmAction } from '$lib/confirm.svelte';
   import { cn } from '$lib/utils';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
 
   let { data } = $props();
 
@@ -123,7 +123,7 @@
 <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
   <div class="grid min-w-0 content-start gap-5">
     <Card.Root>
-      <Card.Content class="grid gap-4 pt-6">
+      <Card.Content class="grid gap-4">
         <div class="grid grid-cols-[auto_minmax(0,1fr)] gap-3">
           <Field label={t('İkon')}><IconPicker bind:name={form.icon} withColor={false} /></Field>
           <Field label={t('Başlık')} error={errors.title}><Input bind:value={form.title} oninput={() => !slugTouched && (form.slug = slugify(form.title))} maxlength={120} class="h-11 font-semibold" placeholder={t('ör. Yetkili başvurusu')} /></Field>
@@ -203,14 +203,14 @@
         <Field label={t('Şu gruplardan birinde olmalı')} hint={t('Boşsa herkes başvurabilir.')}>
           <div class="flex flex-wrap gap-1.5">
             {#each data.groups as g (g.id)}
-              <button type="button" onclick={() => (form.requirements.requiredGroupIds = toggleIn(form.requirements.requiredGroupIds, g.id))} class={cn('rounded-full border px-2.5 py-0.5 text-xs font-semibold', form.requirements.requiredGroupIds.includes(g.id) ? 'border-primary bg-primary-soft text-highlight' : 'hover:bg-accent')}>{g.name}</button>
+              <button type="button" onclick={() => (form.requirements.requiredGroupIds = toggleIn(form.requirements.requiredGroupIds, g.id))} class={cn('rounded-full border px-2.5 py-0.5 text-xs font-semibold', form.requirements.requiredGroupIds.includes(g.id) ? 'border-primary bg-primary-soft text-highlight' : 'hover:bg-accent')}>{tc(g.name)}</button>
             {/each}
           </div>
         </Field>
         <Field label={t('Bu gruplar başvuramaz')}>
           <div class="flex flex-wrap gap-1.5">
             {#each data.groups as g (g.id)}
-              <button type="button" onclick={() => (form.requirements.blockedGroupIds = toggleIn(form.requirements.blockedGroupIds, g.id))} class={cn('rounded-full border px-2.5 py-0.5 text-xs font-semibold', form.requirements.blockedGroupIds.includes(g.id) ? 'border-destructive bg-destructive/10 text-destructive' : 'hover:bg-accent')}>{g.name}</button>
+              <button type="button" onclick={() => (form.requirements.blockedGroupIds = toggleIn(form.requirements.blockedGroupIds, g.id))} class={cn('rounded-full border px-2.5 py-0.5 text-xs font-semibold', form.requirements.blockedGroupIds.includes(g.id) ? 'border-destructive bg-destructive/10 text-destructive' : 'hover:bg-accent')}>{tc(g.name)}</button>
             {/each}
           </div>
         </Field>
@@ -223,14 +223,14 @@
         <Field label={t('Onaylanınca eklenecek grup')} error={errors.targetGroupId}>
           <select bind:value={form.targetGroupId} class="h-9 rounded-md border bg-background px-2 text-sm">
             <option value={null}>{t('— Grup ekleme —')}</option>
-            {#each assignable as g (g.id)}<option value={g.id}>{g.name}</option>{/each}
+            {#each assignable as g (g.id)}<option value={g.id}>{tc(g.name)}</option>{/each}
           </select>
         </Field>
         {#if form.targetGroupId}<label class="flex items-center justify-between text-sm">{t('Ana grup yap')} <Switch bind:checked={form.setPrimary} /></label>{/if}
         <Field label={t('İnceleyici gruplar')} hint={t('Yöneticiler her zaman inceleyebilir; yeni başvurular bu gruplara bildirilir.')}>
           <div class="flex flex-wrap gap-1.5">
             {#each data.groups.filter((g) => g.systemKey !== 'guest' && g.systemKey !== 'member') as g (g.id)}
-              <button type="button" onclick={() => (form.reviewerGroupIds = toggleIn(form.reviewerGroupIds, g.id))} class={cn('rounded-full border px-2.5 py-0.5 text-xs font-semibold', form.reviewerGroupIds.includes(g.id) ? 'border-primary bg-primary-soft text-highlight' : 'hover:bg-accent')}>{g.name}</button>
+              <button type="button" onclick={() => (form.reviewerGroupIds = toggleIn(form.reviewerGroupIds, g.id))} class={cn('rounded-full border px-2.5 py-0.5 text-xs font-semibold', form.reviewerGroupIds.includes(g.id) ? 'border-primary bg-primary-soft text-highlight' : 'hover:bg-accent')}>{tc(g.name)}</button>
             {/each}
           </div>
         </Field>

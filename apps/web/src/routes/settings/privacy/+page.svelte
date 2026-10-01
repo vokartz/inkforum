@@ -23,7 +23,7 @@
 <PageHeader title={t('Gizlilik')} description={t('Profil bilgilerinizi kimlerin görebileceğini belirleyin.')} />
 
 <Card.Root class="max-w-2xl">
-  <Card.Content class="grid gap-6 pt-6">
+  <Card.Content class="grid gap-6">
     <div class="flex items-center justify-between gap-4">
       <div>
         <Label for="p-online">{t('Çevrimiçi durumumu göster')}</Label>

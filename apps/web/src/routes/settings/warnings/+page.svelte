@@ -16,7 +16,7 @@
 
 <div class="grid max-w-3xl gap-6">
   <Card.Root>
-    <Card.Content class="grid gap-3 pt-6">
+    <Card.Content class="grid gap-3">
       <WarningBar points={s.points} max={s.maxPoints} />
       {#if s.mutedUntil}<FormMessage message={t('Mesaj yazmanız kısıtlandı ({until}).', { until: until(s.mutedUntil) })} />{/if}
       {#if s.moderatedUntil && !s.mutedUntil}

@@ -18,7 +18,7 @@
   import { api, errorMessage } from '$lib/api';
   import { confirmAction } from '$lib/confirm.svelte';
   import { formatDate, fromLocalInput } from '$lib/format';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
 
   let { data } = $props();
   const g = $derived(data.group);
@@ -58,7 +58,7 @@
   }
 </script>
 
-<PageHeader title={t('{name} — Yönetim', { name: g.name })} description={t('Katılım isteklerini yanıtlayın ve üyeleri yönetin.')}>
+<PageHeader title={t('{name} — Yönetim', { name: tc(g.name) })} description={t('Katılım isteklerini yanıtlayın ve üyeleri yönetin.')}>
   {#snippet actions()}<Button href="/groups/{g.id}" variant="outline" size="sm">{t('Gruba dön')}</Button>{/snippet}
 </PageHeader>
 

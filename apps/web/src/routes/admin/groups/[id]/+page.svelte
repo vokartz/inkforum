@@ -24,7 +24,7 @@
   import { createForm } from '$lib/form.svelte';
   import { confirmAction } from '$lib/confirm.svelte';
   import { formatDate, fromLocalInput } from '$lib/format';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
 
   let { data } = $props();
   const g = $derived(data.group);
@@ -132,7 +132,7 @@
   }
 </script>
 
-<PageHeader icon={PageHeaderIcon} title={data.isNew ? t('Yeni grup') : (g?.name ?? t('Grup'))}>
+<PageHeader icon={PageHeaderIcon} title={data.isNew ? t('Yeni grup') : (g ? tc(g.name) : t('Grup'))}>
   {#snippet actions()}
     <Button href="/admin/groups" variant="outline" size="sm">{t('Tüm gruplar')}</Button>
     {#if g && !isSystem && !g.isProtected}<Button variant="destructive" size="sm" onclick={remove}><TrashIcon />{t('Sil')}</Button>{/if}
@@ -142,7 +142,7 @@
 {#if data.isNew || g}
   <div class="grid gap-6 lg:grid-cols-[1fr_320px]">
     <Card.Root>
-      <Card.Content class="pt-6">
+      <Card.Content>
         <form class="grid gap-4" onsubmit={save}>
           <FormMessage message={form.message} />
           <Field label={t('Grup adı')} for="g-name" error={form.error('name')} required><Input id="g-name" bind:value={name} maxlength={50} /></Field>

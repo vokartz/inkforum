@@ -22,10 +22,10 @@
   import { api, ApiError, errorMessage } from '$lib/api';
   import { confirmAction } from '$lib/confirm.svelte';
   import { cn } from '$lib/utils';
-  import { localeTag, t } from '$lib/i18n.svelte';
+  import { localeTag, t, tc } from '$lib/i18n.svelte';
 
   let { data } = $props();
-  const groupName = (id: number) => data.groups.find((g) => g.id === id)?.name ?? `#${id}`;
+  const groupName = (id: number) => tc(data.groups.find((g) => g.id === id)?.name) || `#${id}`;
   const staffGroups = $derived(data.groups.filter((g) => g.systemKey !== 'guest' && g.systemKey !== 'member'));
 
   const COLORS = ['#3b82f6', '#8b5cf6', '#ef4444', '#f59e0b', '#10b981', '#06b6d4', '#ec4899', '#64748b'];
@@ -88,8 +88,8 @@
       <article class={cn('flex gap-3 rounded-xl border bg-card p-4', !c.isActive && 'opacity-60')}>
         <span class="flex size-11 shrink-0 items-center justify-center rounded-xl text-lg" style="background:color-mix(in oklch, {c.color ?? 'var(--primary)'} 15%, transparent);color:{c.color ?? 'var(--primary)'}"><PageHeaderIcon class="size-5" weight="duotone" /></span>
         <div class="min-w-0 flex-1">
-          <p class="flex items-center gap-2 font-bold">{c.name}{#if !c.isActive}<EyeSlashIcon class="size-4 text-muted-foreground" />{/if}</p>
-          {#if c.description}<p class="text-sm text-muted-foreground">{c.description}</p>{/if}
+          <p class="flex items-center gap-2 font-bold">{tc(c.name)}{#if !c.isActive}<EyeSlashIcon class="size-4 text-muted-foreground" />{/if}</p>
+          {#if c.description}<p class="text-sm text-muted-foreground">{tc(c.description)}</p>{/if}
           <p class="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
             <UsersIcon class="size-3.5 text-muted-foreground" />
             {#each c.handlerGroupIds as g (g)}<span class="rounded-full bg-muted px-2 py-0.5 font-semibold">{groupName(g)}</span>{:else}<span class="text-warning">{t('Sorumlu grup yok (yöneticiler görür)')}</span>{/each}
@@ -122,7 +122,7 @@
       <Field label={t('Sorumlu yetkili grupları')} hint={t('Bu kategorideki talepleri bu gruplardaki üyeler görür, yanıtlar ve bildirim alır.')}>
         <div class="flex flex-wrap gap-1.5">
           {#each staffGroups as g (g.id)}
-            <button type="button" onclick={() => (form.handlerGroupIds = form.handlerGroupIds.includes(g.id) ? form.handlerGroupIds.filter((x) => x !== g.id) : [...form.handlerGroupIds, g.id])} class={cn('rounded-full border px-3 py-1 text-xs font-semibold', form.handlerGroupIds.includes(g.id) ? 'border-primary bg-primary-soft text-highlight' : 'hover:bg-accent')}>{g.name}</button>
+            <button type="button" onclick={() => (form.handlerGroupIds = form.handlerGroupIds.includes(g.id) ? form.handlerGroupIds.filter((x) => x !== g.id) : [...form.handlerGroupIds, g.id])} class={cn('rounded-full border px-3 py-1 text-xs font-semibold', form.handlerGroupIds.includes(g.id) ? 'border-primary bg-primary-soft text-highlight' : 'hover:bg-accent')}>{tc(g.name)}</button>
           {/each}
         </div>
       </Field>

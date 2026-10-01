@@ -333,8 +333,8 @@ export class AdminController {
 
   @Get('mail/templates')
   @AdminEndpoint('admin.settings')
-  async mailTemplates() {
-    return { items: await this.mail.adminTemplates() };
+  async mailTemplates(@CurrentViewer() v: RequestViewer) {
+    return { items: await this.mail.adminTemplates(v.locale) };
   }
 
   @Put('mail/templates/:key')

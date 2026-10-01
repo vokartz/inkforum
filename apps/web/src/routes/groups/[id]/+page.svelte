@@ -16,7 +16,7 @@
   import { confirmAction } from '$lib/confirm.svelte';
   import { can } from '$lib/viewer';
   import { formatDate, formatNumber } from '$lib/format';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
 
   let { data } = $props();
   const g = $derived(data.group);
@@ -47,7 +47,7 @@
       requestOpen = true;
       return;
     }
-    await run(() => api.post(`/api/groups/${g.id}/join`), t('{name} grubuna katıldınız.', { name: g.name }));
+    await run(() => api.post(`/api/groups/${g.id}/join`), t('{name} grubuna katıldınız.', { name: tc(g.name) }));
   }
 
   async function sendRequest() {
@@ -57,7 +57,7 @@
   }
 
   async function leave() {
-    if (!(await confirmAction({ title: t('{name} grubundan ayrılmak istiyor musunuz?', { name: g.name }), confirmLabel: t('Ayrıl'), destructive: true }))) return;
+    if (!(await confirmAction({ title: t('{name} grubundan ayrılmak istiyor musunuz?', { name: tc(g.name) }), confirmLabel: t('Ayrıl'), destructive: true }))) return;
     await run(() => api.post(`/api/groups/${g.id}/leave`), t('Gruptan ayrıldınız.'));
   }
 
@@ -66,7 +66,7 @@
   }
 </script>
 
-<PageHeader title={g.name} description={g.description || null}>
+<PageHeader title={tc(g.name)} description={tc(g.description) || null}>
   <div class="mt-3 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
     <GroupBadge group={{ id: g.id, name: g.name, color: g.color, iconUrl: g.iconUrl, iconCount: g.iconCount }} />
     <span>{t('{n} üye', { n: formatNumber(g.memberCount) })}</span>
@@ -128,7 +128,7 @@
 <Dialog.Root bind:open={requestOpen}>
   <Dialog.Content>
     <Dialog.Header>
-      <Dialog.Title>{t('{name} grubuna katılım isteği', { name: g.name })}</Dialog.Title>
+      <Dialog.Title>{t('{name} grubuna katılım isteği', { name: tc(g.name) })}</Dialog.Title>
       <Dialog.Description>{t('Grup liderleri isteğinizi inceleyecek. İsterseniz kısa bir not ekleyin.')}</Dialog.Description>
     </Dialog.Header>
     <Textarea bind:value={reason} rows={3} maxlength={500} placeholder={t('Neden katılmak istiyorsunuz? (isteğe bağlı)')} />

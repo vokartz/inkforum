@@ -16,7 +16,7 @@
   import Combobox from '$lib/components/Combobox.svelte';
   import { api, errorMessage } from '$lib/api';
   import { confirmAction } from '$lib/confirm.svelte';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
 
   let { data } = $props();
   const profiles = $derived(data.profiles ?? []);
@@ -72,10 +72,10 @@
       <span class="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary"><LayersIcon class="size-5" /></span>
       <a href="/admin/forum/profiles/{p.id}" class="min-w-0 flex-1">
         <span class="flex items-center gap-2 font-medium">
-          {p.name}
+          {tc(p.name)}
           {#if p.isSystem}<Badge variant="secondary" class="gap-1"><LockIcon class="size-3" />{t('Sistem')}</Badge>{/if}
         </span>
-        {#if p.description}<span class="block truncate text-sm text-muted-foreground">{p.description}</span>{/if}
+        {#if p.description}<span class="block truncate text-sm text-muted-foreground">{tc(p.description)}</span>{/if}
       </a>
       <span class="text-sm whitespace-nowrap text-muted-foreground">{t('{n} bölüm', { n: p.boardCount })}</span>
       {#if !p.isSystem}

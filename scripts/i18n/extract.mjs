@@ -131,11 +131,12 @@ function human(s) {
   const t = s.trim();
   if (t.length < 2 || t.length > 2000) return false;
   if (!/\p{L}/u.test(t)) return false;
+  if (/\{\w+, plural,/.test(t)) return true; // ICU çoğul kalıbı her zaman arayüz metnidir
   if (/^(https?:|\/|\.\/|\.\.\/|#|@|data:|mailto:|[a-z]+:\/\/)/.test(t)) return false;
   if (/^[\w.-]+\.(ts|js|svelte|json|png|svg|css|mjs|html)$/.test(t)) return false;
   if (/^[a-z0-9_.:-]+$/.test(t)) return false; // anahtar / tek kelimelik küçük harf tanımlayıcı
   if (/^[a-z0-9:_\-[\]/.()%#!&>*~@=,'"\s]+$/.test(t) && !TR.test(t) && !TR_WORDS.test(t)) return false; // Tailwind sınıfları vb.
-  if (/^(SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|PRAGMA|VACUUM|BEGIN|COMMIT)\b/.test(t)) return false;
+  if (/^(SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|PRAGMA|VACUUM|BEGIN|COMMIT|WHERE|ORDER BY|NOT \()\b/.test(t)) return false;
   if (/[<>]/.test(t) && /<\/?[a-z][^>]*>/i.test(t) && !TR.test(t)) return false;
   if (/^[A-Z][A-Z0-9_]+$/.test(t)) return false; // SABİT_ADI
   if (/^\$lib\/|\$[a-z_]+\[|=>|->|function\s*\(|;\s*\/\//i.test(t)) return false; // kod örnekleri, yollar
@@ -172,6 +173,8 @@ for (const src of SOURCES) {
     for (const m of code.matchAll(T_CALL)) add(unescape(m[1].slice(1, -1)), rel);
     // Betik bölümlerindeki metinler (sezgisel)
     const scripts = file.endsWith('.svelte') ? [...code.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1]) : [code];
+    // İşaretlemedeki sabit diziler: {#each [['active', 'Aktif'], …] as [key, label]} → t(label)
+    if (file.endsWith('.svelte')) for (const m of code.matchAll(/\{#each\s+(\[[\s\S]*?\])\s+(?:as const\s+)?as\b/g)) scripts.push(m[1]);
     for (const s of scripts) {
       for (const lit of scanJs(s)) {
         // Etiket gibi alanlardaki tek kelimelik metinler de (ör. label: 'Sistem') alınır

@@ -15,7 +15,7 @@
   import { api, errorMessage } from '$lib/api';
   import { createForm } from '$lib/form.svelte';
   import { formatDate, formatNumber } from '$lib/format';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
   import type { AdminPolicy } from './+page';
 
   let { data } = $props();
@@ -62,7 +62,7 @@
       <Card.Header>
         <div class="flex flex-wrap items-start justify-between gap-2">
           <div>
-            <Card.Title class="text-base">{current?.title ?? draft?.title ?? p.key}</Card.Title>
+            <Card.Title class="text-base">{tc(current?.title ?? draft?.title) || p.key}</Card.Title>
             <Card.Description>
               <span class="font-mono">/policies/{p.key}</span>
               {#if current} · {t('Yürürlükteki sürüm v{version} ({date})', { version: current.version, date: formatDate(current.publishedAt) })} · {t('{n} onay', { n: formatNumber(current.acceptances) })}{/if}

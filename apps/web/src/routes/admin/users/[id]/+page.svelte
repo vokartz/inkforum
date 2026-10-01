@@ -30,7 +30,7 @@
   import { confirmAction } from '$lib/confirm.svelte';
   import { formatDate, formatDateTime, fromLocalInput, toLocalInput } from '$lib/format';
   import { can, profileUrl } from '$lib/viewer';
-  import { t } from '$lib/i18n.svelte';
+  import { t, tc } from '$lib/i18n.svelte';
   import type { GroupDto, WarningItem } from '$lib/types';
 
   let { data } = $props();
@@ -370,10 +370,10 @@
     <!-- Gruplar -->
     <Tabs.Content value="groups" class="mt-4">
       <Card.Root class="max-w-3xl">
-        <Card.Content class="grid gap-5 pt-6">
+        <Card.Content class="grid gap-5">
           <div class="grid gap-3 sm:grid-cols-2">
             <Field label={t('Ana grup')} for="g-primary">
-              <NativeSelect id="g-primary" bind:value={primaryId} options={[{ value: '', label: t('(Yok — rütbe gösterilir)') }, ...assignable.map((g) => ({ value: String(g.id), label: g.name }))]} />
+              <NativeSelect id="g-primary" bind:value={primaryId} options={[{ value: '', label: t('(Yok — rütbe gösterilir)') }, ...assignable.map((g) => ({ value: String(g.id), label: tc(g.name) }))]} />
             </Field>
             <Field label={t('Ana grup bitişi')} for="g-pexp" hint={t('Boş = süresiz')}>
               <Input id="g-pexp" type="datetime-local" bind:value={primaryExpires} disabled={!primaryId} />
@@ -393,7 +393,7 @@
               <NativeSelect
                 bind:value={addGroupId}
                 class="w-64"
-                options={[{ value: '', label: t('Grup seçin…') }, ...assignable.filter((g) => String(g.id) !== primaryId && !additional.some((a) => a.groupId === g.id)).map((g) => ({ value: String(g.id), label: g.name }))]}
+                options={[{ value: '', label: t('Grup seçin…') }, ...assignable.filter((g) => String(g.id) !== primaryId && !additional.some((a) => a.groupId === g.id)).map((g) => ({ value: String(g.id), label: tc(g.name) }))]}
               />
               <Button
                 variant="outline"
@@ -450,7 +450,7 @@
     <Tabs.Content value="achievements" class="mt-4 grid max-w-3xl gap-4">
       {#if can(v, 'admin.achievements.manage')}
         <Card.Root>
-          <Card.Content class="flex flex-wrap items-end gap-2 pt-6">
+          <Card.Content class="flex flex-wrap items-end gap-2">
             <Field label={t('Başarı ver')} for="aw-id" class="min-w-56 flex-1">
               <NativeSelect
                 id="aw-id"
@@ -467,7 +467,7 @@
         <div class="flex items-center gap-3 rounded-lg border p-3">
           <AchievementIcon iconUrl={a.iconUrl} tier={a.tier} size={40} />
           <div class="grid flex-1 text-sm">
-            <span class="font-medium">{a.name}</span>
+            <span class="font-medium">{tc(a.name)}</span>
             <span class="text-xs text-muted-foreground">{a.source === 'manual' ? t('Elle verildi') : t('Otomatik')} · {formatDate(a.awardedAt)}{#if a.reason} · {a.reason}{/if}</span>
           </div>
           {#if can(v, 'admin.achievements.manage')}
