@@ -34,6 +34,7 @@ import { ForumSeedService } from '../forum/forum-seed.service.js';
 import { AppearanceService } from '../appearance/appearance.service.js';
 import { TicketsService } from '../tickets/tickets.service.js';
 import { I18nService } from '../i18n/i18n.service.js';
+import { storageWarning } from '../storage/persistence.js';
 
 const INSTALLED_KEY = 'installed:at';
 const SEEDED_FORUM_KEY = 'seeded:forum:v1';
@@ -203,6 +204,19 @@ export class InstallService {
       out.push({ key: 'storage', label: 'Dosya depolama', status, detail: `Yazılabilir${free}` });
     } catch {
       out.push({ key: 'storage', label: 'Dosya depolama', status: 'fail', detail: `${this.config.storageDir} klasörüne yazılamıyor (izinleri kontrol edin)` });
+    }
+
+    const ephemeral = storageWarning(this.config);
+    if (ephemeral) {
+      // Coolify yeniden dağıtımda kapsayıcıyı yeni (boş) bir birimle oluşturur: kurulum her seferinde silinir
+      out.push({
+        key: 'persistence',
+        label: 'Kalıcı depolama',
+        status: ephemeral.coolify && ephemeral.database ? 'fail' : 'warn',
+        detail: ephemeral.coolify
+          ? 'Kalıcı disk bağlı değil: her yeniden dağıtımda forum silinir ve kurulum sayfası yeniden açılır. Coolify → Persistent Storage → Add → Volume Mount, hedef yol /app/storage; kaydedip Redeploy yapın.'
+          : 'Kalıcı disk bağlı değil: kapsayıcı yeniden oluşturulursa veriler kaybolur. /app/storage için adlandırılmış bir birim bağlayın (ör. -v inkforum-storage:/app/storage).',
+      });
     }
 
     const sharp = await this.storage.loadSharp();

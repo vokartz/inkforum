@@ -35,6 +35,7 @@ import { BackupService } from '../maintenance/backup.service.js';
 import { requestRestart } from '../common/restart.js';
 import { CryptoService } from '../security/crypto.service.js';
 import { I18nService } from '../i18n/i18n.service.js';
+import { storageWarning } from '../storage/persistence.js';
 
 const CACHE_KEY = 'updates:cache';
 const NOTIFIED_KEY = 'updates:notified';
@@ -145,6 +146,10 @@ export class UpdatesService implements OnApplicationBootstrap {
   installBlocker(): string | null {
     if (this.config.updates.disabled) return 'Güncelleme denetimi kapalı (UPDATES_DISABLED).';
     if (this.config.deploy === 'source') return 'Kaynak koddan çalışan kurulumlar git ile güncellenir (git pull, pnpm install, pnpm build).';
+    // Kalıcı disk yokken Coolify'ın yeniden dağıtımı kapsayıcıyı boş bir birimle açar: forum silinmiş olur
+    if (this.config.deploy === 'docker' && this.coolify().configured && storageWarning(this.config)) {
+      return 'Depolama klasörüne kalıcı disk bağlı değil; Coolify ile güncellemek tüm verileri siler. Önce Coolify → Persistent Storage bölümünden /app/storage için bir birim ekleyin.';
+    }
     if (this.config.deploy === 'docker' && !this.coolify().configured && (!this.config.updates.updaterUrl || !this.config.updates.updaterToken)) {
       return 'Güncelleyici kapsayıcı ayarlı değil (UPDATER_URL / UPDATER_TOKEN). Resmi docker-compose.yml dosyasını kullanın.';
     }
@@ -168,7 +173,7 @@ export class UpdatesService implements OnApplicationBootstrap {
       kind: latest ? updateKind(this.config.version, latest.version) : null,
       releases: c.releases.filter((r) => s.channel === 'beta' || !r.prerelease || r.version === this.config.version).map((r) => this.withHtml(r, locale)),
       canInstall: !blocker,
-      installBlocker: blocker,
+      installBlocker: blocker ? this.i18n.message(this.i18n.resolve({ preference: locale }), blocker) : null,
       job: await this.job(),
       settings: s,
       updater:

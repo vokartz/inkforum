@@ -72,6 +72,10 @@ Add `docker-compose.yml` (or the `ghcr.io/vokartz/inkforum` image) to your platf
 the site address is taken from the platform (Coolify) or detected in the setup wizard, and the secret keys are generated
 and stored in the `storage` volume. If the platform provides its own reverse proxy, keep `TRUST_PROXY=uniquelocal` and don't enable the `https` (Caddy) profile.
 
+**Image only (no compose file)? Add persistent storage first.** In the resource's **Persistent Storage** tab add a
+*Volume Mount* with the destination path `/app/storage`. Without it every redeploy starts with an empty disk: the forum
+is wiped and the setup page opens again. The admin dashboard and the setup wizard warn when this mount is missing.
+
 **One-click updates on Coolify:** with `docker-compose.yml` the bundled `updater` service installs updates. If you added
 only the image, use the image tag `latest` and enter the resource's **Deploy Webhook** URL and an API token with the
 `deploy` permission under **Admin → Updates → Update with Coolify**.

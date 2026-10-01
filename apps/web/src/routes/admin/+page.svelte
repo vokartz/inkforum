@@ -22,6 +22,7 @@
   import { Button } from '$lib/components/ui/button';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import KpiCard from '$lib/components/admin/KpiCard.svelte';
+  import StorageWarningCard from '$lib/components/admin/StorageWarningCard.svelte';
   import ActivityChart from '$lib/components/admin/ActivityChart.svelte';
   import UserAvatar from '$lib/components/UserAvatar.svelte';
   import UserName from '$lib/components/UserName.svelte';
@@ -80,6 +81,7 @@
 
 {#if d}
   <div class="grid gap-6">
+    {#if d.system.storage}<StorageWarningCard warning={d.system.storage} />{/if}
     <!-- Ana göstergeler -->
     <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <KpiCard index={0} label={t('Mesajlar')} value={d.forum.posts} icon={ChatsIcon} series={d.posts.map((p) => p.count)} href="/admin/forum" />

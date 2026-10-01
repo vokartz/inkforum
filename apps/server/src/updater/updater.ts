@@ -125,6 +125,7 @@ interface ContainerInspect {
     [k: string]: unknown;
   };
   HostConfig: Record<string, unknown>;
+  Mounts?: Array<{ Type: string; Name?: string; Destination: string }>;
   NetworkSettings: { Networks: Record<string, { Aliases: string[] | null; IPAMConfig: unknown; Links: string[] | null }> };
   State: { Health?: { Status: string }; Running: boolean };
 }
@@ -173,6 +174,24 @@ function carryConfig(c: ContainerInspect, oldImage: ImageInspect, newImageRef: s
   return cfg;
 }
 
+/**
+ * İmajdaki VOLUME için platform kalıcı birim bağlamadıysa Docker isimsiz bir birim açar; HostConfig'te yer almadığından
+ * yeni kapsayıcı boş bir birimle başlardı. Bu birimler yeni kapsayıcıya aynen bağlanır, veriler korunur.
+ */
+function keepAnonymousVolumes(c: ContainerInspect): Record<string, unknown> {
+  const host = { ...c.HostConfig };
+  const binds = (host.Binds as string[] | null | undefined) ?? [];
+  const mounts = ((host.Mounts as Array<{ Target: string }> | null | undefined) ?? []).slice();
+  const covered = new Set([...binds.map((b) => b.split(':')[1]), ...mounts.map((m) => m.Target)]);
+  for (const m of c.Mounts ?? []) {
+    if (m.Type !== 'volume' || !m.Name || covered.has(m.Destination)) continue;
+    mounts.push({ Type: 'volume', Source: m.Name, Target: m.Destination } as { Target: string });
+    log(`İsimsiz birim korunuyor: ${m.Destination}`, 'warn');
+  }
+  if (mounts.length) host.Mounts = mounts;
+  return host;
+}
+
 async function waitHealthy(id: string): Promise<void> {
   const until = Date.now() + HEALTH_TIMEOUT_MS;
   let lastStatus = '';
@@ -201,7 +220,7 @@ async function recreate(summary: ContainerSummary, newRef: string, waitForHealth
   const [first, ...rest] = networks;
   const body = {
     ...carryConfig(c, oldImage, newRef),
-    HostConfig: c.HostConfig,
+    HostConfig: keepAnonymousVolumes(c),
     NetworkingConfig: first ? { EndpointsConfig: { [first[0]]: { Aliases: first[1].Aliases, IPAMConfig: first[1].IPAMConfig, Links: first[1].Links } } } : undefined,
   };
   const backupName = `${name}-old-${Date.now()}`;

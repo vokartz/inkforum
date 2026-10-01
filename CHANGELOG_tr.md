@@ -21,6 +21,11 @@ güncelleme notuna dönüşür (panel yöneticinin diline uygun olanı gösterir
 
 ### Düzeltilenler
 
+- **Coolify'da her yeniden dağıtımda forumun silinmesi:** `/app/storage` klasörüne kalıcı disk bağlı değilken (Coolify'da
+  yalnızca imaj) her yeniden dağıtım boş bir diskle başlıyor ve kurulum sayfası yeniden açılıyordu. Kurulum sihirbazı,
+  yönetim paneli ve Yönetim → Sistem artık bunu algılıyor; Persistent Storage eklemeyi ve mevcut verileri korumayı
+  adım adım gösteriyor. Disk kalıcı olana dek Coolify ile güncelleme engellenir; Docker güncelleyicisi kapsayıcıyı
+  yeniden oluştururken bu birimleri korur.
 - Güncelleyici kapsayıcısı yokken güncelleme yalnızca "fetch failed" hatasıyla duruyordu; Güncellemeler sayfası artık
   nedenini (bulunamadı / çalışmıyor / yanıt yok) ve çözümünü gösteriyor.
 - Yönetim → E-posta sayfası e-postaların gönderilmediği durumu (Günlük modu, SMTP ayarlı değil) açıkça bildiriyor;

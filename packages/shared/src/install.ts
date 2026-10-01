@@ -70,6 +70,19 @@ export interface InstallEnvironment {
 
 export type DeployMode = 'docker' | 'release' | 'source';
 
+/**
+ * Docker'da depolama klasörüne kalıcı disk bağlı değilse doludur: yeniden dağıtımda (ör. Coolify'da tek imaj)
+ * veritabanı ve yüklemeler kaybolur. `volume` verilerin şu an durduğu isimsiz Docker biriminin adıdır.
+ */
+export interface StorageWarning {
+  reason: 'anonymous-volume' | 'container-fs';
+  volume: string | null;
+  path: string;
+  /** SQLite veritabanı da bu klasörde mi (değilse yalnızca yüklemeler ve yedekler etkilenir) */
+  database: boolean;
+  coolify: boolean;
+}
+
 export const DEPLOY_MODE_INFO: Record<DeployMode, { label: string; description: string }> = {
   docker: { label: 'Docker', description: 'Güncellemeler yardımcı güncelleyici kapsayıcı ile tek tıkla kurulur.' },
   release: { label: 'Sunucu paketi', description: 'Sürüm paketi indirilir, doğrulanır ve yerine kurulur; ardından uygulama yeniden başlatılır.' },

@@ -72,6 +72,10 @@ docker compose up -d
 değişkeni zorunlu değildir: site adresi platformdan (Coolify) alınır ya da kurulum sihirbazında algılanır, gizli anahtarlar
 üretilip `storage` biriminde saklanır. Platform kendi ters vekilini kullanıyorsa `TRUST_PROXY=uniquelocal` bırakın ve `caddy` profilini açmayın.
 
+**Yalnızca imajı mı eklediniz? Önce kalıcı depolama ekleyin.** Kaynağın **Persistent Storage** sekmesinde hedef yolu
+`/app/storage` olan bir *Volume Mount* ekleyin. Eklemezseniz her yeniden dağıtım boş bir diskle başlar: forum silinir ve
+kurulum sayfası yeniden açılır. Bu bağlantı eksikse yönetim paneli ve kurulum sihirbazı uyarır.
+
 **Coolify'da tek tıkla güncelleme:** `docker-compose.yml` ile kurulumda güncellemeleri birlikte gelen `updater` servisi kurar.
 Yalnızca imajı eklediyseniz imaj etiketini `latest` yapın ve kaynağın **Deploy Webhook** adresini ve `deploy` yetkili bir API
 anahtarını **Yönetim → Güncellemeler → Coolify ile güncelleme** bölümüne girin.

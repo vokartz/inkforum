@@ -20,6 +20,11 @@ Each version section becomes the GitHub release note and the update note in the 
 
 ### Fixed
 
+- **Forum wiped on every Coolify redeploy:** when no persistent disk is mounted at `/app/storage` (Coolify with only the
+  image), each redeploy started on an empty disk and opened the setup page again. The setup wizard, the admin
+  dashboard and Admin → System now detect this and show how to add Persistent Storage and keep the current data;
+  Coolify updates are blocked until the disk is persistent, and the Docker updater keeps such volumes when it
+  recreates the container.
 - Updates failed with only "fetch failed" when the updater container was missing; the Updates page now explains the
   reason (not found / not running / no answer) and how to fix it.
 - The Admin → E-mail page now warns clearly when e-mails are not being sent (Log mode, no SMTP configured), and the

@@ -9,6 +9,7 @@ import { Db } from '../database/db.service.js';
 import { Clock } from '../common/clock.js';
 import { MailService } from '../mail/mail.service.js';
 import { StorageService } from '../storage/storage.service.js';
+import { storageWarning } from '../storage/persistence.js';
 import { JobsService } from '../jobs/jobs.service.js';
 import { WafService } from '../security/waf.service.js';
 import { SettingsService } from '../settings/settings.service.js';
@@ -57,6 +58,7 @@ export class SystemInfoService {
       uptimeSec: Math.round(process.uptime()),
       appUrl: this.config.appUrl,
       env: this.config.env,
+      storage: storageWarning(this.config),
     };
   }
 
@@ -136,6 +138,17 @@ export class SystemInfoService {
     checks.push({ key: 'mail', label: 'E-posta', status: this.mail.driver() === 'log' ? 'warn' : 'ok', detail: this.mail.driver() === 'log' ? 'E-postalar gönderilmiyor, storage/mail klasörüne yazılıyor.' : `Sürücü: ${this.mail.driver()}` });
     checks.push({ key: 'images', label: 'Görsel işleme', status: sharp ? 'ok' : 'warn', detail: sharp ? 'sharp etkin (küçültme + WebP).' : 'sharp yok: görseller olduğu gibi saklanıyor.' });
     checks.push({ key: 'jobs', label: 'Arka plan işleri', status: !this.config.workerEnabled ? 'warn' : (jobStats.counts.failed ?? 0) > 0 ? 'warn' : 'ok', detail: !this.config.workerEnabled ? 'İş çalıştırıcı kapalı (WORKER_ENABLED=false).' : `${jobStats.counts.pending ?? 0} bekleyen, ${jobStats.counts.failed ?? 0} başarısız iş.` });
+    const ephemeral = storageWarning(this.config);
+    if (ephemeral) {
+      checks.push({
+        key: 'persistence',
+        label: 'Kalıcı depolama',
+        status: 'fail',
+        detail: ephemeral.coolify
+          ? 'Depolama klasörüne kalıcı disk bağlı değil: Coolify her yeniden dağıtımda veriler silinmiş gibi sıfırdan başlar. Coolify → Persistent Storage bölümünden /app/storage için bir birim ekleyin.'
+          : 'Depolama klasörüne kalıcı disk bağlı değil: kapsayıcı yeniden oluşturulursa veriler kaybolur. /app/storage için adlandırılmış bir birim (volume) bağlayın.',
+      });
+    }
     if (disk) checks.push({ key: 'disk', label: 'Disk alanı', status: disk.free < 1024 ** 3 ? (disk.free < 200 * 1024 ** 2 ? 'fail' : 'warn') : 'ok', detail: `${(disk.free / 1024 ** 3).toFixed(1)} GB boş` });
     checks.push({ key: 'maintenance', label: 'Bakım modu', status: this.settings.get('general.maintenanceMode') ? 'warn' : 'ok', detail: this.settings.get('general.maintenanceMode') ? 'Site ziyaretçilere kapalı.' : 'Site açık.' });
     checks.push({ key: 'waf', label: 'Güvenlik duvarı', status: 'ok', detail: this.waf.active() ? 'Etkin.' : 'Kapalı (Yönetim → Güvenlik duvarı).' });

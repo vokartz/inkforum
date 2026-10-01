@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { adminAgent, createHarness, type Agent, type Harness } from '../testing/harness.js';
+import { overrideMountinfo } from '../storage/persistence.js';
 
 /** Docker'da güncelleyici kapsayıcısı yokken anlaşılır hata ve Coolify Deploy Webhook ile güncelleme */
 describe('updates on Coolify', () => {
@@ -13,8 +14,12 @@ describe('updates on Coolify', () => {
   let base: string;
   const deploys: Array<{ url: string; auth: string | undefined }> = [];
   const dir = mkdtempSync(join(tmpdir(), 'inkforum-coolify-'));
+  const ROOT = '1 0 0:1 / / rw - overlay overlay rw';
+  const named = `${ROOT}\n2 1 8:1 /var/lib/docker/volumes/abc-inkforum-storage/_data ${dir} rw - ext4 /dev/sda1 rw`;
+  const anonymous = `${ROOT}\n2 1 8:1 /var/lib/docker/volumes/${'a'.repeat(64)}/_data ${dir} rw - ext4 /dev/sda1 rw`;
 
   beforeAll(async () => {
+    overrideMountinfo(named);
     server = createServer((req, res) => {
       if (req.url?.startsWith('/repos/vokartz/inkforum/releases')) {
         res.writeHead(200, { 'content-type': 'application/json' });
@@ -50,6 +55,7 @@ describe('updates on Coolify', () => {
   });
 
   afterAll(async () => {
+    overrideMountinfo(null);
     await h.close();
     server.close();
     rmSync(dir, { recursive: true, force: true });
@@ -75,6 +81,24 @@ describe('updates on Coolify', () => {
     const res = await admin.get('/api/admin/updates');
     expect(res.body.coolify).toMatchObject({ configured: true, hasToken: true });
     expect(JSON.stringify(res.body)).not.toContain('coolify-secret');
+  });
+
+  it('refuses a Coolify redeploy while storage is not persistent', async () => {
+    overrideMountinfo(anonymous);
+    try {
+      const status = await admin.get('/api/admin/updates');
+      expect(status.body.canInstall).toBe(false);
+      expect(status.body.installBlocker).toContain('Persistent Storage');
+      expect((await admin.post('/api/admin/updates/install', { version: '99.1.0' })).status).toBe(400);
+      expect(deploys).toHaveLength(0);
+      const dash = await admin.get('/api/admin/dashboard');
+      expect(dash.body.system.storage).toMatchObject({ reason: 'anonymous-volume', volume: 'a'.repeat(64), database: true, coolify: true });
+      const system = await admin.get('/api/admin/system');
+      expect(system.body.checks).toContainEqual(expect.objectContaining({ key: 'persistence', status: 'fail' }));
+    } finally {
+      overrideMountinfo(named);
+    }
+    expect((await admin.get('/api/admin/dashboard')).body.system.storage).toBeNull();
   });
 
   it('installs by triggering a Coolify redeploy', async () => {

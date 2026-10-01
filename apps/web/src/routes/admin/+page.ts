@@ -1,4 +1,4 @@
-import type { UserSummary } from '@forum/shared';
+import type { StorageWarning, UserSummary } from '@forum/shared';
 import { load as apiLoad } from '$lib/api';
 import type { PageLoad } from './$types';
 
@@ -21,7 +21,7 @@ export interface Dashboard {
   topics: Array<{ day: string; count: number }>;
   recentActions: Array<{ id: number; type: string; action: string; actor: UserSummary | null; targetType: string | null; targetId: number | null; createdAt: number }>;
   forum: { topics: number; posts: number; postsToday: number; pendingPosts: number };
-  system: { node: string; platform: string; db: string; mailDriver: string; imageDriver: string; rssMb: number; heapMb: number; uptimeSec: number; appUrl: string; env: string };
+  system: { node: string; platform: string; db: string; mailDriver: string; imageDriver: string; rssMb: number; heapMb: number; uptimeSec: number; appUrl: string; env: string; storage: StorageWarning | null };
 }
 
 export const load: PageLoad = async ({ fetch, url, parent }) => {
