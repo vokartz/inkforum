@@ -8,13 +8,20 @@ const bool = z
   .union([z.boolean(), z.string()])
   .transform((v) => (typeof v === 'boolean' ? v : ['1', 'true', 'yes', 'on'].includes(v.toLowerCase())));
 
+/** .env içinde boş bırakılan değer (ör. `APP_SECRET=`) verilmemiş sayılır */
+const blank = <T extends z.ZodType>(schema: T) => z.preprocess((v) => (v === '' ? undefined : v), schema.optional());
+
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  APP_URL: z.url().optional(),
+  /** Sitenin adresi. Boş ya da "auto": ilk kurulumda tarayıcı adresinden algılanıp kaydedilir */
+  APP_URL: blank(z.union([z.literal('auto'), z.url()])),
+  /** Coolify'ın uygulamaya verdiği adres(ler); APP_URL yoksa kullanılır */
+  COOLIFY_URL: z.string().optional(),
+  COOLIFY_FQDN: z.string().optional(),
   APP_ROOT: z.string().optional(),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   HOST: z.string().default('0.0.0.0'),
-  APP_SECRET: z.string().min(32).optional(),
+  APP_SECRET: blank(z.string().min(32)),
   TRUST_PROXY: z.string().default('loopback'),
 
   DB_DRIVER: z.enum(['sqlite', 'postgres', 'pglite']).default('sqlite'),
@@ -49,14 +56,12 @@ const envSchema = z.object({
   UPDATES_DISABLED: bool.optional(),
   /** Docker kurulumunda güncelleyici kapsayıcının adresi ve paylaşılan anahtarı */
   UPDATER_URL: z.url().optional(),
-  UPDATER_TOKEN: z.string().min(16).optional(),
+  UPDATER_TOKEN: blank(z.string().min(16)),
   /** docker | release | source (boşsa otomatik algılanır) */
   INKFORUM_DEPLOY: z.enum(['docker', 'release', 'source']).optional(),
   INKFORUM_BUILD: z.string().max(80).optional(),
-  /** Kurulum sihirbazı kodu (boşsa açılışta rastgele üretilir) */
-  INSTALL_CODE: z.string().max(20).optional(),
   /** Kurulumdan önceki varsayılan dil (install.sh yazar); kurulumdan sonra yönetim panelindeki ayar geçerlidir */
-  DEFAULT_LOCALE: z.preprocess((v) => (v === '' ? undefined : v), z.enum(LOCALES).optional()),
+  DEFAULT_LOCALE: blank(z.enum(LOCALES)),
 
   ADMIN_USERNAME: z.string().default('admin'),
   ADMIN_EMAIL: z.string().default('admin@example.com'),
@@ -73,6 +78,10 @@ export interface AppConfig {
   root: string;
   appUrl: string;
   appOrigin: string;
+  /** env: APP_URL (ya da platform) belirledi · auto: kurulumda algılanır ve veritabanında saklanır */
+  appUrlMode: 'env' | 'auto';
+  /** auto modda adres henüz belirlenmedi (kurulumdan önce); kaynak denetimi istekteki Host'a göre yapılır */
+  appUrlPending: boolean;
   secureCookies: boolean;
   sessionCookieName: string;
   port: number;
@@ -101,7 +110,6 @@ export interface AppConfig {
   build: string | null;
   deploy: 'docker' | 'release' | 'source';
   updates: { repo: string; apiUrl: string; disabled: boolean; updaterUrl: string | null; updaterToken: string | null };
-  installCode: string | null;
   defaultLocale: Locale | null;
   workerEnabled: boolean;
   logLevel: 'error' | 'warn' | 'log' | 'debug' | 'verbose';
@@ -143,6 +151,43 @@ function parseTrustProxy(v: string): string | boolean | number {
   return v;
 }
 
+/**
+ * Docker'da UPDATER_TOKEN verilmediyse paylaşılan depolamada (storage/.updater-token) üretilir;
+ * güncelleyici kapsayıcı aynı birimi salt okunur bağlayıp anahtarı oradan okur.
+ */
+function resolveUpdaterToken(storageDir: string): string | null {
+  const file = join(storageDir, '.updater-token');
+  try {
+    if (existsSync(file)) return readFileSync(file, 'utf8').trim() || null;
+    mkdirSync(storageDir, { recursive: true });
+    const token = randomBytes(32).toString('base64url');
+    writeFileSync(file, token, { mode: 0o644 });
+    return token;
+  } catch {
+    return null;
+  }
+}
+
+/** Platformun verdiği adres: COOLIFY_URL (virgülle ayrılmış olabilir) ya da COOLIFY_FQDN */
+function platformUrl(e: { COOLIFY_URL?: string; COOLIFY_FQDN?: string }): string | null {
+  const first = (v?: string) => v?.split(',')[0]?.trim() || '';
+  const url = first(e.COOLIFY_URL);
+  if (/^https?:\/\//.test(url)) return url;
+  const fqdn = first(e.COOLIFY_FQDN);
+  if (fqdn) return /^https?:\/\//.test(fqdn) ? fqdn : `https://${fqdn}`;
+  return null;
+}
+
+/** Site adresini (ve ona bağlı çerez ayarlarını) uygular; otomatik algılamada çalışırken de çağrılır */
+export function applySiteUrl(config: AppConfig, raw: string): void {
+  const url = new URL(raw);
+  config.appUrl = url.origin + url.pathname.replace(/\/+$/, '');
+  config.appOrigin = url.origin;
+  config.secureCookies = url.protocol === 'https:';
+  config.sessionCookieName = config.secureCookies ? '__Host-forum_sid' : 'forum_sid';
+  config.appUrlPending = false;
+}
+
 /** Geliştirmede APP_SECRET yoksa storage içinde kalıcı bir anahtar üretir. */
 function resolveSecret(given: string | undefined, storageDir: string, isProd: boolean): string {
   if (given) return given;
@@ -169,7 +214,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Part
   const abs = (p: string) => (isAbsolute(p) ? p : resolve(root, p));
 
   const isProd = e.NODE_ENV === 'production';
-  const appUrl = (e.APP_URL ?? (isProd ? `http://localhost:${e.PORT}` : 'http://localhost:5173')).replace(/\/+$/, '');
+  const given = e.APP_URL === 'auto' ? null : (e.APP_URL ?? platformUrl(e));
+  // Üretimde adres verilmediyse ilk kurulumda algılanır; o zamana kadar yer tutucu kullanılır
+  const appUrlMode = given || (!isProd && e.APP_URL !== 'auto') ? 'env' : 'auto';
+  const appUrl = (given ?? (isProd ? `http://localhost:${e.PORT}` : 'http://localhost:5173')).replace(/\/+$/, '');
   const url = new URL(appUrl);
   const secureCookies = url.protocol === 'https:';
   const storageDir = abs(e.STORAGE_DIR);
@@ -190,6 +238,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Part
     root,
     appUrl,
     appOrigin: url.origin,
+    appUrlMode,
+    appUrlPending: appUrlMode === 'auto',
     secureCookies,
     sessionCookieName: secureCookies ? '__Host-forum_sid' : 'forum_sid',
     port: e.PORT,
@@ -222,9 +272,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Part
       apiUrl: e.UPDATE_API_URL.replace(/\/+$/, ''),
       disabled: e.UPDATES_DISABLED ?? e.NODE_ENV === 'test',
       updaterUrl: e.UPDATER_URL ?? (e.INKFORUM_DEPLOY === 'docker' ? 'http://updater:9000' : null),
-      updaterToken: e.UPDATER_TOKEN ?? null,
+      updaterToken: e.UPDATER_TOKEN ?? (e.INKFORUM_DEPLOY === 'docker' && e.NODE_ENV !== 'test' ? resolveUpdaterToken(storageDir) : null),
     },
-    installCode: e.INSTALL_CODE?.trim() || null,
     defaultLocale: e.DEFAULT_LOCALE ?? null,
     workerEnabled: e.WORKER_ENABLED,
     logLevel: e.LOG_LEVEL,

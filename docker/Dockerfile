@@ -34,6 +34,7 @@ ENV NODE_ENV=production \
     APP_ROOT=/app \
     STORAGE_DIR=/app/storage \
     INKFORUM_DEPLOY=docker \
+    TRUST_PROXY=uniquelocal \
     INKFORUM_BUILD=${BUILD}
 
 COPY --from=deps --chown=node:node /app/node_modules ./node_modules

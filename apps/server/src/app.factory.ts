@@ -79,7 +79,9 @@ export async function createApp(config: AppConfig, opts: { mountWeb?: boolean } 
 
   if (opts.mountWeb && config.webBuildDir) {
     // adapter-node ortam değişkenleri handler yüklenmeden önce ayarlanmalı.
-    process.env.ORIGIN ??= config.appOrigin;
+    // Adres otomatik algılanıyorsa SvelteKit de istekteki Host ve ters vekilin protokol başlığını kullanır
+    if (config.appUrlMode === 'env') process.env.ORIGIN ??= config.appOrigin;
+    else process.env.PROTOCOL_HEADER ??= 'x-forwarded-proto';
     process.env.BODY_SIZE_LIMIT ??= '1M';
     const mod = (await import(pathToFileURL(join(config.webBuildDir, 'handler.js')).href)) as { handler: Handler };
     // Nest rotaları init sırasında kaydedilir; bu ara katman init'ten önce eklendiği için API'den önce çalışır

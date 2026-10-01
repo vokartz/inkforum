@@ -8,6 +8,21 @@ Each version section becomes the GitHub release note and the update note in the 
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-01
+
+### Changed
+
+- The setup wizard no longer asks for a setup code; it opens directly with the system check.
+- No environment variable is required anymore: without `APP_URL` the site address is taken from the platform
+  (Coolify) or detected from the browser in the setup wizard and saved; `APP_SECRET` and `UPDATER_TOKEN` are generated
+  and kept in the `storage` volume.
+- The installer (`install.sh`) detects the system language (8 languages) and sets the forum's first language.
+- The Docker image trusts reverse proxies on private networks by default (`TRUST_PROXY=uniquelocal`).
+
+### Fixed
+
+- Setup failed with "Request origin could not be verified" when `APP_URL` didn't match the real address (e.g. on Coolify).
+
 ## [1.0.0] - 2026-10-01
 
 First stable release.

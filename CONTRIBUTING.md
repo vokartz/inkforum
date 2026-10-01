@@ -42,7 +42,7 @@ designed to run on cheap servers: **a single Node process**, **SQLite** by defau
 ```
 apps/
   server/          NestJS API; in production also serves the SvelteKit UI on the same port
-    src/install/     setup wizard (setup code, environment checks)
+    src/install/     setup wizard (environment checks, site address detection)
     src/updates/     GitHub release checks, package / Docker updates
     src/updater/     Docker updater sidecar (no Nest, single file)
     src/maintenance/ backups, restore, system info
@@ -68,8 +68,9 @@ pnpm dev
 ```
 
 - UI http://localhost:5173 (Vite proxies `/api`) · API http://localhost:3000/api
-- On an empty database the **setup wizard** (`/install`) opens; the setup code is printed to the console and to
-  `storage/INSTALL_CODE.txt`. Setting `ADMIN_PASSWORD` in `.env` performs a headless install.
+- On an empty database the **setup wizard** (`/install`) opens; there is no setup code. In production without
+  `APP_URL` the wizard's address becomes the site address (`system_state` key `site:url`). Setting `ADMIN_PASSWORD`
+  in `.env` performs a headless install.
 - E-mails are written to `storage/mail/*.eml` in development.
 - Sample members and topics: `pnpm db:seed:dev` (see [CONTRIBUTING_tr.md](CONTRIBUTING_tr.md) for the dev credentials).
 

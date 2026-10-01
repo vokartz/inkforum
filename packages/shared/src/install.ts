@@ -4,21 +4,14 @@ import { PLUGIN_KEYS } from './plugins.js';
 import { mailTransportInput } from './mail-templates.js';
 
 /**
- * İlk kurulum sihirbazı (/install). Hiç yönetici yokken açılır; kurulum kodu sunucu konsoluna
- * (Docker'da `docker compose logs`) ve storage/INSTALL_CODE.txt dosyasına yazılır.
+ * İlk kurulum sihirbazı (/install). Hiç yönetici yokken açılır; ilk tamamlayan yönetici olur.
+ * APP_URL verilmediyse site adresi sihirbazın açıldığı adresten alınır.
  */
-
-export const INSTALL_CODE_PATTERN = /^[A-HJ-NP-Z2-9]{4}-?[A-HJ-NP-Z2-9]{4}$/i;
-
-export const installCodeInput = z.object({
-  code: z.string().trim().max(20),
-});
 
 export const INSTALL_THEMES = ['modern', 'community', 'classic'] as const;
 
 export const installInput = z
   .object({
-    code: z.string().trim().max(20),
     site: z.object({
       name: z.string().trim().min(2, 'Forum adı en az 2 karakter olmalı.').max(60),
       description: z.string().trim().max(300).default(''),

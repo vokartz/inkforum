@@ -48,13 +48,13 @@ Das Skript:
 1. installiert Docker, falls es fehlt (nach Rückfrage),
 2. legt `/opt/inkforum` und eine `.env`-Datei mit starken, zufälligen Secrets an,
 3. aktiviert **automatisches HTTPS** (Let's Encrypt über Caddy), wenn du eine Domain angibst,
-4. startet InkForum und gibt deine **Einrichtungs-URL und deinen Einrichtungscode** aus.
+4. startet InkForum und gibt deine **Einrichtungs-URL** aus.
 
 Öffne `https://your-domain.com/install` im Browser. Der Assistent prüft deinen Server und fragt nach Forenname,
 Theme, Administratorkonto, Registrierungsmodus, Plugins und (optional) E-Mail-Einstellungen. Das war's.
 
-> **Warum ein Einrichtungscode?** Er verhindert, dass jemand anderes einen frisch installierten, öffentlich erreichbaren Server für sich beansprucht.
-> Der Code wird nur im Server-Log ausgegeben: `docker compose -f /opt/inkforum/docker-compose.yml logs inkforum | grep "Setup code"`
+> **Schließe die Einrichtung sofort ab.** Es gibt keinen Einrichtungscode: Wer den Assistenten zuerst abschließt, wird Administrator.
+> Öffne `/install` also, sobald InkForum läuft. Die Adresse der Website wird aus deinem Browser erkannt und gespeichert.
 
 ### Manuelle Installation (Docker Compose)
 
@@ -62,15 +62,15 @@ Theme, Administratorkonto, Registrierungsmodus, Plugins und (optional) E-Mail-Ei
 mkdir -p /opt/inkforum && cd /opt/inkforum
 curl -fsSLO https://raw.githubusercontent.com/vokartz/inkforum/main/docker-compose.yml
 curl -fsSL https://raw.githubusercontent.com/vokartz/inkforum/main/.env.example -o .env
-# fill in APP_URL, APP_SECRET and UPDATER_TOKEN in .env
+# optional: APP_URL, APP_SECRET und UPDATER_TOKEN werden automatisch erkannt oder erzeugt
 docker compose up -d
 ```
 
 ### Coolify, Dokploy, Portainer
 
-Füge `docker-compose.yml` direkt in deiner Plattform hinzu und definiere `APP_URL`, `APP_SECRET` (mindestens 32 Zeichen) und
-`UPDATER_TOKEN` (mindestens 16 Zeichen). Bringt die Plattform einen eigenen Reverse Proxy mit, belasse `TRUST_PROXY=uniquelocal`
-und aktiviere das `https`-Profil (Caddy) nicht.
+Füge `docker-compose.yml` (oder das Image `ghcr.io/vokartz/inkforum`) direkt in deiner Plattform hinzu — Variablen sind nicht nötig:
+Die Adresse kommt von der Plattform (Coolify) oder wird im Einrichtungsassistenten erkannt, die geheimen Schlüssel werden erzeugt
+und im Volume `storage` gespeichert. Bringt die Plattform einen eigenen Reverse Proxy mit, belasse `TRUST_PROXY=uniquelocal` und aktiviere das `https`-Profil (Caddy) nicht.
 
 ### Systemanforderungen
 
@@ -200,9 +200,9 @@ Alle Foreneinstellungen findest du im Admin-Panel. Die `.env`-Datei beschreibt n
 
 | Variable | Beschreibung |
 |---|---|
-| `APP_URL` | Vollständige Adresse der Website (`https://forum.example.com`) |
-| `APP_SECRET` | Sitzungs- und Verschlüsselungsschlüssel (32+ Zeichen; eine Änderung meldet alle ab) |
-| `UPDATER_TOKEN` | Gemeinsamer Schlüssel mit dem Updater-Container |
+| `APP_URL` | Vollständige Adresse der Website (`https://forum.example.com`); optional — wird im Einrichtungsassistenten erkannt |
+| `APP_SECRET` | Sitzungs- und Verschlüsselungsschlüssel (32+ Zeichen; eine Änderung meldet alle ab); optional — wird automatisch erzeugt |
+| `UPDATER_TOKEN` | Gemeinsamer Schlüssel mit dem Updater-Container; optional — wird automatisch erzeugt |
 | `DOMAIN`, `COMPOSE_PROFILES=https` | Automatisches HTTPS mit Caddy |
 | `DB_DRIVER`, `DATABASE_URL` | PostgreSQL verwenden (`postgres` zu `COMPOSE_PROFILES` hinzufügen) |
 | `TRUST_PROXY` | Echte Client-IPs hinter einem Reverse Proxy (`uniquelocal` empfohlen) |
@@ -218,7 +218,7 @@ Erforderlich ist Node.js 22.13 oder neuer.
 ```bash
 curl -fsSLO https://github.com/vokartz/inkforum/releases/latest/download/inkforum-<version>-linux-x64.tar.gz
 tar xzf inkforum-*-linux-x64.tar.gz && cd inkforum
-cp .env.example .env   # fill in APP_URL and APP_SECRET
+cp .env.example .env   # optional: alles wird automatisch erkannt oder erzeugt
 NODE_ENV=production node --env-file=.env server.mjs
 ```
 

@@ -8,10 +8,12 @@
  *   3. sağlık denetimi geçmezse eski kapsayıcıya geri döner,
  *   4. en sonda kendini de günceller.
  *
- * Ortam: UPDATER_TOKEN (zorunlu), UPDATER_IMAGE, UPDATER_PORT (9000), DOCKER_SOCKET.
+ * Ortam: UPDATER_TOKEN (yoksa uygulamanın ürettiği UPDATER_TOKEN_FILE okunur), UPDATER_IMAGE, UPDATER_PORT (9000),
+ * DOCKER_SOCKET.
  * Nest'e bağımlı değildir; sürüm paketinde `updater.mjs` olarak çalışır.
  */
 import { timingSafeEqual } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { createServer, request, type IncomingMessage, type ServerResponse } from 'node:http';
 
 type State = 'idle' | 'backup' | 'download' | 'install' | 'restart' | 'verify' | 'done' | 'failed' | 'rolledback';
@@ -26,7 +28,17 @@ interface Job {
   error: string | null;
 }
 
-const TOKEN = process.env.UPDATER_TOKEN ?? '';
+const TOKEN_FILE = process.env.UPDATER_TOKEN_FILE ?? '/app/storage/.updater-token';
+
+/** Ortamdaki anahtar ya da uygulamanın paylaşılan depolamaya yazdığı anahtar (uygulama sonra açılabilir) */
+function token(): string {
+  if (process.env.UPDATER_TOKEN) return process.env.UPDATER_TOKEN;
+  try {
+    return readFileSync(TOKEN_FILE, 'utf8').trim();
+  } catch {
+    return '';
+  }
+}
 const IMAGE = (process.env.UPDATER_IMAGE ?? 'ghcr.io/vokartz/inkforum').replace(/:.*$/, '');
 const PORT = Number(process.env.UPDATER_PORT ?? 9000);
 const SOCKET = process.env.DOCKER_SOCKET ?? '/var/run/docker.sock';
@@ -291,8 +303,9 @@ async function cleanup(): Promise<void> {
 
 function authorized(req: IncomingMessage): boolean {
   const given = Buffer.from(String(req.headers.authorization ?? '').replace(/^Bearer\s+/i, ''));
-  const expected = Buffer.from(TOKEN);
-  return TOKEN.length >= 16 && given.length === expected.length && timingSafeEqual(given, expected);
+  const current = token();
+  const expected = Buffer.from(current);
+  return current.length >= 16 && given.length === expected.length && timingSafeEqual(given, expected);
 }
 
 function send(res: ServerResponse, status: number, body: unknown): void {
@@ -330,7 +343,7 @@ const server = createServer((req, res) => {
   })().catch((err: Error) => send(res, 500, { error: err.message }));
 });
 
-if (TOKEN.length < 16) {
+if (process.env.UPDATER_TOKEN && process.env.UPDATER_TOKEN.length < 16) {
   console.error('[updater] UPDATER_TOKEN en az 16 karakter olmalı.');
   process.exit(1);
 }

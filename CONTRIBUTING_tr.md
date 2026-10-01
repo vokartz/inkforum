@@ -44,7 +44,7 @@ Kullanıcıya dönük tam özellik listesi ve kurulum belgesi: [README_tr.md](RE
 ```
 apps/
   server/        NestJS API; üretimde SvelteKit arayüzünü de aynı portta sunar
-    src/install/     kurulum sihirbazı (kurulum kodu, ortam denetimi)
+    src/install/     kurulum sihirbazı (ortam denetimi, site adresinin algılanması)
     src/updates/     GitHub sürüm denetimi, paket / Docker güncellemesi
     src/updater/     Docker güncelleyici kapsayıcı (Nest'siz, tek dosya)
     src/maintenance/ yedekler, sistem bilgisi
@@ -78,8 +78,8 @@ pnpm dev
 ```
 
 - Arayüz http://localhost:5173 (Vite, `/api` isteklerini API'ye yönlendirir) · API http://localhost:3000/api
-- Boş bir veritabanıyla ilk açılışta **kurulum sihirbazı** (`/install`) açılır; kurulum kodu konsola ve
-  `storage/INSTALL_CODE.txt` dosyasına yazılır. `.env` içinde `ADMIN_PASSWORD` verilirse kurulum otomatik yapılır
+- Boş bir veritabanıyla ilk açılışta **kurulum sihirbazı** (`/install`) açılır; kurulum kodu yoktur. Üretimde
+  `APP_URL` verilmediyse sihirbazın açıldığı adres site adresi olur (`system_state` anahtarı `site:url`). `.env` içinde `ADMIN_PASSWORD` verilirse kurulum otomatik yapılır
   (`ADMIN_USERNAME` / `ADMIN_EMAIL` ile).
 - Geliştirmede e-postalar gönderilmez; `storage/mail/*.eml` dosyalarına yazılır.
 - Örnek üyeler ve örnek konular için: `pnpm db:seed:dev` (örnek üyelerin şifresi `Password123`)
@@ -110,7 +110,7 @@ pnpm dev
 
 Ortam değişkenlerinin tamamı `.env.example` dosyasında açıklanmıştır. Önemlileri: `APP_URL`, `APP_SECRET`,
 `DB_DRIVER` / `DATABASE_URL`, `TRUST_PROXY`, `UPDATE_REPO` (varsayılan `vokartz/inkforum`), `UPDATES_DISABLED`,
-`UPDATER_URL` / `UPDATER_TOKEN` (Docker), `INSTALL_CODE`, `WAF_DISABLED`.
+`UPDATER_URL` / `UPDATER_TOKEN` (Docker), `DEFAULT_LOCALE`, `WAF_DISABLED`.
 
 ## Üçüncü taraf varlıklar
 

@@ -48,13 +48,13 @@ The script:
 1. installs Docker if it's missing (after asking you),
 2. creates `/opt/inkforum` and an `.env` file with strong random secrets,
 3. enables **automatic HTTPS** (Let's Encrypt via Caddy) if you enter a domain,
-4. starts InkForum and prints your **setup URL and setup code**.
+4. starts InkForum and prints your **setup URL**.
 
 Open `https://your-domain.com/install` in your browser. The wizard checks your server and asks for the forum name,
 theme, administrator account, registration mode, plugins and (optionally) e-mail settings. That's it.
 
-> **Why a setup code?** It prevents anyone else from claiming a freshly installed, internet-facing server.
-> The code is only printed to the server log: `docker compose -f /opt/inkforum/docker-compose.yml logs inkforum | grep "Setup code"`
+> **Finish setup right away.** There is no setup code: the first person to complete the wizard becomes the administrator,
+> so open `/install` as soon as InkForum is running. The site address is detected from your browser and saved.
 
 ### Manual installation (Docker Compose)
 
@@ -62,15 +62,15 @@ theme, administrator account, registration mode, plugins and (optionally) e-mail
 mkdir -p /opt/inkforum && cd /opt/inkforum
 curl -fsSLO https://raw.githubusercontent.com/vokartz/inkforum/main/docker-compose.yml
 curl -fsSL https://raw.githubusercontent.com/vokartz/inkforum/main/.env.example -o .env
-# fill in APP_URL, APP_SECRET and UPDATER_TOKEN in .env
+# optional: APP_URL, APP_SECRET and UPDATER_TOKEN are detected or generated automatically
 docker compose up -d
 ```
 
 ### Coolify, Dokploy, Portainer
 
-Add `docker-compose.yml` to your platform directly and define `APP_URL`, `APP_SECRET` (at least 32 characters) and
-`UPDATER_TOKEN` (at least 16 characters). If the platform provides its own reverse proxy, keep `TRUST_PROXY=uniquelocal`
-and don't enable the `https` (Caddy) profile.
+Add `docker-compose.yml` (or the `ghcr.io/vokartz/inkforum` image) to your platform directly — no variables are required:
+the site address is taken from the platform (Coolify) or detected in the setup wizard, and the secret keys are generated
+and stored in the `storage` volume. If the platform provides its own reverse proxy, keep `TRUST_PROXY=uniquelocal` and don't enable the `https` (Caddy) profile.
 
 ### Requirements
 
@@ -206,9 +206,9 @@ Every forum setting lives in the admin panel. The `.env` file only describes the
 
 | Variable | Description |
 |---|---|
-| `APP_URL` | Full site address (`https://forum.example.com`) |
-| `APP_SECRET` | Session & encryption key (32+ characters; changing it signs everyone out) |
-| `UPDATER_TOKEN` | Shared key with the updater container |
+| `APP_URL` | Full site address (`https://forum.example.com`); optional — detected in the setup wizard |
+| `APP_SECRET` | Session & encryption key (32+ characters; changing it signs everyone out); optional — generated automatically |
+| `UPDATER_TOKEN` | Shared key with the updater container; optional — generated automatically |
 | `DOMAIN`, `COMPOSE_PROFILES=https` | Automatic HTTPS with Caddy |
 | `DB_DRIVER`, `DATABASE_URL` | Use PostgreSQL (add `postgres` to `COMPOSE_PROFILES`) |
 | `TRUST_PROXY` | Real client IPs behind a reverse proxy (`uniquelocal` recommended) |
@@ -224,7 +224,7 @@ Node.js 22.13 or newer is required.
 ```bash
 curl -fsSLO https://github.com/vokartz/inkforum/releases/latest/download/inkforum-<version>-linux-x64.tar.gz
 tar xzf inkforum-*-linux-x64.tar.gz && cd inkforum
-cp .env.example .env   # fill in APP_URL and APP_SECRET
+cp .env.example .env   # optional: everything is detected or generated automatically
 NODE_ENV=production node --env-file=.env server.mjs
 ```
 

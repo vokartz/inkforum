@@ -48,13 +48,13 @@ curl -fsSL https://raw.githubusercontent.com/vokartz/inkforum/main/install.sh | 
 1. устанавливает Docker, если его нет (предварительно спросив вас),
 2. создаёт `/opt/inkforum` и файл `.env` с надёжными случайными секретами,
 3. включает **автоматический HTTPS** (Let's Encrypt через Caddy), если вы укажете домен,
-4. запускает InkForum и выводит ваш **адрес и код установки**.
+4. запускает InkForum и выводит **адрес установки**.
 
 Откройте `https://your-domain.com/install` в браузере. Мастер проверит сервер и спросит название форума,
 тему, учётную запись администратора, режим регистрации, плагины и (по желанию) настройки почты. Вот и всё.
 
-> **Зачем нужен код установки?** Он не позволяет посторонним перехватить только что установленный сервер, доступный из интернета.
-> Код выводится только в журнал сервера: `docker compose -f /opt/inkforum/docker-compose.yml logs inkforum | grep "Setup code"`
+> **Завершите установку сразу.** Кода установки нет: администратором станет тот, кто первым пройдёт мастер,
+> поэтому откройте `/install`, как только InkForum запустится. Адрес сайта определяется по вашему браузеру и сохраняется.
 
 ### Ручная установка (Docker Compose)
 
@@ -62,15 +62,15 @@ curl -fsSL https://raw.githubusercontent.com/vokartz/inkforum/main/install.sh | 
 mkdir -p /opt/inkforum && cd /opt/inkforum
 curl -fsSLO https://raw.githubusercontent.com/vokartz/inkforum/main/docker-compose.yml
 curl -fsSL https://raw.githubusercontent.com/vokartz/inkforum/main/.env.example -o .env
-# fill in APP_URL, APP_SECRET and UPDATER_TOKEN in .env
+# необязательно: APP_URL, APP_SECRET и UPDATER_TOKEN определяются или создаются автоматически
 docker compose up -d
 ```
 
 ### Coolify, Dokploy, Portainer
 
-Добавьте `docker-compose.yml` прямо в свою платформу и задайте `APP_URL`, `APP_SECRET` (не менее 32 символов) и
-`UPDATER_TOKEN` (не менее 16 символов). Если у платформы есть собственный обратный прокси, оставьте `TRUST_PROXY=uniquelocal`
-и не включайте профиль `https` (Caddy).
+Добавьте `docker-compose.yml` (или образ `ghcr.io/vokartz/inkforum`) прямо в свою платформу — переменные не обязательны:
+адрес берётся из платформы (Coolify) или определяется в мастере установки, а секретные ключи создаются
+и хранятся в томе `storage`. Если у платформы есть собственный обратный прокси, оставьте `TRUST_PROXY=uniquelocal` и не включайте профиль `https` (Caddy).
 
 ### Системные требования
 
@@ -200,9 +200,9 @@ docker run --rm -v inkforum_inkforum-storage:/data -v "$PWD":/backup alpine tar 
 
 | Переменная | Описание |
 |---|---|
-| `APP_URL` | Полный адрес сайта (`https://forum.example.com`) |
-| `APP_SECRET` | Ключ сессий и шифрования (32+ символа; при его смене все пользователи будут разлогинены) |
-| `UPDATER_TOKEN` | Общий ключ с контейнером обновлений |
+| `APP_URL` | Полный адрес сайта (`https://forum.example.com`); необязательно — определяется в мастере установки |
+| `APP_SECRET` | Ключ сессий и шифрования (32+ символа; при его смене все пользователи будут разлогинены); необязательно — создаётся автоматически |
+| `UPDATER_TOKEN` | Общий ключ с контейнером обновлений; необязательно — создаётся автоматически |
 | `DOMAIN`, `COMPOSE_PROFILES=https` | Автоматический HTTPS через Caddy |
 | `DB_DRIVER`, `DATABASE_URL` | Использовать PostgreSQL (добавьте `postgres` в `COMPOSE_PROFILES`) |
 | `TRUST_PROXY` | Реальные IP клиентов за обратным прокси (рекомендуется `uniquelocal`) |
@@ -218,7 +218,7 @@ docker run --rm -v inkforum_inkforum-storage:/data -v "$PWD":/backup alpine tar 
 ```bash
 curl -fsSLO https://github.com/vokartz/inkforum/releases/latest/download/inkforum-<version>-linux-x64.tar.gz
 tar xzf inkforum-*-linux-x64.tar.gz && cd inkforum
-cp .env.example .env   # fill in APP_URL and APP_SECRET
+cp .env.example .env   # необязательно: всё определяется или создаётся автоматически
 NODE_ENV=production node --env-file=.env server.mjs
 ```
 

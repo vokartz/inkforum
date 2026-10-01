@@ -1,5 +1,5 @@
-import { randomBytes, timingSafeEqual } from 'node:crypto';
-import { existsSync, mkdirSync, statfsSync, unlinkSync, writeFileSync } from 'node:fs';
+import { randomBytes } from 'node:crypto';
+import { mkdirSync, statfsSync, unlinkSync, writeFileSync } from 'node:fs';
 import { freemem, totalmem } from 'node:os';
 import { join } from 'node:path';
 import { Inject, Injectable, Logger } from '@nestjs/common';
@@ -17,7 +17,7 @@ import {
   type PluginKey,
   type Locale,
 } from '@forum/shared';
-import { CONFIG, type AppConfig } from '../config/config.js';
+import { CONFIG, applySiteUrl, type AppConfig } from '../config/config.js';
 import { Db } from '../database/db.service.js';
 import { Clock } from '../common/clock.js';
 import { Errors } from '../common/errors.js';
@@ -37,21 +37,19 @@ import { I18nService } from '../i18n/i18n.service.js';
 
 const INSTALLED_KEY = 'installed:at';
 const SEEDED_FORUM_KEY = 'seeded:forum:v1';
-/** Karıştırılabilecek karakterler (0/O, 1/I/L) yok */
-const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+/** Otomatik algılanan site adresi (APP_URL verilmediyse) */
+const SITE_URL_KEY = 'site:url';
 const MIN_NODE = [22, 13] as const;
 
 /**
- * İlk kurulum. Yönetici hesabı yokken site kurulum sihirbazına yönlendirilir; sihirbaz yalnızca
- * sunucu konsoluna yazılan kurulum koduyla kullanılabilir (açık bir sunucuyu başkası kuramasın diye).
+ * İlk kurulum. Yönetici hesabı yokken site kurulum sihirbazına yönlendirilir. APP_URL verilmediyse
+ * site adresi sihirbazın açıldığı adresten alınır ve kaydedilir.
  * ADMIN_PASSWORD ortam değişkeni verilmişse kurulum otomatik yapılır (CI, otomasyon).
  */
 @Injectable()
 export class InstallService {
   private readonly logger = new Logger('Kurulum');
   private done = false;
-  private code: string | null = null;
-  private attempts: number[] = [];
 
   constructor(
     @Inject(CONFIG) private readonly config: AppConfig,
@@ -80,12 +78,12 @@ export class InstallService {
     return { installed: this.done, version: this.config.version };
   }
 
-  private codeFile(): string {
-    return join(this.config.storageDir, 'INSTALL_CODE.txt');
-  }
-
-  /** Açılışta (BootstrapService): kurulu mu, değilse kurulum kodunu hazırla */
+  /** Açılışta (BootstrapService): kayıtlı site adresini uygula; kurulu değilse sihirbaz adresini günlüğe yaz */
   async init(hasAdmin: boolean): Promise<void> {
+    if (this.config.appUrlMode === 'auto') {
+      const saved = await this.db.q.selectFrom('system_state').select('value').where('key', '=', SITE_URL_KEY).executeTakeFirst();
+      if (saved) applySiteUrl(this.config, saved.value);
+    }
     const row = await this.db.q.selectFrom('system_state').select('value').where('key', '=', INSTALLED_KEY).executeTakeFirst();
     if (row || hasAdmin) {
       if (!row) await this.markInstalled();
@@ -93,20 +91,15 @@ export class InstallService {
       return;
     }
     this.done = false;
-    this.code = this.config.installCode ? normalize(this.config.installCode) : generateCode();
     if (this.config.isTest) return;
-    try {
-      mkdirSync(this.config.storageDir, { recursive: true });
-      writeFileSync(this.codeFile(), `InkForum kurulum kodu: ${pretty(this.code)}\nAdres: ${this.config.appUrl}/install\n\nKurulum bitince bu dosya kendiliğinden silinir.\n`, { mode: 0o600 });
-    } catch {
-      /* salt okunur depolama: kod yine konsolda */
-    }
     const line = '═'.repeat(58);
     this.logger.warn(line);
-    this.logger.warn('InkForum henüz kurulmadı / InkForum is not installed yet. Kurulum sihirbazı / Setup wizard:');
-    this.logger.warn(`  Adres / URL : ${this.config.appUrl}/install`);
-    this.logger.warn(`  Kurulum kodu: ${pretty(this.code)}`);
-    this.logger.warn(`  Setup code  : ${pretty(this.code)}`);
+    this.logger.warn('InkForum henüz kurulmadı / InkForum is not installed yet.');
+    this.logger.warn(
+      this.config.appUrlPending
+        ? '  Kurulum sihirbazı / Setup wizard: <site adresiniz / your site address>/install'
+        : `  Kurulum sihirbazı / Setup wizard: ${this.config.appUrl}/install`,
+    );
     this.logger.warn(line);
   }
 
@@ -153,26 +146,23 @@ export class InstallService {
     this.done = true;
   }
 
-  /** Kurulum kodunu doğrular (IP'den bağımsız genel deneme sınırı: 15 dakikada 20) */
-  verifyCode(input: string): void {
+  /** Sihirbaz uç noktaları yalnızca kurulumdan önce kullanılabilir */
+  assertOpen(): void {
     if (this.done) throw Errors.conflict('Kurulum zaten tamamlanmış.');
-    const now = this.clock.now();
-    this.attempts = this.attempts.filter((t) => now - t < 15 * 60_000);
-    if (this.attempts.length >= 20) throw Errors.rateLimited(15 * 60);
-    const given = Buffer.from(normalize(input));
-    const expected = Buffer.from(this.code ?? randomBytes(8).toString('hex'));
-    if (given.length !== expected.length || !timingSafeEqual(given, expected)) {
-      this.attempts.push(now);
-      throw Errors.field('code', 'Kurulum kodu hatalı. Kodu sunucu konsolunda ya da storage/INSTALL_CODE.txt dosyasında bulabilirsin.');
-    }
   }
 
-  async environment(locale: Locale = 'tr'): Promise<InstallEnvironment> {
-    const checks = (await this.checks()).map((c) => ({ ...c, label: this.i18n.message(locale, c.label), detail: this.i18n.message(locale, c.detail) }));
+  /** Kurulumdan sonra geçerli olacak site adresi: APP_URL ya da (otomatik modda) sihirbazın açıldığı adres */
+  private siteUrl(origin: string | null): string {
+    return this.config.appUrlPending && origin ? origin : this.config.appUrl;
+  }
+
+  async environment(locale: Locale = 'tr', origin: string | null = null): Promise<InstallEnvironment> {
+    this.assertOpen();
+    const checks = (await this.checks(this.siteUrl(origin))).map((c) => ({ ...c, label: this.i18n.message(locale, c.label), detail: this.i18n.message(locale, c.detail) }));
     return {
       version: this.config.version,
       checks,
-      appUrl: this.config.appUrl,
+      appUrl: this.siteUrl(origin),
       db: this.config.db.driver,
       deploy: this.config.deploy,
       mailDriver: this.mail.driver(),
@@ -180,7 +170,7 @@ export class InstallService {
     };
   }
 
-  private async checks(): Promise<InstallCheck[]> {
+  private async checks(siteUrl: string): Promise<InstallCheck[]> {
     const out: InstallCheck[] = [];
     const [maj, min] = process.versions.node.split('.').map(Number) as [number, number];
     const nodeOk = maj > MIN_NODE[0] || (maj === MIN_NODE[0] && min >= MIN_NODE[1]);
@@ -218,13 +208,13 @@ export class InstallService {
     const sharp = await this.storage.loadSharp();
     out.push({ key: 'images', label: 'Görsel işleme', status: sharp ? 'ok' : 'warn', detail: sharp ? 'sharp: görseller küçültülür ve WebP’ye çevrilir' : 'sharp yok: görseller olduğu gibi saklanır' });
 
-    const url = new URL(this.config.appUrl);
+    const url = new URL(siteUrl);
     const local = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname) || url.hostname.endsWith('.localhost');
     out.push({
       key: 'https',
       label: 'Site adresi',
       status: url.protocol === 'https:' || local ? 'ok' : 'warn',
-      detail: url.protocol === 'https:' || local ? this.config.appUrl : `${this.config.appUrl} — canlı sitede HTTPS önerilir (APP_URL)`,
+      detail: url.protocol === 'https:' || local ? siteUrl : `${siteUrl} — canlı sitede HTTPS önerilir`,
     });
 
     const driver = this.mail.driver();
@@ -235,9 +225,9 @@ export class InstallService {
     return out;
   }
 
-  async complete(input: InstallInput, client: { ip: string | null; userAgent: string | null; locale?: Locale }, res: Response): Promise<{ userId: number }> {
+  async complete(input: InstallInput, client: { ip: string | null; userAgent: string | null; locale?: Locale; origin?: string | null }, res: Response): Promise<{ userId: number }> {
     const locale = client.locale ?? 'tr';
-    this.verifyCode(input.code);
+    this.assertOpen();
 
     const fields: Record<string, string> = {};
     const uIssue = usernameIssue(input.admin.username, {
@@ -301,11 +291,17 @@ export class InstallService {
     for (const key of ['applications', 'tickets'] as const) if (plugins[key]) await this.appearance.ensureBuiltin(key);
 
     await this.markInstalled();
-    this.code = null;
-    try {
-      if (existsSync(this.codeFile())) unlinkSync(this.codeFile());
-    } catch {
-      /* yok say */
+    if (this.config.appUrlPending && client.origin) {
+      // Sihirbazın açıldığı adres sitenin adresi olur (yeniden başlatmada da geçerli); çerez ayarları da buna göre
+      const origin = client.origin;
+      const now = this.clock.now();
+      await this.db.q
+        .insertInto('system_state')
+        .values({ key: SITE_URL_KEY, value: origin, updated_at: now })
+        .onConflict((oc) => oc.column('key').doUpdateSet({ value: origin, updated_at: now }))
+        .execute();
+      applySiteUrl(this.config, origin);
+      this.logger.log(`Site adresi algılandı: ${origin}`);
     }
 
     const session = await this.sessions.create(userId, true, client.ip, client.userAgent);
@@ -318,17 +314,3 @@ export class InstallService {
   }
 }
 
-function generateCode(): string {
-  const bytes = randomBytes(8);
-  let out = '';
-  for (const b of bytes) out += CODE_ALPHABET[b % CODE_ALPHABET.length];
-  return out;
-}
-
-function normalize(code: string): string {
-  return code.replace(/[\s-]/g, '').toUpperCase();
-}
-
-function pretty(code: string): string {
-  return `${code.slice(0, 4)}-${code.slice(4)}`;
-}

@@ -9,6 +9,7 @@
     type PluginKey,
     type RegistrationMode,
   } from '@forum/shared';
+  import { onMount } from 'svelte';
   import { fly, fade, slide } from 'svelte/transition';
   import { cubicOut } from 'svelte/easing';
   import ArrowRightIcon from 'phosphor-svelte/lib/ArrowRight';
@@ -18,8 +19,6 @@
   import WarningIcon from 'phosphor-svelte/lib/WarningCircle';
   import XCircleIcon from 'phosphor-svelte/lib/XCircle';
   import LoaderIcon from 'phosphor-svelte/lib/CircleNotch';
-  import KeyIcon from 'phosphor-svelte/lib/Key';
-  import TerminalIcon from 'phosphor-svelte/lib/TerminalWindow';
   import EyeIcon from 'phosphor-svelte/lib/Eye';
   import EyeSlashIcon from 'phosphor-svelte/lib/EyeSlash';
   import MoonIcon from 'phosphor-svelte/lib/Moon';
@@ -42,8 +41,7 @@
   import ThemePreview from './ThemePreview.svelte';
 
   const STEPS = [
-    { key: 'welcome', title: 'Hoş geldin', hint: 'Kurulum kodu' },
-    { key: 'system', title: 'Sistem', hint: 'Ortam denetimi' },
+    { key: 'system', title: 'Hoş geldin', hint: 'Sistem denetimi' },
     { key: 'site', title: 'Site', hint: 'Ad ve görünüm' },
     { key: 'admin', title: 'Yönetici', hint: 'Hesabın' },
     { key: 'community', title: 'Topluluk', hint: 'Kayıt ve eklentiler' },
@@ -59,8 +57,8 @@
   let done = $state(false);
 
   // Adım 1
-  let code = $state('');
   let env = $state<InstallEnvironment | null>(null);
+  let envError = $state('');
 
   // Adım 3
   let site = $state({ name: '', description: '', theme: 'modern' as 'modern' | 'community' | 'classic', accent: '#9c9c9c', mode: 'dark' as 'dark' | 'light' });
@@ -114,20 +112,16 @@
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  async function verifyCode(e?: SubmitEvent) {
-    e?.preventDefault();
-    busy = true;
-    errors = {};
+  async function loadEnvironment() {
+    envError = '';
     try {
-      env = await api.post<InstallEnvironment>('/api/install/verify', { code });
+      env = await api.get<InstallEnvironment>('/api/install/environment');
       if (!site.name) site.name = env.suggestedName === 'Forum' ? '' : env.suggestedName;
-      go(1);
     } catch (err) {
-      errors = err instanceof ApiError && Object.keys(err.fields).length ? err.fields : { code: errorMessage(err) };
-    } finally {
-      busy = false;
+      envError = errorMessage(err);
     }
   }
+  onMount(loadEnvironment);
 
   function validate(key: StepKey): boolean {
     const e: Record<string, string> = {};
@@ -160,7 +154,7 @@
     busy = true;
     mailResult = null;
     try {
-      mailResult = await api.post<MailVerifyResult>('/api/install/mail-test', { code, mail: mailBody() });
+      mailResult = await api.post<MailVerifyResult>('/api/install/mail-test', { mail: mailBody() });
     } catch (err) {
       mailResult = { ok: false, ms: 0, code: null, message: errorMessage(err) };
     } finally {
@@ -168,13 +162,12 @@
     }
   }
 
-  const STEP_OF: Record<string, number> = { code: 0, site: 2, admin: 3, community: 4, mail: 5, mailFrom: 5 };
+  const STEP_OF: Record<string, number> = { site: 1, admin: 2, community: 3, mail: 4, mailFrom: 4 };
   async function install() {
     busy = true;
     errors = {};
     try {
       await api.post('/api/install', {
-        code,
         site: { ...site, name: site.name.trim(), description: site.description.trim() },
         admin: { username: admin.username.trim(), email: admin.email.trim(), password: admin.password },
         community: { registration, sampleContent, plugins },
@@ -267,42 +260,19 @@
         {:else}
           {#key step}
             <section class="grid gap-6 p-5 sm:p-8" in:fly={{ x: 24 * dir, duration: 320, easing: cubicOut }}>
-              {#if STEPS[step]!.key === 'welcome'}
+              {#if STEPS[step]!.key === 'system'}
                 <header class="grid gap-2">
                   <h1 class="text-2xl font-extrabold tracking-tight sm:text-3xl">{t('InkForum’a hoş geldin')}</h1>
-                  <p class="text-white/60">{t('Topluluğunu birkaç adımda kuralım. Başlamak için sunucunun oluşturduğu kurulum kodunu gir; bu kod, sunucuya erişimi olmayan birinin kurulumu ele geçirmesini engeller.')}</p>
+                  <p class="text-white/60">{t('Topluluğunu birkaç adımda kuralım. Önce sunucunun hazır olup olmadığına baktık; adres, güvenlik anahtarları ve diğer gerekli ayarlar otomatik yapılır.')}</p>
                 </header>
-                <div class="grid gap-3 rounded-2xl border border-white/10 bg-black/30 p-4 text-sm">
-                  <p class="flex items-center gap-2 font-semibold"><TerminalIcon class="size-4" />{t('Kodu nerede bulurum?')}</p>
-                  <ul class="grid gap-1.5 text-white/65">
-                    <li>Docker: <code class="rounded bg-white/10 px-1.5 py-0.5 text-xs">docker compose logs inkforum | grep "Kurulum kodu"</code></li>
-                    <li>{t('Sunucu paketi: konsol çıktısı ya da')} <code class="rounded bg-white/10 px-1.5 py-0.5 text-xs">storage/INSTALL_CODE.txt</code></li>
-                  </ul>
-                </div>
-                <form class="grid gap-4" onsubmit={verifyCode}>
-                  <Field label={t('Kurulum kodu')} error={errors.code} for="code">
-                    <div class="relative">
-                      <KeyIcon class="pointer-events-none absolute top-1/2 left-3.5 size-5 -translate-y-1/2 text-white/40" />
-                      <input
-                        id="code"
-                        bind:value={code}
-                        autocomplete="off"
-                        spellcheck="false"
-                        maxlength={12}
-                        placeholder="ABCD-EFGH"
-                        class="h-14 w-full rounded-xl border border-white/15 bg-black/30 pr-4 pl-11 font-mono text-xl tracking-[0.3em] uppercase outline-none transition-colors placeholder:text-white/20 focus:border-white/50"
-                      />
-                    </div>
-                  </Field>
-                  <Button type="submit" size="lg" disabled={busy || code.replace(/[\s-]/g, '').length < 8} class="w-full bg-white text-black hover:bg-white/90 sm:w-fit">
-                    {#if busy}<LoaderIcon class="animate-spin" />{/if}{t('Devam et')}<ArrowRightIcon />
-                  </Button>
-                </form>
-              {:else if STEPS[step]!.key === 'system'}
-                <header class="grid gap-2">
-                  <h1 class="text-2xl font-extrabold tracking-tight">{t('Sistem denetimi')}</h1>
-                  <p class="text-white/60">{t('Sunucunun InkForum için hazır olup olmadığını kontrol ettik.')}</p>
-                </header>
+                {#if envError}
+                  <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-destructive/15 px-4 py-3 text-sm text-red-300" role="alert">
+                    <span>{envError}</span>
+                    <Button size="sm" variant="outline" onclick={loadEnvironment} class="border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white">{t('Tekrar dene')}</Button>
+                  </div>
+                {:else if !env}
+                  <p class="flex items-center gap-2 text-sm text-white/60"><LoaderIcon class="size-4 animate-spin" />{t('Sistem denetleniyor…')}</p>
+                {/if}
                 <ul class="grid gap-2">
                   {#each checks as c, i (c.key)}
                     {@const Icon = statusIcon(c.status)}
@@ -532,20 +502,22 @@
                 {#if errors.install}<p class="rounded-xl bg-destructive/15 px-4 py-3 text-sm text-red-300" role="alert">{errors.install}</p>{/if}
               {/if}
 
-              {#if step > 0}
-                <footer class="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-5">
+              <footer class="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-5">
+                {#if step > 0}
                   <Button variant="ghost" onclick={() => go(step - 1)} disabled={busy} class="text-white/70 hover:bg-white/10 hover:text-white"><ArrowLeftIcon />{t('Geri')}</Button>
-                  {#if STEPS[step]!.key === 'finish'}
-                    <Button size="lg" onclick={install} disabled={busy} class="bg-white text-black hover:bg-white/90">
-                      {#if busy}<LoaderIcon class="animate-spin" />{t('Kuruluyor…')}{:else}<RocketIcon />{t('Kurulumu tamamla')}{/if}
-                    </Button>
-                  {:else}
-                    <Button size="lg" onclick={next} disabled={busy || (STEPS[step]!.key === 'system' && failed)} class="bg-white text-black hover:bg-white/90">
-                      {STEPS[step]!.key === 'mail' && !mailOn ? t('Şimdilik atla') : t('Devam et')}<ArrowRightIcon />
-                    </Button>
-                  {/if}
-                </footer>
-              {/if}
+                {:else}
+                  <span></span>
+                {/if}
+                {#if STEPS[step]!.key === 'finish'}
+                  <Button size="lg" onclick={install} disabled={busy} class="bg-white text-black hover:bg-white/90">
+                    {#if busy}<LoaderIcon class="animate-spin" />{t('Kuruluyor…')}{:else}<RocketIcon />{t('Kurulumu tamamla')}{/if}
+                  </Button>
+                {:else}
+                  <Button size="lg" onclick={next} disabled={busy || (STEPS[step]!.key === 'system' && (!env || failed))} class="bg-white text-black hover:bg-white/90">
+                    {STEPS[step]!.key === 'mail' && !mailOn ? t('Şimdilik atla') : STEPS[step]!.key === 'system' ? t('Başlayalım') : t('Devam et')}<ArrowRightIcon />
+                  </Button>
+                {/if}
+              </footer>
             </section>
           {/key}
         {/if}

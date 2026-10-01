@@ -48,13 +48,13 @@ Le script :
 1. installe Docker s'il est absent (après vous l'avoir demandé),
 2. crée `/opt/inkforum` et un fichier `.env` contenant des secrets aléatoires robustes,
 3. active le **HTTPS automatique** (Let's Encrypt via Caddy) si vous indiquez un domaine,
-4. démarre InkForum et affiche votre **URL et votre code d'installation**.
+4. démarre InkForum et affiche votre **URL d'installation**.
 
 Ouvrez `https://your-domain.com/install` dans votre navigateur. L'assistant vérifie votre serveur puis vous demande le nom du forum,
 le thème, le compte administrateur, le mode d'inscription, les plugins et (facultativement) les paramètres d'e-mail. C'est tout.
 
-> **Pourquoi un code d'installation ?** Il empêche quiconque de s'approprier un serveur fraîchement installé et exposé à Internet.
-> Le code est uniquement affiché dans le journal du serveur : `docker compose -f /opt/inkforum/docker-compose.yml logs inkforum | grep "Setup code"`
+> **Terminez l'installation tout de suite.** Il n'y a pas de code d'installation : la première personne qui termine l'assistant devient administratrice ;
+> ouvrez donc `/install` dès qu'InkForum est lancé. L'adresse du site est détectée depuis votre navigateur et enregistrée.
 
 ### Installation manuelle (Docker Compose)
 
@@ -62,15 +62,15 @@ le thème, le compte administrateur, le mode d'inscription, les plugins et (facu
 mkdir -p /opt/inkforum && cd /opt/inkforum
 curl -fsSLO https://raw.githubusercontent.com/vokartz/inkforum/main/docker-compose.yml
 curl -fsSL https://raw.githubusercontent.com/vokartz/inkforum/main/.env.example -o .env
-# fill in APP_URL, APP_SECRET and UPDATER_TOKEN in .env
+# facultatif : APP_URL, APP_SECRET et UPDATER_TOKEN sont détectés ou générés automatiquement
 docker compose up -d
 ```
 
 ### Coolify, Dokploy, Portainer
 
-Ajoutez directement `docker-compose.yml` à votre plateforme et définissez `APP_URL`, `APP_SECRET` (au moins 32 caractères) et
-`UPDATER_TOKEN` (au moins 16 caractères). Si la plateforme fournit son propre reverse proxy, conservez `TRUST_PROXY=uniquelocal`
-et n'activez pas le profil `https` (Caddy).
+Ajoutez directement `docker-compose.yml` (ou l'image `ghcr.io/vokartz/inkforum`) à votre plateforme ; aucune variable n'est requise :
+l'adresse vient de la plateforme (Coolify) ou est détectée dans l'assistant d'installation, et les clés secrètes sont générées
+et stockées dans le volume `storage`. Si la plateforme fournit son propre reverse proxy, conservez `TRUST_PROXY=uniquelocal` et n'activez pas le profil `https` (Caddy).
 
 ### Configuration requise
 
@@ -200,9 +200,9 @@ Tous les paramètres du forum se trouvent dans le panneau d'administration. Le f
 
 | Variable | Description |
 |---|---|
-| `APP_URL` | Adresse complète du site (`https://forum.example.com`) |
-| `APP_SECRET` | Clé de session et de chiffrement (32 caractères ou plus ; la modifier déconnecte tout le monde) |
-| `UPDATER_TOKEN` | Clé partagée avec le conteneur de mise à jour |
+| `APP_URL` | Adresse complète du site (`https://forum.example.com`) ; facultatif — détectée dans l'assistant d'installation |
+| `APP_SECRET` | Clé de session et de chiffrement (32 caractères ou plus ; la modifier déconnecte tout le monde) ; facultatif — générée automatiquement |
+| `UPDATER_TOKEN` | Clé partagée avec le conteneur de mise à jour ; facultatif — générée automatiquement |
 | `DOMAIN`, `COMPOSE_PROFILES=https` | HTTPS automatique avec Caddy |
 | `DB_DRIVER`, `DATABASE_URL` | Utiliser PostgreSQL (ajoutez `postgres` à `COMPOSE_PROFILES`) |
 | `TRUST_PROXY` | Vraies adresses IP des clients derrière un reverse proxy (`uniquelocal` recommandé) |
@@ -218,7 +218,7 @@ Node.js 22.13 ou une version plus récente est requis.
 ```bash
 curl -fsSLO https://github.com/vokartz/inkforum/releases/latest/download/inkforum-<version>-linux-x64.tar.gz
 tar xzf inkforum-*-linux-x64.tar.gz && cd inkforum
-cp .env.example .env   # fill in APP_URL and APP_SECRET
+cp .env.example .env   # facultatif : tout est détecté ou généré automatiquement
 NODE_ENV=production node --env-file=.env server.mjs
 ```
 

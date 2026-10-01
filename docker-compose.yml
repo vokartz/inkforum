@@ -34,10 +34,12 @@ services:
     command: ["node", "updater.mjs"]
     user: root
     environment:
-      UPDATER_TOKEN: ${UPDATER_TOKEN:?UPDATER_TOKEN must be set in .env}
+      # Optional: when empty the app generates the key in the shared storage volume
+      UPDATER_TOKEN: ${UPDATER_TOKEN:-}
       UPDATER_IMAGE: ghcr.io/vokartz/inkforum
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - inkforum-storage:/app/storage:ro
     labels:
       inkforum.role: updater
     healthcheck:

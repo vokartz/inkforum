@@ -5,6 +5,7 @@ import { ErrorCode, type PluginKey } from '@forum/shared';
 import { CONFIG, type AppConfig } from '../config/config.js';
 import { Errors } from '../common/errors.js';
 import { Clock } from '../common/clock.js';
+import { requestOrigin, requestSource } from '../common/origin.js';
 import {
   META_ALLOW_INCOMPLETE,
   META_AUTH,
@@ -138,16 +139,10 @@ export class AccessGuard implements CanActivate {
   }
 
   private checkOrigin(req: Request): void {
-    const origin = req.headers.origin;
-    let source: string | undefined = typeof origin === 'string' && origin !== 'null' ? origin : undefined;
-    if (!source && typeof req.headers.referer === 'string') {
-      try {
-        source = new URL(req.headers.referer).origin;
-      } catch {
-        source = undefined;
-      }
-    }
-    if (source !== this.config.appOrigin) {
+    const source = requestSource(req);
+    // Kurulumdan önce adres henüz bilinmiyorsa (APP_URL otomatik) istek, geldiği sunucuyla aynı kaynaktan olmalı
+    const expected = this.config.appUrlPending ? requestOrigin(source, req.headers.host) : this.config.appOrigin;
+    if (!source || source !== expected) {
       throw Errors.code(ErrorCode.BAD_ORIGIN, 'İstek kaynağı doğrulanamadı. Sayfayı yenileyip tekrar deneyin.', 403);
     }
   }

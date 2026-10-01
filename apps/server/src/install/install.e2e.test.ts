@@ -3,14 +3,12 @@ import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { adminAgent, createHarness, type Harness } from '../testing/harness.js';
 import { UpdatesService } from '../updates/updates.service.js';
 
-const CODE = 'ABCD-2345';
-
 const validInstall = {
-  code: CODE,
   site: { name: 'Mürekkep Topluluğu', description: 'Deneme', theme: 'community', accent: '#10b981', mode: 'light' },
   admin: { username: 'Kurucu', email: 'kurucu@forum.test', password: 'GucluSifre123' },
   community: { registration: 'open', sampleContent: false, plugins: ['wiki', 'tickets'] },
@@ -21,13 +19,13 @@ const validInstall = {
 describe('install wizard', () => {
   let h: Harness;
   beforeAll(async () => {
-    h = await createHarness({ ADMIN_PASSWORD: '', INSTALL_CODE: CODE });
+    h = await createHarness({ ADMIN_PASSWORD: '' });
   });
   afterAll(async () => {
     await h.close();
   });
 
-  it('locks the API until installed and requires the setup code', async () => {
+  it('locks the API until installed and opens the wizard without a setup code', async () => {
     const a = h.agent();
     expect((await a.get('/api/install/status')).body).toMatchObject({ installed: false });
     const blocked = await a.get('/api/forum');
@@ -38,13 +36,10 @@ describe('install wizard', () => {
     expect((await a.get('/api/auth/me')).status).toBe(200);
     expect((await a.get('/api/health')).status).toBe(200);
 
-    const wrong = await a.post('/api/install/verify', { code: 'WXYZ-9999' });
-    expect(wrong.status).toBe(422);
-    expect((await a.post('/api/install', { ...validInstall, code: 'WXYZ-9999' })).status).toBe(422);
-
-    const ok = await a.post('/api/install/verify', { code: 'abcd 2345' });
-    expect(ok.status).toBe(200);
-    expect(ok.body.checks.some((c: { key: string }) => c.key === 'db')).toBe(true);
+    const env = await a.get('/api/install/environment');
+    expect(env.status).toBe(200);
+    expect(env.body.checks.some((c: { key: string }) => c.key === 'db')).toBe(true);
+    expect(env.body.appUrl).toBe(h.config.appUrl);
   });
 
   it('validates the admin account', async () => {
@@ -70,7 +65,7 @@ describe('install wizard', () => {
     expect((await h.agent().get('/api/forum')).status).toBe(200);
     expect((await h.agent().get('/api/install/status')).body.installed).toBe(true);
     expect((await h.agent().post('/api/install', validInstall)).status).toBe(409);
-    expect((await h.agent().post('/api/install/verify', { code: CODE })).status).toBe(409);
+    expect((await h.agent().get('/api/install/environment')).status).toBe(409);
   });
 });
 
@@ -170,7 +165,7 @@ describe('updates and backups', () => {
 describe('install wizard language (DEFAULT_LOCALE)', () => {
   let h: Harness;
   beforeAll(async () => {
-    h = await createHarness({ ADMIN_PASSWORD: '', INSTALL_CODE: CODE, DEFAULT_LOCALE: 'en' });
+    h = await createHarness({ ADMIN_PASSWORD: '', DEFAULT_LOCALE: 'en' });
   });
   afterAll(async () => {
     await h.close();
@@ -181,5 +176,40 @@ describe('install wizard language (DEFAULT_LOCALE)', () => {
     expect((await a.get('/api/auth/me')).body.locale).toBe('en');
     expect((await a.post('/api/install', validInstall)).status).toBe(201);
     expect(h.settings.get('i18n.defaultLocale')).toBe('en');
+  });
+});
+
+describe('automatic site address (APP_URL=auto)', () => {
+  let h: Harness;
+  beforeAll(async () => {
+    h = await createHarness({ ADMIN_PASSWORD: '', APP_URL: 'auto' });
+  });
+  afterAll(async () => {
+    await h.close();
+  });
+
+  const post = (path: string, host: string, origin: string, body: object) =>
+    request(h.app.getHttpServer()).post(path).set('Host', host).set('Origin', origin).send(body);
+
+  it('accepts only same-origin requests before the address is known and saves the wizard address', async () => {
+    expect(h.config.appUrlPending).toBe(true);
+    const env = await request(h.app.getHttpServer()).get('/api/install/environment').set('Host', 'forum.example').set('X-Forwarded-Proto', 'https');
+    expect(env.body.appUrl).toBe('https://forum.example');
+
+    // Başka bir siteden gönderilen istek
+    const cross = await post('/api/install', 'forum.example', 'https://evil.example', validInstall);
+    expect(cross.status).toBe(403);
+    expect(cross.body.error.code).toBe('BAD_ORIGIN');
+
+    expect((await post('/api/install', 'forum.example', 'https://forum.example', validInstall)).status).toBe(201);
+    expect(h.config.appUrlPending).toBe(false);
+    expect(h.config.appUrl).toBe('https://forum.example');
+    expect(h.config.sessionCookieName).toBe('__Host-forum_sid');
+    const saved = await h.db.q.selectFrom('system_state').select('value').where('key', '=', 'site:url').executeTakeFirst();
+    expect(saved?.value).toBe('https://forum.example');
+
+    // Adres artık sabit: başka bir alan adından gelen istek reddedilir
+    const other = await post('/api/auth/login', 'other.example', 'https://other.example', { identifier: 'Kurucu', password: 'GucluSifre123' });
+    expect(other.status).toBe(403);
   });
 });

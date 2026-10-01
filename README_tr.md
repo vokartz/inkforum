@@ -48,13 +48,13 @@ Betik şunları yapar:
 1. Docker yoksa (izninizle) kurar.
 2. `/opt/inkforum` klasörünü, güvenli rastgele anahtarlarla `.env` dosyasını hazırlar.
 3. Alan adı verdiyseniz Caddy ile **otomatik HTTPS** (Let's Encrypt) etkinleştirir.
-4. InkForum'u başlatır ve size **kurulum adresini ve kurulum kodunu** gösterir.
+4. InkForum'u başlatır ve size **kurulum adresini** gösterir.
 
 Ardından tarayıcıda `https://alanadiniz.com/install` adresini açın. Sihirbaz sistemi denetler; forum adını, temayı,
 yönetici hesabınızı, kayıt yöntemini, eklentileri ve (isteğe bağlı) e-posta ayarlarını sorar. Hepsi bu kadar.
 
-> **Kurulum kodu neden var?** Kurulumu tamamlanmamış, internete açık bir sunucuyu başka birinin sahiplenmesini engeller.
-> Kod yalnızca sunucu günlüğünde görünür: `docker compose -f /opt/inkforum/docker-compose.yml logs inkforum | grep "Kurulum kodu"`
+> **Kurulumu hemen tamamlayın.** Kurulum kodu yoktur: sihirbazı ilk tamamlayan kişi yönetici olur; bu yüzden InkForum
+> açılır açılmaz `/install` adresine girin. Site adresi tarayıcınızdan algılanır ve kaydedilir.
 
 ### Elle kurulum (Docker Compose)
 
@@ -62,15 +62,15 @@ yönetici hesabınızı, kayıt yöntemini, eklentileri ve (isteğe bağlı) e-p
 mkdir -p /opt/inkforum && cd /opt/inkforum
 curl -fsSLO https://raw.githubusercontent.com/vokartz/inkforum/main/docker-compose.yml
 curl -fsSL https://raw.githubusercontent.com/vokartz/inkforum/main/.env.example -o .env
-# .env içinde APP_URL, APP_SECRET ve UPDATER_TOKEN değerlerini doldurun
+# isteğe bağlı: APP_URL, APP_SECRET ve UPDATER_TOKEN otomatik algılanır ya da üretilir
 docker compose up -d
 ```
 
 ### Coolify, Dokploy, Portainer
 
-`docker-compose.yml` dosyasını doğrudan bu platformlara ekleyebilirsiniz. `APP_URL`, `APP_SECRET` (en az 32 karakter)
-ve `UPDATER_TOKEN` (en az 16 karakter) ortam değişkenlerini tanımlamanız yeterlidir. Platform kendi ters vekilini
-kullanıyorsa `TRUST_PROXY=uniquelocal` bırakın ve `caddy` profilini açmayın.
+`docker-compose.yml` dosyasını (ya da `ghcr.io/vokartz/inkforum` imajını) doğrudan bu platformlara ekleyebilirsiniz; hiçbir ortam
+değişkeni zorunlu değildir: site adresi platformdan (Coolify) alınır ya da kurulum sihirbazında algılanır, gizli anahtarlar
+üretilip `storage` biriminde saklanır. Platform kendi ters vekilini kullanıyorsa `TRUST_PROXY=uniquelocal` bırakın ve `caddy` profilini açmayın.
 
 ### Gereksinimler
 
@@ -206,9 +206,9 @@ Forumla ilgili her ayar yönetim panelindedir. `.env` dosyası yalnızca altyap�
 
 | Değişken | Açıklama |
 |---|---|
-| `APP_URL` | Sitenin tam adresi (`https://forum.ornek.com`) |
-| `APP_SECRET` | Oturum ve şifreleme anahtarı (en az 32 karakter; değişirse oturumlar kapanır) |
-| `UPDATER_TOKEN` | Güncelleyici kapsayıcıyla paylaşılan anahtar |
+| `APP_URL` | Sitenin tam adresi (`https://forum.ornek.com`); isteğe bağlı — kurulum sihirbazında algılanır |
+| `APP_SECRET` | Oturum ve şifreleme anahtarı (en az 32 karakter; değişirse oturumlar kapanır); isteğe bağlı — otomatik üretilir |
+| `UPDATER_TOKEN` | Güncelleyici kapsayıcıyla paylaşılan anahtar; isteğe bağlı — otomatik üretilir |
 | `DOMAIN`, `COMPOSE_PROFILES=https` | Caddy ile otomatik HTTPS |
 | `DB_DRIVER`, `DATABASE_URL` | PostgreSQL kullanmak için (`COMPOSE_PROFILES` içine `postgres` ekleyin) |
 | `TRUST_PROXY` | Ters vekil arkasında gerçek IP için (`uniquelocal` önerilir) |
@@ -224,7 +224,7 @@ Node.js 22.13 veya üzeri gerekir.
 ```bash
 curl -fsSLO https://github.com/vokartz/inkforum/releases/latest/download/inkforum-<sürüm>-linux-x64.tar.gz
 tar xzf inkforum-*-linux-x64.tar.gz && cd inkforum
-cp .env.example .env   # APP_URL ve APP_SECRET değerlerini doldurun
+cp .env.example .env   # isteğe bağlı: her şey otomatik algılanır ya da üretilir
 NODE_ENV=production node --env-file=.env server.mjs
 ```
 

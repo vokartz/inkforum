@@ -48,13 +48,13 @@ curl -fsSL https://raw.githubusercontent.com/vokartz/inkforum/main/install.sh | 
 1. 在缺少 Docker 时（征得你同意后）自动安装，
 2. 创建 `/opt/inkforum` 目录以及包含高强度随机密钥的 `.env` 文件，
 3. 如果你填写了域名，则启用 **自动 HTTPS**（通过 Caddy 使用 Let's Encrypt），
-4. 启动 InkForum 并输出你的 **安装地址和安装码**。
+4. 启动 InkForum 并输出你的 **安装地址**。
 
 在浏览器中打开 `https://your-domain.com/install`。向导会检查你的服务器环境，并依次询问论坛名称、
 主题、管理员账号、注册模式、插件以及（可选的）邮件设置。就这么简单。
 
-> **为什么需要安装码？** 它可以防止他人抢先接管一台刚安装好、暴露在公网上的服务器。
-> 安装码只会输出到服务器日志中：`docker compose -f /opt/inkforum/docker-compose.yml logs inkforum | grep "Setup code"`
+> **请立即完成安装。** 没有安装码：第一个完成安装向导的人将成为管理员，
+> 因此请在 InkForum 启动后立即打开 `/install`。网站地址会从你的浏览器自动识别并保存。
 
 ### 手动安装（Docker Compose）
 
@@ -62,15 +62,15 @@ curl -fsSL https://raw.githubusercontent.com/vokartz/inkforum/main/install.sh | 
 mkdir -p /opt/inkforum && cd /opt/inkforum
 curl -fsSLO https://raw.githubusercontent.com/vokartz/inkforum/main/docker-compose.yml
 curl -fsSL https://raw.githubusercontent.com/vokartz/inkforum/main/.env.example -o .env
-# fill in APP_URL, APP_SECRET and UPDATER_TOKEN in .env
+# 可选：APP_URL、APP_SECRET 和 UPDATER_TOKEN 会自动识别或生成
 docker compose up -d
 ```
 
 ### Coolify、Dokploy、Portainer
 
-直接将 `docker-compose.yml` 添加到你的平台，并设置 `APP_URL`、`APP_SECRET`（至少 32 个字符）和
-`UPDATER_TOKEN`（至少 16 个字符）。如果平台自带反向代理，请保留 `TRUST_PROXY=uniquelocal`，
-并且不要启用 `https`（Caddy）配置文件。
+直接将 `docker-compose.yml`（或 `ghcr.io/vokartz/inkforum` 镜像）添加到你的平台，无需设置任何变量：
+网站地址取自平台（Coolify）或在安装向导中自动识别，密钥会自动生成
+并保存在 `storage` 卷中。如果平台自带反向代理，请保留 `TRUST_PROXY=uniquelocal`，并且不要启用 `https`（Caddy）配置文件。
 
 ### 系统要求
 
@@ -200,9 +200,9 @@ docker run --rm -v inkforum_inkforum-storage:/data -v "$PWD":/backup alpine tar 
 
 | 变量 | 说明 |
 |---|---|
-| `APP_URL` | 完整的网站地址（`https://forum.example.com`） |
-| `APP_SECRET` | 会话与加密密钥（32 个字符以上；修改后所有用户都会被登出） |
-| `UPDATER_TOKEN` | 与更新器容器共享的密钥 |
+| `APP_URL` | 完整的网站地址（`https://forum.example.com`）；可选——在安装向导中自动识别 |
+| `APP_SECRET` | 会话与加密密钥（32 个字符以上；修改后所有用户都会被登出）；可选——自动生成 |
+| `UPDATER_TOKEN` | 与更新器容器共享的密钥；可选——自动生成 |
 | `DOMAIN`, `COMPOSE_PROFILES=https` | 通过 Caddy 自动启用 HTTPS |
 | `DB_DRIVER`, `DATABASE_URL` | 使用 PostgreSQL（需将 `postgres` 添加到 `COMPOSE_PROFILES`） |
 | `TRUST_PROXY` | 在反向代理后获取真实客户端 IP（推荐 `uniquelocal`） |
@@ -218,7 +218,7 @@ docker run --rm -v inkforum_inkforum-storage:/data -v "$PWD":/backup alpine tar 
 ```bash
 curl -fsSLO https://github.com/vokartz/inkforum/releases/latest/download/inkforum-<version>-linux-x64.tar.gz
 tar xzf inkforum-*-linux-x64.tar.gz && cd inkforum
-cp .env.example .env   # fill in APP_URL and APP_SECRET
+cp .env.example .env   # 可选：所有内容都会自动识别或生成
 NODE_ENV=production node --env-file=.env server.mjs
 ```
 

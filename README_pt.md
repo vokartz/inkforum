@@ -48,13 +48,13 @@ O script:
 1. instala o Docker, caso ele não esteja presente (depois de perguntar a você),
 2. cria `/opt/inkforum` e um arquivo `.env` com segredos aleatórios fortes,
 3. ativa o **HTTPS automático** (Let's Encrypt via Caddy) se você informar um domínio,
-4. inicia o InkForum e exibe sua **URL e seu código de instalação**.
+4. inicia o InkForum e exibe sua **URL de instalação**.
 
 Abra `https://your-domain.com/install` no navegador. O assistente verifica seu servidor e pede o nome do fórum,
 o tema, a conta de administrador, o modo de cadastro, os plugins e (opcionalmente) as configurações de e-mail. Pronto.
 
-> **Por que um código de instalação?** Ele impede que outra pessoa assuma um servidor recém-instalado e exposto à internet.
-> O código só é exibido no log do servidor: `docker compose -f /opt/inkforum/docker-compose.yml logs inkforum | grep "Setup code"`
+> **Conclua a instalação imediatamente.** Não há código de instalação: a primeira pessoa que concluir o assistente se torna administradora,
+> então abra `/install` assim que o InkForum estiver no ar. O endereço do site é detectado pelo seu navegador e salvo.
 
 ### Instalação manual (Docker Compose)
 
@@ -62,15 +62,15 @@ o tema, a conta de administrador, o modo de cadastro, os plugins e (opcionalment
 mkdir -p /opt/inkforum && cd /opt/inkforum
 curl -fsSLO https://raw.githubusercontent.com/vokartz/inkforum/main/docker-compose.yml
 curl -fsSL https://raw.githubusercontent.com/vokartz/inkforum/main/.env.example -o .env
-# fill in APP_URL, APP_SECRET and UPDATER_TOKEN in .env
+# opcional: APP_URL, APP_SECRET e UPDATER_TOKEN são detectados ou gerados automaticamente
 docker compose up -d
 ```
 
 ### Coolify, Dokploy, Portainer
 
-Adicione o `docker-compose.yml` diretamente à sua plataforma e defina `APP_URL`, `APP_SECRET` (no mínimo 32 caracteres) e
-`UPDATER_TOKEN` (no mínimo 16 caracteres). Se a plataforma tiver seu próprio proxy reverso, mantenha `TRUST_PROXY=uniquelocal`
-e não ative o perfil `https` (Caddy).
+Adicione o `docker-compose.yml` (ou a imagem `ghcr.io/vokartz/inkforum`) diretamente à sua plataforma; nenhuma variável é obrigatória:
+o endereço vem da plataforma (Coolify) ou é detectado no assistente de instalação, e as chaves secretas são geradas
+e guardadas no volume `storage`. Se a plataforma tiver seu próprio proxy reverso, mantenha `TRUST_PROXY=uniquelocal` e não ative o perfil `https` (Caddy).
 
 ### Requisitos
 
@@ -200,9 +200,9 @@ Todas as configurações do fórum ficam no painel de administração. O arquivo
 
 | Variável | Descrição |
 |---|---|
-| `APP_URL` | Endereço completo do site (`https://forum.example.com`) |
-| `APP_SECRET` | Chave de sessão e criptografia (32+ caracteres; alterá-la desconecta todo mundo) |
-| `UPDATER_TOKEN` | Chave compartilhada com o contêiner de atualização |
+| `APP_URL` | Endereço completo do site (`https://forum.example.com`); opcional — detectado no assistente de instalação |
+| `APP_SECRET` | Chave de sessão e criptografia (32+ caracteres; alterá-la desconecta todo mundo); opcional — gerada automaticamente |
+| `UPDATER_TOKEN` | Chave compartilhada com o contêiner de atualização; opcional — gerada automaticamente |
 | `DOMAIN`, `COMPOSE_PROFILES=https` | HTTPS automático com Caddy |
 | `DB_DRIVER`, `DATABASE_URL` | Usar PostgreSQL (adicione `postgres` a `COMPOSE_PROFILES`) |
 | `TRUST_PROXY` | IPs reais dos clientes atrás de um proxy reverso (`uniquelocal` recomendado) |
@@ -218,7 +218,7 @@ Toda versão contém `inkforum-<version>-linux-x64.tar.gz` (dependências inclu�
 ```bash
 curl -fsSLO https://github.com/vokartz/inkforum/releases/latest/download/inkforum-<version>-linux-x64.tar.gz
 tar xzf inkforum-*-linux-x64.tar.gz && cd inkforum
-cp .env.example .env   # fill in APP_URL and APP_SECRET
+cp .env.example .env   # opcional: tudo é detectado ou gerado automaticamente
 NODE_ENV=production node --env-file=.env server.mjs
 ```
 

@@ -78,7 +78,6 @@ load_lang() {
       M_SLOW='Uygulama zamanında yanıt vermedi; günlüğe bakın: docker compose logs inkforum'
       M_DONE='InkForum kuruldu!'
       M_WIZARD='Kurulum sihirbazı'
-      M_CODE='Kurulum kodu'
       M_FOOTER='Yapılandırma: %s/.env · Güncellemeler: Yönetim → Güncellemeler'
       ;;
     de)
@@ -103,7 +102,6 @@ load_lang() {
       M_SLOW='Die Anwendung hat nicht rechtzeitig geantwortet; siehe: docker compose logs inkforum'
       M_DONE='InkForum ist installiert!'
       M_WIZARD='Einrichtungsassistent'
-      M_CODE='Setup-Code'
       M_FOOTER='Konfiguration: %s/.env · Updates: Verwaltung → Updates'
       ;;
     es)
@@ -128,7 +126,6 @@ load_lang() {
       M_SLOW='La aplicación no respondió a tiempo; revisa: docker compose logs inkforum'
       M_DONE='¡InkForum está instalado!'
       M_WIZARD='Asistente de instalación'
-      M_CODE='Código de instalación'
       M_FOOTER='Configuración: %s/.env · Actualizaciones: Administración → Actualizaciones'
       ;;
     fr)
@@ -153,7 +150,6 @@ load_lang() {
       M_SLOW="L'application n'a pas répondu à temps ; consultez : docker compose logs inkforum"
       M_DONE='InkForum est installé !'
       M_WIZARD="Assistant d'installation"
-      M_CODE="Code d'installation"
       M_FOOTER='Configuration : %s/.env · Mises à jour : Administration → Mises à jour'
       ;;
     pt)
@@ -178,7 +174,6 @@ load_lang() {
       M_SLOW='A aplicação não respondeu a tempo; verifique: docker compose logs inkforum'
       M_DONE='O InkForum foi instalado!'
       M_WIZARD='Assistente de instalação'
-      M_CODE='Código de instalação'
       M_FOOTER='Configuração: %s/.env · Atualizações: Administração → Atualizações'
       ;;
     ru)
@@ -203,7 +198,6 @@ load_lang() {
       M_SLOW='Приложение не ответило вовремя; смотрите: docker compose logs inkforum'
       M_DONE='InkForum установлен!'
       M_WIZARD='Мастер установки'
-      M_CODE='Код установки'
       M_FOOTER='Настройки: %s/.env · Обновления: Управление → Обновления'
       ;;
     zh)
@@ -228,7 +222,6 @@ load_lang() {
       M_SLOW='应用未及时响应；请查看：docker compose logs inkforum'
       M_DONE='InkForum 安装完成！'
       M_WIZARD='安装向导'
-      M_CODE='安装码'
       M_FOOTER='配置：%s/.env · 更新：管理 → 更新'
       ;;
     *)
@@ -253,7 +246,6 @@ load_lang() {
       M_SLOW='The application did not respond in time; check: docker compose logs inkforum'
       M_DONE='InkForum is installed!'
       M_WIZARD='Setup wizard'
-      M_CODE='Setup code'
       M_FOOTER='Configuration: %s/.env · Updates: Admin → Updates'
       ;;
   esac
@@ -356,17 +348,10 @@ done
 [[ "$up" == "1" ]] || warn "$M_SLOW"
 
 APP_URL="$(grep '^APP_URL=' .env | cut -d= -f2-)"
-# The server prints the code in Turkish and English; the English line is the stable one to parse
-CODE="$(docker compose logs inkforum 2>/dev/null | grep -oE 'Setup code +: [A-Z0-9-]+' | tail -1 | awk '{print $NF}' || true)"
 
 printf '\n%s══════════════════════════════════════════════════════════%s\n' "$green" "$reset"
 printf '  %s%s%s\n\n' "$bold" "$M_DONE" "$reset"
 printf '  %s: %s%s/install%s\n' "$M_WIZARD" "$bold" "$APP_URL" "$reset"
-if [[ -n "$CODE" ]]; then
-  printf '  %s: %s%s%s\n' "$M_CODE" "$bold" "$CODE" "$reset"
-else
-  printf '  %s: docker compose -f %s/docker-compose.yml logs inkforum | grep "Setup code"\n' "$M_CODE" "$DIR"
-fi
 # shellcheck disable=SC2059
 printf "\n  %s$M_FOOTER%s\n" "$dim" "$DIR" "$reset"
 printf '%s══════════════════════════════════════════════════════════%s\n\n' "$green" "$reset"
