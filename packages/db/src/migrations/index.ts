@@ -24,6 +24,7 @@ import * as m0022 from './0022_import.js';
 import * as m0023 from './0023_quote_i18n.js';
 import * as m0024 from './0024_topic_moderation.js';
 import * as m0025 from './0025_topic_members.js';
+import * as m0026 from './0026_theme_styles.js';
 
 /** Statik liste: paketlenmiş (bundle) sunucuda da dosya sistemi taraması gerekmez. */
 export const migrations: Record<string, Migration> = {
@@ -52,6 +53,7 @@ export const migrations: Record<string, Migration> = {
   '0023_quote_i18n': m0023,
   '0024_topic_moderation': m0024,
   '0025_topic_members': m0025,
+  '0026_theme_styles': m0026,
 };
 
 export const migrationProvider: MigrationProvider = {

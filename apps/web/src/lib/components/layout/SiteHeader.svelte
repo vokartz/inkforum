@@ -2,7 +2,8 @@
   import type { NavEntry, Viewer } from '@forum/shared';
   import ModernHeader from './headers/ModernHeader.svelte';
   import CommunityHeader from './headers/CommunityHeader.svelte';
-  import ClassicHeader from './headers/ClassicHeader.svelte';
+  import NovaHeader from './headers/NovaHeader.svelte';
+  import EditorialHeader from './headers/EditorialHeader.svelte';
   import SearchDialog from './SearchDialog.svelte';
 
   let { viewer, nav }: { viewer: Viewer; nav: NavEntry[] } = $props();
@@ -13,8 +14,10 @@
   const onsearch = () => (searchOpen = true);
 </script>
 
-{#if style === 'classic'}
-  <ClassicHeader {viewer} {nav} {onsearch} />
+{#if style === 'nova'}
+  <NovaHeader {viewer} {nav} {onsearch} />
+{:else if style === 'editorial'}
+  <EditorialHeader {viewer} {nav} {onsearch} />
 {:else if style === 'community'}
   <CommunityHeader {viewer} {nav} {onsearch} />
 {:else}

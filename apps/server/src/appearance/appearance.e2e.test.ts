@@ -71,6 +71,29 @@ describe('branding and appearance', () => {
     expect((await member.upload('/api/admin/appearance/assets/logo', 'file', IMG, 'x.png')).status).toBe(403);
   });
 
+  it('saves everything the appearance page sends in one request', async () => {
+    const brand = {
+      'appearance.accentColor': '#22c55e',
+      'appearance.defaultMode': 'dark',
+      'appearance.showForumName': false,
+      'appearance.bannerHeight': 160,
+      'appearance.bannerEnabled': true,
+      'appearance.bannerTagline': '',
+      'appearance.bannerColor': '#1f2937',
+      'appearance.colorSpread': 'none',
+      'appearance.backgroundDim': 80,
+      'appearance.fontFamily': 'inter',
+      'appearance.themeStyle': 'nova',
+      'appearance.radius': 'auto',
+      'appearance.postLayout': 'side',
+    };
+    expect((await admin.put('/api/admin/settings', brand)).status).toBe(200);
+    const me = await h.agent().get('/api/auth/me');
+    expect(me.body.settings).toMatchObject({ 'appearance.themeStyle': 'nova', 'appearance.bannerColor': '#1f2937' });
+    expect((await admin.put('/api/admin/settings', { 'appearance.themeStyle': 'classic' })).status).toBe(422);
+    for (const style of ['modern', 'community', 'editorial']) expect((await admin.put('/api/admin/settings', { 'appearance.themeStyle': style })).status).toBe(200);
+  });
+
   it('exposes appearance settings and saves social links', async () => {
     const bad = await admin.put('/api/admin/settings', { 'appearance.accentColor': 'red' });
     expect(bad.status).toBe(422);

@@ -8,6 +8,7 @@
     type MailVerifyResult,
     type PluginKey,
     type RegistrationMode,
+    type ThemeStyle,
   } from '@forum/shared';
   import { onMount } from 'svelte';
   import { fly, fade, slide } from 'svelte/transition';
@@ -61,12 +62,13 @@
   let envError = $state('');
 
   // Adım 3
-  let site = $state({ name: '', description: '', theme: 'modern' as 'modern' | 'community' | 'classic', accent: '#9c9c9c', mode: 'dark' as 'dark' | 'light' });
+  let site = $state({ name: '', description: '', theme: 'modern' as ThemeStyle, accent: '#9c9c9c', mode: 'dark' as 'dark' | 'light' });
   const ACCENTS = ['#9c9c9c', '#7b61ff', '#3b82f6', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
   const THEMES = [
     { key: 'modern', label: 'Modern', hint: 'Kartlar, ferah boşluklar, akıcı animasyonlar' },
-    { key: 'community', label: 'Topluluk', hint: 'Büyük banner, oyun ve rol yapma sunucuları için' },
-    { key: 'classic', label: 'Klasik', hint: 'SMF tarzı tablo düzeni, modern dokunuşlarla' },
+    { key: 'community', label: 'Topluluk', hint: 'Bannerlı üst alan, altında menü çubuğu; geniş kartlar' },
+    { key: 'nova', label: 'Nova', hint: 'Kurumsal forum düzeni: renkli üst bant, sekme menü, başlık şeritli bloklar' },
+    { key: 'editorial', label: 'Zarif', hint: 'Kâğıt tonları, serif başlıklar, ortalanmış gazete başlığı' },
   ] as const;
 
   // Adım 4
@@ -310,7 +312,7 @@
                 </div>
                 <div class="grid gap-2">
                   <span class="text-sm font-medium">{t('Tema')}</span>
-                  <div class="grid gap-3 sm:grid-cols-3">
+                  <div class="grid gap-3 grid-cols-2 lg:grid-cols-4">
                     {#each THEMES as th (th.key)}
                       <button
                         type="button"

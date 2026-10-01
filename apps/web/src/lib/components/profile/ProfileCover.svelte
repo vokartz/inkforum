@@ -98,18 +98,15 @@
   class={cn('relative h-44 overflow-hidden sm:h-60', repositioning && 'cursor-grab touch-none select-none', dragging && 'cursor-grabbing')}
   style={cover
     ? `background:url('${cover.url}') center ${offset}%/cover no-repeat`
-    : `background: linear-gradient(135deg, ${color ?? 'var(--primary)'} 0%, color-mix(in oklch, ${color ?? 'var(--primary)'} 30%, var(--card)) 60%, var(--card) 100%)`}
+    : `background: color-mix(in oklch, ${color ?? 'var(--primary)'} 38%, var(--muted))`}
   onpointerdown={onPointerDown}
   onpointermove={onPointerMove}
   onpointerup={() => (dragging = false)}
   role={repositioning ? 'slider' : undefined}
   aria-valuenow={repositioning ? Math.round(offset) : undefined}
 >
-  {#if !cover}
-    <!-- Kapak yokken hafif desen -->
-    <div class="absolute inset-0 opacity-20 [background-image:radial-gradient(circle_at_1px_1px,white_1px,transparent_0)] [background-size:22px_22px]"></div>
-  {/if}
-  <div class="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/40"></div>
+  <!-- Kapak yokken düz renk; görsel varken düğmeler okunaklı kalsın diye hafif karartma -->
+  {#if cover}<div class="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/40"></div>{/if}
 
   {#if repositioning}
     <div class="absolute inset-x-0 top-1/2 flex -translate-y-1/2 justify-center">

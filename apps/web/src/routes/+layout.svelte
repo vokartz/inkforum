@@ -201,7 +201,7 @@
   {/if}
   <div class="flex min-h-dvh flex-col">
     <!-- Klasik temada (SMF) üst alan ve içerik ortalanmış tek bir çerçevede -->
-    <div data-part="site-shell" class={themeStyle === 'classic' ? 'smf-shell' : 'contents'}>
+    <div data-part="site-shell" class="contents">
     <SiteHeader {viewer} nav={data.nav} />
     {#if viewer.flags.ban && !viewer.flags.ban.cannotAccess}
       <div class="border-b border-destructive/30 bg-destructive/10 text-sm text-destructive">

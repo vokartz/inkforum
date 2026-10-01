@@ -110,7 +110,7 @@ Não pode usar Docker (cPanel/Passenger, Plesk, Node.js puro)? Toda versão tamb
 <details>
 <summary><b>Design</b></summary>
 
-- Três temas: **Modern**, **Community** (banner grande) e **Classic** (inspirado no SMF, com toques modernos)
+- Quatro temas: **Modern**, **Community** (banner grande), **Nova** (layout de fórum profissional: faixa superior colorida, menu em abas, cabeçalhos de bloco) e **Elegant** (tons de papel, títulos serifados, cabeçalho centralizado)
 - Modo claro/escuro, cor de destaque, 9 fontes, arredondamento de cantos, banner, logo e planos de fundo
 - Editor de menus e blocos da página inicial com arrastar e soltar
 - **Studio**: um construtor de páginas em tela cheia com arrastar e soltar — landing pages, galerias, cards de servidor, contagens regressivas, tabelas de preços, FAQs…

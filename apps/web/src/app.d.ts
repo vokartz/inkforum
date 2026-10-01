@@ -24,7 +24,7 @@ declare global {
     interface Locals {
       theme: 'system' | 'light' | 'dark';
       /** Yönetimin seçtiği tema (html data-style) */
-      style: 'modern' | 'classic' | 'community';
+      style: 'modern' | 'community' | 'nova' | 'editorial';
       /** Köşe yuvarlaklığı (html data-radius) */
       radius: string;
       lang: string;

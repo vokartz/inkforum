@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
-import { applySiteUrl, loadConfig } from './config.js';
+import { applySiteUrl, loadConfig, platformUrl } from './config.js';
 
 const storage = mkdtempSync(join(tmpdir(), 'inkforum-config-'));
 const prod = (env: Record<string, string>) => loadConfig({}, { NODE_ENV: 'production', STORAGE_DIR: storage, ...env });
@@ -38,5 +38,14 @@ describe('config', () => {
     expect(c.appOrigin).toBe('https://forum.example.com');
     expect(c.secureCookies).toBe(true);
     expect(c.appUrlPending).toBe(false);
+  });
+});
+
+describe('platformUrl', () => {
+  it('prefers the custom domain over the one Coolify generated', () => {
+    expect(platformUrl({ COOLIFY_URL: 'https://m130k4o6uoru04opv3wyaojm.vkrtz.me,https://forum.lunar.gg' })).toBe('https://forum.lunar.gg');
+    expect(platformUrl({ COOLIFY_FQDN: 'abc.1.2.3.4.sslip.io,forum.example.com' })).toBe('https://forum.example.com');
+    expect(platformUrl({ COOLIFY_URL: 'https://m130k4o6uoru04opv3wyaojm.vkrtz.me' })).toBe('https://m130k4o6uoru04opv3wyaojm.vkrtz.me');
+    expect(platformUrl({})).toBeNull();
   });
 });

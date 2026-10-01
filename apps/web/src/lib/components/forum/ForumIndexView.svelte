@@ -16,8 +16,6 @@
   import HomeBlock from '$lib/components/home/HomeBlock.svelte';
   import SignInIcon from 'phosphor-svelte/lib/SignIn';
   import UserPlusIcon from 'phosphor-svelte/lib/UserPlus';
-  import ArrowBendIcon from 'phosphor-svelte/lib/ArrowBendDownRight';
-  import { cn } from '$lib/utils';
   import { t, tc } from '$lib/i18n.svelte';
 
   import type { ForumIndexData } from '$lib/forum-index';
@@ -29,7 +27,6 @@
   const forum = $derived(data.forum);
   const welcome = $derived(page.url.searchParams.has('welcome'));
   const forumName = $derived(String(s['general.forumName'] ?? 'Forum'));
-  const classic = $derived(s['appearance.themeStyle'] === 'classic');
 
   let pickerOpen = $state(false);
   let pickBoard = $state<number | null>(null);
@@ -91,11 +88,7 @@
     <HomeBlock {block} forum={data.forum} recent={data.recent} birthdays={data.birthdays} />
   {/each}
 
-  {#if classic}
-    <!-- SMF: bağlantı ağacı -->
-    <p class="-mb-3 text-[13px]" data-part="linktree"><a href="/" class="text-[var(--smf-text)] hover:underline">{forumName}</a></p>
-  {/if}
-  <div class={cn('flex flex-wrap items-center justify-between gap-3', classic && 'hidden')}>
+  <div class="flex flex-wrap items-center justify-between gap-3">
     <h1 class="text-2xl font-extrabold tracking-tight" data-part="page-title">{t('Forumlar')}</h1>
     <div class="flex flex-wrap items-center gap-2">
       {#if viewer.user}
@@ -108,8 +101,8 @@
     </div>
   </div>
 
-  <div class="grid grid-cols-[minmax(0,1fr)] gap-6 {data.home.sidebar.length && !classic ? 'lg:grid-cols-[minmax(0,1fr)_20rem]' : ''}" data-part="home-grid">
-    <div class={cn('grid min-w-0 grid-cols-[minmax(0,1fr)] content-start', classic ? 'gap-2.5' : 'gap-6')}>
+  <div class="grid grid-cols-[minmax(0,1fr)] gap-6 {data.home.sidebar.length ? 'lg:grid-cols-[minmax(0,1fr)_20rem]' : ''}" data-part="home-grid">
+    <div class="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-6">
       {#each forum.categories as cat, i (cat.id)}
         <div class="animate-rise" style="--i:{i}">
           <CategorySection id={cat.id} name={tc(cat.name)} description={tc(cat.description)} collapsible={cat.isCollapsible} background={cat.background} count={cat.boards.length}>
@@ -123,43 +116,17 @@
           {#if viewer.isAdmin}<Button href="/admin/forum" size="sm">{t('Forumu düzenle')}</Button>{/if}
         </EmptyState>
       {/each}
-      {#if classic && forum.categories.length}
-        <!-- SMF: simge açıklaması ve "tümünü okundu say" -->
-        <div class="flex flex-wrap items-center gap-x-5 gap-y-2 px-1 pt-1 text-xs text-muted-foreground" data-part="board-legend">
-          <span class="inline-flex items-center gap-1.5"><span class="size-3 rounded-[3px] bg-primary"></span>{t('Yeni mesaj var')}</span>
-          <span class="inline-flex items-center gap-1.5"><span class="size-3 rounded-[3px] bg-muted-foreground/40"></span>{t('Yeni mesaj yok')}</span>
-          <span class="inline-flex items-center gap-1.5"><ArrowBendIcon class="size-3.5" />{t('Yönlendirme')}</span>
-          {#if viewer.user}
-            <span class="ml-auto flex gap-2">
-              <a href="/unread" class="smf-btn h-6 px-2.5 text-[11px] leading-6 uppercase">{t('Okunmamışlar')}</a>
-              <button type="button" onclick={markAllRead} disabled={marking} class="smf-btn h-6 px-2.5 text-[11px] uppercase">{t('Tümünü okundu say')}</button>
-            </span>
-          {/if}
-        </div>
-      {/if}
       {#each data.home.bottom as block (block.id)}
         <HomeBlock {block} forum={data.forum} recent={data.recent} birthdays={data.birthdays} />
       {/each}
     </div>
 
     {#if data.home.sidebar.length}
-      <!-- Klasik temada (SMF) yan sütun yerine altta "Bilgi Merkezi" -->
-      {#if classic}
-        <section class="smf-info mt-4 rounded-[calc(var(--radius)*1.4)] border p-2.5" data-part="info-center">
-          <h2 class="smf-catbg rounded-[var(--radius)] px-3.5 py-2 text-[15px] font-bold">{t('{name} - Bilgi Merkezi', { name: forumName })}</h2>
-          <aside class="mt-2 grid gap-2" data-part="home-sidebar">
-            {#each data.home.sidebar as block (block.id)}
-              <HomeBlock {block} compact forum={data.forum} recent={data.recent} birthdays={data.birthdays} />
-            {/each}
-          </aside>
-        </section>
-      {:else}
         <aside class="grid content-start gap-5" data-part="home-sidebar">
           {#each data.home.sidebar as block (block.id)}
             <HomeBlock {block} compact forum={data.forum} recent={data.recent} birthdays={data.birthdays} />
           {/each}
         </aside>
-      {/if}
     {/if}
   </div>
 </div>

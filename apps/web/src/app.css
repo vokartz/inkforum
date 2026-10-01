@@ -703,162 +703,7 @@
 }
 
 /* ================================================================
- * Tema: Klasik (SMF 2 "Curve", modern yorum) — koyu mavi degrade sayfa üstü, ortalanmış çerçeve,
- * çelik mavisi kategori şeritleri, ayrı hücreli bölüm satırları, altta çerçeveli bilgi merkezi
- * ================================================================ */
-[data-style='classic'] {
-  font-size: 93.75%;
-}
-[data-style='classic'] body {
-  background:
-    linear-gradient(180deg, var(--smf-deep) 0, color-mix(in oklch, var(--smf-deep) 55%, var(--background)) 13rem, var(--background) 26rem) no-repeat,
-    var(--background);
-}
-/* Ortalanmış çerçeve */
-.smf-shell {
-  position: relative;
-  width: min(80rem, calc(100% - 1.5rem));
-  margin: 1.75rem auto 0;
-  border: 1px solid color-mix(in oklch, var(--border) 80%, black);
-  border-radius: calc(var(--radius) * 2);
-  background: var(--card);
-  box-shadow: 0 18px 40px -24px rgb(0 0 0 / 0.55);
-  overflow: clip;
-}
-.smf-shell > [data-part='page'] {
-  max-width: none;
-  padding-top: 1rem;
-}
-@media (max-width: 640px) {
-  .smf-shell {
-    width: 100%;
-    margin-top: 0;
-    border-radius: 0;
-    border-inline: 0;
-  }
-}
-/* Üst bölüm */
-.smf-top {
-  background: var(--smf-top);
-  border-bottom: 1px solid var(--border);
-}
-[data-style='classic'] .smf-banner {
-  border-bottom: 1px solid var(--border);
-}
-.smf-upper {
-  background: linear-gradient(180deg, color-mix(in oklch, var(--smf-cell) 70%, var(--card)) 0%, var(--card) 100%);
-}
-.smf-menu {
-  border-color: var(--border);
-}
-/* Düğmeler */
-.smf-button-active {
-  background: linear-gradient(180deg, color-mix(in oklch, var(--primary) 70%, white) 0%, var(--primary) 55%, color-mix(in oklch, var(--primary) 85%, black) 100%);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.3);
-  text-shadow: 0 1px 0 rgb(0 0 0 / 0.15);
-}
-.smf-btn {
-  display: inline-flex;
-  align-items: center;
-  border: 1px solid var(--input);
-  border-radius: 3px;
-  background: linear-gradient(180deg, var(--card) 0%, var(--smf-cell) 100%);
-  color: var(--smf-text);
-  font-weight: 600;
-  white-space: nowrap;
-  transition: border-color 0.15s;
-}
-.smf-btn:hover {
-  border-color: color-mix(in oklch, var(--primary) 60%, var(--input));
-}
-/* Kategori ve başlık şeritleri */
-.smf-catbg,
-[data-style='classic'] [data-part='category-header']:not([data-has-bg]) {
-  background: var(--cat-header-bg);
-  color: var(--cat-header-fg);
-  text-shadow: 0 1px 1px rgb(0 0 0 / 0.25);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25);
-}
-[data-style='classic'] [data-part='category'] {
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-  overflow: visible;
-}
-[data-style='classic'] [data-part='category-header'] {
-  border-radius: calc(var(--radius) * 1.2);
-  padding-block: 0.55rem;
-  min-height: 0;
-  overflow: hidden;
-}
-[data-style='classic'] [data-part='category-header'] h2 {
-  font-size: 0.98rem;
-}
-[data-style='classic'] [data-part='category-header'] h2 > span:not(:first-child),
-[data-style='classic'] [data-part='board-columns'] {
-  display: none;
-}
-[data-style='classic'] [data-part='category-header']:not([data-has-bg]) p,
-[data-style='classic'] [data-part='category-header']:not([data-has-bg]) button {
-  color: color-mix(in srgb, currentColor 85%, transparent);
-}
-[data-style='classic'] [data-part='category'] > div {
-  border-top: 0;
-  padding: 3px 3px 0;
-}
-[data-style='classic'] [data-part='category'] .divide-y > * + * {
-  border-top: 0;
-  margin-top: 3px;
-}
-/* Bölüm hücreleri */
-.smf-cell {
-  background: var(--smf-cell);
-}
-.smf-cell-2 {
-  background: var(--smf-cell-2);
-}
-.smf-board > :first-child {
-  border-top-left-radius: 3px;
-  border-bottom-left-radius: 3px;
-}
-.smf-board > :last-child {
-  border-top-right-radius: 3px;
-  border-bottom-right-radius: 3px;
-}
-/* Bilgi merkezi ve yan bileşenler */
-.smf-info {
-  background: var(--card);
-}
-[data-style='classic'] [data-part='widget'] {
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-  background: transparent;
-}
-[data-style='classic'] [data-part='widget'] > header {
-  background: var(--smf-title);
-  color: var(--smf-title-fg);
-  border-radius: calc(var(--radius) * 1.2);
-  padding: 0.5rem 0.85rem;
-  margin-bottom: 0.4rem;
-}
-[data-style='classic'] [data-part='widget'] > header span:first-child {
-  background: transparent;
-}
-[data-style='classic'] [data-part='page-title'] {
-  font-size: 1.15rem;
-}
-[data-style='classic'] [data-part='site-footer'] {
-  text-align: center;
-}
-/* Diğer sayfalardaki kartlar SMF pencereleri gibi */
-[data-style='classic'] [data-part='page'] .rounded-2xl {
-  border-radius: calc(var(--radius) * 1.4);
-}
-
-/* ================================================================
- * Tema: Topluluk (IPS tarzı) — geniş kartlar, sade başlıklar, vurgu renkli sayfa başlığı
+ * Tema: Topluluk — geniş kartlar, sade başlıklar, vurgu renkli sayfa başlığı
  * ================================================================ */
 [data-style='community'] [data-part='category-header'] h2 {
   font-size: 1.2rem;
@@ -889,6 +734,93 @@
   height: 2px;
   border-radius: 2px;
   background: var(--primary);
+}
+
+/* ================================================================
+ * Tema: Nova — kurumsal forum düzeni: vurgu renkli başlık şeritli bloklar, ince kenarlıklar, sıkı satırlar
+ * ================================================================ */
+[data-style='nova'] [data-part='category'],
+[data-style='nova'] [data-part='widget'] {
+  border-radius: var(--radius);
+}
+[data-style='nova'] [data-part='category-header']:not([data-has-bg]) {
+  background: var(--cat-header-bg);
+  color: var(--cat-header-fg);
+  padding-block: 0.7rem;
+  min-height: 0;
+}
+[data-style='nova'] [data-part='category-header']:not([data-has-bg]) h2 {
+  font-size: 1.02rem;
+  color: var(--cat-header-fg);
+}
+[data-style='nova'] [data-part='category-header']:not([data-has-bg]) p {
+  color: color-mix(in oklab, var(--cat-header-fg) 70%, var(--muted-foreground));
+}
+[data-style='nova'] [data-part='board-columns'] {
+  background: var(--surface-2);
+}
+[data-style='nova'] [data-part='board-row'] {
+  padding-block: 0.85rem;
+}
+[data-style='nova'] [data-part='widget'] > header {
+  background: var(--cat-header-bg);
+  color: var(--cat-header-fg);
+  border-bottom: 1px solid var(--border);
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+[data-style='nova'] [data-part='page-title'] {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+[data-style='nova'] [data-part='post'] {
+  border-radius: var(--radius);
+}
+[data-style='nova'] [data-part='post-author'] {
+  background: var(--surface-2);
+}
+
+/* ================================================================
+ * Tema: Zarif — kâğıt tonları, serif başlıklar, ince çizgiler, gölgesiz düz kartlar
+ * ================================================================ */
+[data-style='editorial'] :is(h1, h2, h3, [data-part='page-title'], [data-part='wordmark']) {
+  font-family: var(--heading-font);
+  letter-spacing: -0.005em;
+}
+[data-style='editorial'] [data-part='page-title'] {
+  font-weight: 700;
+}
+[data-style='editorial'] [data-part='category'],
+[data-style='editorial'] [data-part='widget'],
+[data-style='editorial'] [data-part='post'],
+[data-style='editorial'] [data-part='board-header'],
+[data-style='editorial'] [data-part='profile-header'] {
+  box-shadow: none;
+}
+[data-style='editorial'] [data-part='category'] {
+  border-radius: var(--radius);
+}
+[data-style='editorial'] [data-part='category-header'] h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+[data-style='editorial'] [data-part='category-header']:not([data-has-bg]) {
+  border-bottom: 3px double var(--border);
+}
+[data-style='editorial'] [data-part='board-row'] a {
+  text-underline-offset: 3px;
+}
+[data-style='editorial'] [data-part='widget'] > header {
+  font-family: var(--heading-font);
+  font-size: 1.05rem;
+  border-bottom: 1px solid var(--border);
+}
+[data-style='editorial'] [data-part='post-body'] {
+  font-size: 1.02rem;
+  line-height: 1.75;
+}
+.editorial-rule {
+  border-block: 1px solid var(--border);
+  box-shadow: inset 0 3px 0 -2px var(--border);
 }
 
 /* Kaydırınca beliren içerik (use:reveal) — yalnızca ilk ekranın altındakilere uygulanır */

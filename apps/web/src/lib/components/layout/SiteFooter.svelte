@@ -41,10 +41,11 @@
   {/each}
 {/snippet}
 
-{#if style === 'classic'}
-  <!-- Klasik: ortalanmış küçük kutu -->
-  <footer data-part="site-footer" class="mx-auto mt-5 w-full max-w-7xl px-3 pb-8 sm:px-6">
-    <div class="px-4 py-3 text-center text-xs text-muted-foreground">
+{#if style === 'editorial'}
+  <!-- Zarif: çift çizgiyle ayrılmış, ortalanmış künye -->
+  <footer data-part="site-footer" class="mx-auto mt-14 w-full max-w-7xl px-3 pb-10 sm:px-6">
+    <div class="editorial-rule px-4 py-6 text-center text-xs text-muted-foreground">
+      <p class="mb-3 text-lg font-bold text-foreground" style="font-family:var(--heading-font)">{s['general.forumName'] ?? 'Forum'}</p>
       <nav class="flex flex-wrap justify-center gap-x-3 gap-y-1" aria-label={t('Alt bilgi')}>{@render linkList('hover:text-foreground hover:underline')}</nav>
       {#if social.length}<div class="mt-3 flex justify-center gap-3">{@render socialList()}</div>{/if}
       <p class="mt-3 whitespace-pre-line">{copyright}</p>

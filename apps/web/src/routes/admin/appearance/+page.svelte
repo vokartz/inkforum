@@ -5,7 +5,7 @@
   import { fly } from 'svelte/transition';
   import { dndzone, type DndEvent } from 'svelte-dnd-action';
   import { toast } from 'svelte-sonner';
-  import { FONT_OPTIONS, GLOBAL_PERMISSIONS, type IconNode } from '@forum/shared';
+  import { FONT_OPTIONS, GLOBAL_PERMISSIONS, type IconNode, type ThemeStyle } from '@forum/shared';
   import ChevronUpIcon from 'phosphor-svelte/lib/CaretUp';
   import UploadIcon from 'phosphor-svelte/lib/UploadSimple';
   import Trash2Icon from 'phosphor-svelte/lib/Trash';
@@ -67,7 +67,7 @@
   let bannerColor = $state('#16171b');
   let colorSpread = $state<'none' | 'soft' | 'medium' | 'strong'>('none');
   let backgroundDim = $state(80);
-  let themeStyle = $state<'modern' | 'classic' | 'community'>('modern');
+  let themeStyle = $state<ThemeStyle>('modern');
   let radius = $state('auto');
   let postLayout = $state<'side' | 'top'>('side');
   let footerText = $state('');
@@ -104,8 +104,9 @@
 
   const THEMES = [
     { key: 'modern', label: 'Modern', description: 'Sade, düz ve koyu; ince üst çubuk. Günümüz web uygulamaları gibi.', bg: '#09090b' },
-    { key: 'classic', label: 'Klasik (SMF)', description: 'SMF 2 "Curve" düzeni: çerçeveli üst bölüm, haberler kutusu, degrade düğmeler, dönüşümlü satırlar, altta bilgi merkezi.', bg: '#e5eaef' },
-    { key: 'community', label: 'Topluluk (IPS tarzı)', description: 'Bannerlı üst alan, altında menü çubuğu; koyu gri geniş kartlar.', bg: '#262626' },
+    { key: 'community', label: 'Topluluk', description: 'Bannerlı üst alan, altında menü çubuğu; koyu gri geniş kartlar.', bg: '#262626' },
+    { key: 'nova', label: 'Nova', description: 'Kurumsal forum düzeni: vurgu renkli üst bant, sekme menü, açık alt menü şeridi ve renkli başlık şeritli bloklar.', bg: '#f2f4f7' },
+    { key: 'editorial', label: 'Zarif', description: 'Kâğıt tonları, serif başlıklar, ince çizgiler; gazete başlığı gibi ortalanmış logo ve menü.', bg: '#f5f1e8' },
   ] as const;
   const RADII = [
     { value: 'auto', label: 'Temaya göre', css: '0.5rem' },
@@ -395,7 +396,7 @@
           </div>
           <Button onclick={saveBrand} disabled={savingBrand}>{#if savingBrand}<LoaderIcon class="animate-spin" />{:else}<SaveIcon />{/if}{t('Temayı uygula')}</Button>
         </div>
-        <div class="grid gap-4 md:grid-cols-3">
+        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {#each THEMES as th (th.key)}
             <button
               type="button"
@@ -405,11 +406,18 @@
             >
               <!-- Mini önizleme -->
               <div class="h-32 overflow-hidden rounded-md border" style="background:{th.bg}">
-                {#if th.key === 'classic'}
-                  <div class="m-2 rounded-sm border bg-white/90 p-1.5"><div class="h-2 w-16 rounded-sm bg-slate-400"></div></div>
-                  <div class="mx-2 flex gap-1"><span class="h-3 w-8 rounded-t-sm" style="background:{accent}"></span><span class="h-3 w-8 rounded-t-sm bg-white/80"></span><span class="h-3 w-8 rounded-t-sm bg-white/80"></span></div>
-                  <div class="mx-2 mt-1.5 rounded-sm" style="background:linear-gradient({accent},{accent}cc)"><div class="h-3"></div></div>
-                  <div class="mx-2 space-y-px"><div class="h-4 bg-white"></div><div class="h-4 bg-slate-100"></div><div class="h-4 bg-white"></div></div>
+                {#if th.key === 'nova'}
+                  <div class="px-2 pt-2" style="background:color-mix(in oklab, {accent} 38%, #101826)">
+                    <div class="flex items-center justify-between pb-2"><span class="h-2.5 w-12 rounded-sm bg-white/90"></span><span class="h-2.5 w-14 rounded-sm bg-white/15"></span></div>
+                    <div class="flex items-end gap-1"><span class="h-3 w-9 rounded-t-sm" style="background:color-mix(in oklab, {accent} 9%, white)"></span><span class="mb-0.5 h-1.5 w-7 rounded-sm bg-white/40"></span><span class="mb-0.5 h-1.5 w-7 rounded-sm bg-white/40"></span></div>
+                  </div>
+                  <div class="flex h-4 items-center gap-1.5 border-b px-2" style="background:color-mix(in oklab, {accent} 9%, white)"><span class="h-1 w-8 rounded-sm bg-slate-400"></span><span class="h-1 w-8 rounded-sm bg-slate-300"></span><span class="ml-auto h-2 w-6 rounded-sm" style="background:{accent}"></span></div>
+                  <div class="m-2 overflow-hidden rounded-sm border border-slate-200 bg-white"><div class="h-3.5 px-1.5 pt-1" style="background:color-mix(in oklab, {accent} 11%, white)"><div class="h-1.5 w-12 rounded-sm" style="background:color-mix(in oklab, {accent} 72%, #0d1726)"></div></div><div class="h-3 border-t border-slate-100"></div><div class="h-3 border-t border-slate-100"></div></div>
+                {:else if th.key === 'editorial'}
+                  <div class="mx-2 mt-2 border-b border-[#d9d0bd] pb-1"><div class="h-1 w-8 bg-[#d9d0bd]"></div></div>
+                  <div class="flex justify-center py-2"><span class="h-3 w-20 rounded-[1px] bg-[#26221c]"></span></div>
+                  <div class="mx-2 flex justify-center gap-2 border-y-[3px] border-double border-[#d9d0bd] py-1"><span class="h-1 w-6" style="background:{accent}"></span><span class="h-1 w-6 bg-[#c9bfa9]"></span><span class="h-1 w-6 bg-[#c9bfa9]"></span></div>
+                  <div class="m-2 space-y-1 border border-[#e0d8c8] bg-[#fffdf8] p-1.5"><div class="h-2 w-12 bg-[#26221c]/80"></div><div class="h-px bg-[#d9d0bd]"></div><div class="h-2 w-20 bg-[#26221c]/40"></div><div class="h-2 w-16 bg-[#26221c]/40"></div></div>
                 {:else if th.key === 'community'}
                   <div class="flex h-10 items-center justify-between bg-neutral-900 px-2"><span class="h-2.5 w-12 rounded-full bg-white/80"></span><span class="size-4 rounded-full bg-white/40"></span></div>
                   <div class="flex h-5 items-center gap-2 bg-neutral-800 px-2"><span class="h-1 w-6 rounded-full" style="background:{accent}"></span><span class="h-1 w-6 rounded-full bg-white/40"></span></div>

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { REGISTRATION_MODES } from './settings.js';
+import { REGISTRATION_MODES, THEME_STYLES } from './settings.js';
 import { PLUGIN_KEYS } from './plugins.js';
 import { mailTransportInput } from './mail-templates.js';
 
@@ -8,7 +8,7 @@ import { mailTransportInput } from './mail-templates.js';
  * APP_URL verilmediyse site adresi sihirbazın açıldığı adresten alınır.
  */
 
-export const INSTALL_THEMES = ['modern', 'community', 'classic'] as const;
+export const INSTALL_THEMES = THEME_STYLES;
 
 export const installInput = z
   .object({

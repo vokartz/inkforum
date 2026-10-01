@@ -118,7 +118,7 @@ Can't use Docker (cPanel/Passenger, Plesk, plain Node.js)? Every release also sh
 <details>
 <summary><b>Design</b></summary>
 
-- Three themes: **Modern**, **Community** (big banner) and **Classic** (SMF-inspired, with modern touches)
+- Four themes: **Modern**, **Community** (big banner), **Nova** (professional forum layout: colored header band, tabbed menu, block headers) and **Elegant** (paper tones, serif headings, centered masthead)
 - Light/dark mode, accent colour, 9 fonts, corner radius, banner, logo and backgrounds
 - Drag & drop menu editor and home page blocks
 - **Studio**: a full-screen drag & drop page builder — landing pages, galleries, server cards, countdowns, pricing tables, FAQs…

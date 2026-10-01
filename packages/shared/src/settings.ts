@@ -43,6 +43,10 @@ export const SETTING_SECTIONS = {
 } as const;
 
 /** Yönetim panelinden seçilebilen yazı tipleri (hepsi Türkçe karakter destekli, değişken ağırlıklı). */
+/** Forum temaları (Yönetim → Görünüm → Tema) */
+export const THEME_STYLES = ['modern', 'community', 'nova', 'editorial'] as const;
+export type ThemeStyle = (typeof THEME_STYLES)[number];
+
 export const FONT_OPTIONS = [
   { key: 'roboto', label: 'Roboto', family: "'Roboto Variable'" },
   { key: 'inter', label: 'Inter', family: "'Inter Variable'" },
@@ -832,15 +836,16 @@ export const SETTINGS = {
   // Görünüm
   'appearance.themeStyle': def({
     section: 'appearance',
-    schema: z.enum(['modern', 'classic', 'community']),
-    default: 'modern' as 'modern' | 'classic' | 'community',
+    schema: z.enum(THEME_STYLES),
+    default: 'modern' as ThemeStyle,
     label: 'Tema',
-    description: 'Forumun genel görünümü: Modern (sade, koyu), Klasik (eski SMF forumları gibi) ya da Topluluk (IPS tarzı, bannerlı).',
+    description: 'Forumun genel görünümü: Modern, Topluluk, Nova ya da Zarif.',
     input: 'select',
     options: [
       { value: 'modern', label: 'Modern' },
-      { value: 'classic', label: 'Klasik' },
-      { value: 'community', label: 'Topluluk (IPS tarzı)' },
+      { value: 'community', label: 'Topluluk' },
+      { value: 'nova', label: 'Nova' },
+      { value: 'editorial', label: 'Zarif' },
     ],
     public: true,
   }),
@@ -929,7 +934,6 @@ export const SETTINGS = {
     description: 'Banner görseli yüklenmediyse banner bu düz renkte gösterilir (#RRGGBB).',
     input: 'text',
     public: true,
-    hidden: true,
   }),
   'appearance.bannerTagline': def({
     section: 'appearance',

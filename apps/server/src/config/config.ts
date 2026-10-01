@@ -173,11 +173,22 @@ function resolveUpdaterToken(storageDir: string): string | null {
 }
 
 /** Platformun verdiği adres: COOLIFY_URL (virgülle ayrılmış olabilir) ya da COOLIFY_FQDN */
-function platformUrl(e: { COOLIFY_URL?: string; COOLIFY_FQDN?: string }): string | null {
-  const first = (v?: string) => v?.split(',')[0]?.trim() || '';
-  const url = first(e.COOLIFY_URL);
+/**
+ * Coolify birden fazla alan adını virgülle verir; ilki çoğu zaman otomatik üretilen rastgele adrestir
+ * (ör. m130k4o6uoru04opv3wyaojm.ornek.com, *.sslip.io). Varsa kullanıcının eklediği alan adı seçilir.
+ */
+export function platformUrl(e: { COOLIFY_URL?: string; COOLIFY_FQDN?: string }): string | null {
+  const generated = (u: string) => {
+    const host = u.replace(/^https?:\/\//, '').split(/[/:]/)[0] ?? '';
+    return /\.(sslip|nip)\.io$/i.test(host) || /^[a-z0-9]{20,}\./.test(host);
+  };
+  const pick = (v?: string) => {
+    const list = (v ?? '').split(',').map((x) => x.trim()).filter(Boolean);
+    return list.find((u) => !generated(u)) ?? list[0] ?? '';
+  };
+  const url = pick(e.COOLIFY_URL);
   if (/^https?:\/\//.test(url)) return url;
-  const fqdn = first(e.COOLIFY_FQDN);
+  const fqdn = pick(e.COOLIFY_FQDN);
   if (fqdn) return /^https?:\/\//.test(fqdn) ? fqdn : `https://${fqdn}`;
   return null;
 }

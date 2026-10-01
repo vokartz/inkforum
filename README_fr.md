@@ -110,7 +110,7 @@ Vous ne pouvez pas utiliser Docker (cPanel/Passenger, Plesk, Node.js seul) ? Cha
 <details>
 <summary><b>Design</b></summary>
 
-- Trois thèmes : **Modern**, **Community** (grande bannière) et **Classic** (inspiré de SMF, avec une touche de modernité)
+- Quatre thèmes : **Modern**, **Community** (grande bannière), **Nova** (mise en page de forum professionnelle : bandeau coloré, menu à onglets, en-têtes de blocs) et **Elegant** (tons papier, titres à empattements, en-tête centré)
 - Mode clair/sombre, couleur d'accentuation, 9 polices, arrondi des angles, bannière, logo et arrière-plans
 - Éditeur de menus et blocs de page d'accueil en glisser-déposer
 - **Studio** : un constructeur de pages plein écran en glisser-déposer — pages d'accueil, galeries, cartes de serveur, comptes à rebours, grilles tarifaires, FAQ…

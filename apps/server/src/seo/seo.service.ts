@@ -314,7 +314,9 @@ export class SeoService {
       const boards = await this.access.visibleBoards(guest);
       const b = boards.get(Number(m[1]))?.board;
       if (!b || b.is_hidden) return null;
-      return { kicker: host, title: b.name, meta: b.description ?? '' };
+      const cat = await this.db.q.selectFrom('forum_categories').select('name').where('id', '=', b.category_id).executeTakeFirst();
+      const counts = tr('{topics} konu · {posts} mesaj', { topics: b.topic_count, posts: b.post_count });
+      return { kicker: cat?.name || host, title: b.name, meta: b.description ? `${b.description.slice(0, 90)}  ·  ${counts}` : counts };
     }
     if ((m = /^\/u\/(\d+)(?:\/|$)/.exec(path))) {
       if (!can(guest, 'profile.view')) return null;
