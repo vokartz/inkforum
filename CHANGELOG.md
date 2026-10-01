@@ -8,26 +8,40 @@ Each version section becomes the GitHub release note and the update note in the 
 
 ## [Unreleased]
 
-## [1.0.2] - 2026-10-01
+## [1.1.0] - 2026-10-01
+
+### Added
+
+- **Topic templates:** each board can ask questions when a topic is created (short/long answer, number, link,
+  dropdown, single and multiple choice, required fields). The topic body is built from the answers, and the title
+  can be generated automatically (e.g. `{user} — Staff application`).
+- **Approval queue** (`/mod/queue`): topics and replies waiting for approval in one place, with approve / reject
+  buttons and a counter in the user menu for moderators.
+- **Hidden topics:** moderators can hide a topic so only its author and staff can see it; a board can be set to
+  "topics are private" (applications, complaints, support).
+- **Share cards for every page:** boards, profiles, wiki and custom pages, tags and static pages get their own
+  preview image on Discord, X, WhatsApp and others; `og:image` size, the correct `og:locale` and the accent color
+  (embed stripe) are set.
 
 ### Fixed
 
+- Share images showed boxes instead of text on Docker installs (no fonts in the image); fonts now ship with the app.
 - Turkish text no longer leaks into other languages: footer links, the quote header ("… wrote:"), backup labels,
   notification settings, group names, support categories, the wiki description, plugin status, permission profiles,
-  reactions, achievements, policies and the admin sidebar now follow the visitor's language.
-- Quotes in existing posts, messages and pages are updated automatically so their header is shown in the reader's
-  language.
-- Forums installed automatically with `ADMIN_PASSWORD` get their sample boards and welcome topic in the default
-  language instead of Turkish.
-- Default e-mail templates are shown in the administrator's language in the editor.
-- Code samples on the developer and custom-code pages are translated.
-- The restore confirmation word and the `mysqldump` example on the migration page are translated.
-- Removed the extra empty space at the top of some cards (forum migration, settings, member and group pages).
+  reactions, achievements, policies, the admin sidebar and e-mail templates follow the visitor's language.
+- Sample content created in the install language (boards, categories) is shown in each visitor's language.
+- Quotes in existing posts, messages and pages are updated automatically so their header follows the reader's language.
+- Forums installed automatically with `ADMIN_PASSWORD` get their sample content in the default language.
+- Button text on light accent colors (e.g. the default grey) is now dark and readable.
+- Messages page: a single clear start screen when there are no conversations; better height on large screens.
+- Profile page: actions moved next to the name; secondary actions are in a "⋯" menu instead of covering the cover photo.
+- Cookies page redesigned (summary, clear table, sticky "clear cookies" card).
+- Removed the extra empty space at the top of some cards.
 
 ### Changed
 
-- German, French, Russian, Portuguese, Spanish and Chinese translations are now complete; any text that is still
-  missing falls back to English instead of Turkish.
+- German translation completed and corrected (about 1,400 strings were Turkish or English); French, Russian,
+  Portuguese, Spanish and Chinese completed. Any text that is still missing falls back to English instead of Turkish.
 
 ## [1.0.1] - 2026-10-01
 

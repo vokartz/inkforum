@@ -9,25 +9,41 @@ güncelleme notuna dönüşür (panel yöneticinin diline uygun olanı gösterir
 
 ## [Yayımlanmamış]
 
-## [1.0.2] - 2026-10-01
+## [1.1.0] - 2026-10-01
+
+### Eklenenler
+
+- **Konu şablonları:** her bölüm, konu açılırken sorular sorabilir (kısa/uzun yanıt, sayı, bağlantı, açılır liste,
+  tek ve çoklu seçim, zorunlu alanlar). Konu mesajı yanıtlardan oluşur, başlık otomatik üretilebilir
+  (ör. `{user} — Yetkili başvurusu`).
+- **Onay kuyruğu** (`/mod/queue`): onay bekleyen konu ve yanıtlar tek yerde; onayla / reddet düğmeleri ve
+  moderatörler için kullanıcı menüsünde sayaç.
+- **Gizli konular:** moderatörler bir konuyu yalnızca yazarının ve yetkililerin göreceği şekilde gizleyebilir;
+  bölümler "konular gizli" olarak ayarlanabilir (başvuru, şikâyet, destek).
+- **Her sayfa için paylaşım kartı:** bölümler, profiller, wiki ve özel sayfalar, etiketler ve sabit sayfalar Discord,
+  X, WhatsApp vb. için kendi önizleme görselini alır; `og:image` boyutu, doğru `og:locale` ve vurgu rengi (gömme
+  kartı kenarı) eklenir.
 
 ### Düzeltilenler
 
+- Docker kurulumlarında paylaşım görsellerinde yazılar kutucuk olarak çıkıyordu (imajda font yoktu); fontlar artık
+  uygulamayla geliyor.
 - Diğer dillerde Türkçe metin görünmesi giderildi: alt bilgi bağlantıları, alıntı başlığı ("… yazdı:"), yedek
   etiketleri, bildirim ayarları, grup adları, destek kategorileri, wiki açıklaması, eklenti durumları, yetki profilleri,
-  tepkiler, başarılar, politikalar ve yönetim kenar çubuğu artık ziyaretçinin dilini izliyor.
+  tepkiler, başarılar, politikalar, yönetim kenar çubuğu ve e-posta şablonları ziyaretçinin dilini izliyor.
+- Kurulum dilinde oluşturulan örnek içerik (bölümler, kategoriler) her ziyaretçiye kendi dilinde gösterilir.
 - Var olan mesaj, özel mesaj ve sayfalardaki alıntılar otomatik güncellenir; başlıkları okuyanın dilinde görünür.
-- `ADMIN_PASSWORD` ile otomatik kurulan forumlarda örnek bölümler ve hoş geldin konusu Türkçe yerine varsayılan dilde
-  oluşturulur.
-- Varsayılan e-posta şablonları düzenleyicide yöneticinin dilinde gösterilir.
-- Geliştirici ve özel kod sayfalarındaki kod örnekleri çevrildi.
-- Geri yükleme onay sözcüğü ve forum aktarma sayfasındaki `mysqldump` örneği çevrildi.
-- Bazı kartların üstündeki fazladan boşluk kaldırıldı (forum aktarma, ayarlar, üye ve grup sayfaları).
+- `ADMIN_PASSWORD` ile otomatik kurulan forumlarda örnek içerik varsayılan dilde oluşturulur.
+- Açık vurgu renklerinde (ör. varsayılan gri) düğme yazıları artık koyu ve okunaklı.
+- Mesajlar sayfası: hiç konuşma yokken tek ve net bir başlangıç ekranı; büyük ekranlarda daha dengeli yükseklik.
+- Profil sayfası: işlemler adın yanına taşındı; ikincil işlemler kapak fotoğrafını kaplamak yerine "⋯" menüsünde.
+- Çerezler sayfası yeniden tasarlandı (özet, düzenli tablo, sabit "çerezleri temizle" kartı).
+- Bazı kartların üstündeki fazladan boşluk kaldırıldı.
 
 ### Değişenler
 
-- Almanca, Fransızca, Rusça, Portekizce, İspanyolca ve Çince çeviriler tamamlandı; eksik kalan bir metin olursa
-  Türkçe yerine İngilizce gösterilir.
+- Almanca çeviri tamamlandı ve düzeltildi (yaklaşık 1.400 metin Türkçe ya da İngilizce kalmıştı); Fransızca, Rusça,
+  Portekizce, İspanyolca ve Çince tamamlandı. Eksik kalan bir metin olursa Türkçe yerine İngilizce gösterilir.
 
 ## [1.0.1] - 2026-10-01
 
