@@ -1,6 +1,6 @@
 <script lang="ts">
   import { CONTENT_VISIBILITY_LABELS, PAGE_LAYOUT_INFO, type AdminCustomPage } from '@forum/shared';
-  import { invalidate } from '$app/navigation';
+  import { goto, invalidate } from '$app/navigation';
   import { toast } from 'svelte-sonner';
   import FilesIcon from 'phosphor-svelte/lib/Files';
   import PlusIcon from 'phosphor-svelte/lib/Plus';
@@ -10,6 +10,10 @@
   import DotsIcon from 'phosphor-svelte/lib/DotsThreeVertical';
   import CodeIcon from 'phosphor-svelte/lib/Code';
   import TextIcon from 'phosphor-svelte/lib/TextAa';
+  import HardDrivesIcon from 'phosphor-svelte/lib/HardDrives';
+  import HouseIcon from 'phosphor-svelte/lib/House';
+  import BookIcon from 'phosphor-svelte/lib/BookOpenText';
+  import SquaresIcon from 'phosphor-svelte/lib/SquaresFour';
   import * as Table from '$lib/components/ui/table';
   import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
   import { Button } from '$lib/components/ui/button';
@@ -21,11 +25,23 @@
   import { t } from '$lib/i18n.svelte';
 
   let { data } = $props();
+  const url = (p: AdminCustomPage) => (p.route ? `/${p.route}` : `/pages/${p.slug}`);
+  const landingOn = $derived(data.viewer?.settings['plugins.enabled'] ? (data.viewer.settings['plugins.enabled'] as Record<string, boolean>).landing !== false : true);
+
+  async function setLanding(id: number | null) {
+    try {
+      await api.put('/api/admin/pages/landing', { id });
+      toast.success(id ? t('Açılış sayfası ayarlandı; forum artık /forum adresinde.') : t('Ana sayfa yeniden forum dizini.'));
+      await invalidate('app:admin-pages');
+    } catch (e) {
+      toast.error(errorMessage(e));
+    }
+  }
 
   async function remove(p: AdminCustomPage) {
     if (!(await confirmAction({
         title: t('"{title}" silinsin mi?', { title: p.title }),
-        description: t('/pages/{slug} adresi artık açılmaz. Menüdeki bağlantıları da kaldırmayı unutmayın.', { slug: p.slug }),
+        description: t('{url} adresi artık açılmaz; sayfanın sunucu verileri de silinir. Menüdeki bağlantıları da kaldırmayı unutmayın.', { url: url(p) }),
         confirmLabel: t('Sil'),
         destructive: true,
       })))
@@ -44,11 +60,12 @@
 
 <PageHeader
   title={t('Özel sayfalar')}
-  description={t('Kurallar rehberi, UCP, başvuru, etkinlik takvimi gibi kendi sayfalarını oluştur. Menüye eklemek için Görünüm → Üst menü.')}
+  description={t('UCP, kurallar rehberi, etkinlik takvimi gibi kendi sayfalarını HTML, CSS ve JavaScript ile yaz; istersen sayfaya sunucu kodu ekle. Menüye eklemek için Görünüm → Üst menü.')}
   icon={FilesIcon}
 >
   {#snippet actions()}
-    <Button href="/studio/new"><PlusIcon weight="bold" />{t('Yeni sayfa')}</Button>
+    <Button href="/admin/pages/docs" variant="outline"><BookIcon />{t('Belgeler')}</Button>
+    <Button href="/admin/pages/new"><PlusIcon weight="bold" />{t('Yeni sayfa')}</Button>
   {/snippet}
 </PageHeader>
 
@@ -71,14 +88,15 @@
           {#each data.pages as p (p.id)}
             <Table.Row>
               <Table.Cell>
-                <a href="/studio/{p.id}" class="grid">
-                  <span class="font-semibold hover:underline">{p.title}</span>
-                  <span class="font-mono text-xs text-muted-foreground">/pages/{p.slug}</span>
+                <a href="/admin/pages/{p.id}" class="grid">
+                  <span class="flex items-center gap-1.5 font-semibold hover:underline">{p.title}{#if data.landingSlug === p.slug}<HouseIcon class="size-4 text-primary" weight="fill" />{/if}</span>
+                  <span class="font-mono text-xs text-muted-foreground">{url(p)}</span>
                 </a>
               </Table.Cell>
               <Table.Cell class="hidden md:table-cell">
-                <span class="inline-flex items-center gap-1.5 text-sm">
-                  {#if p.format === 'html'}<CodeIcon class="size-4 text-muted-foreground" />HTML{:else}<TextIcon class="size-4 text-muted-foreground" />BBCode{/if}
+                <span class="inline-flex flex-wrap items-center gap-1.5 text-sm">
+                  {#if p.format === 'html'}<CodeIcon class="size-4 text-muted-foreground" />HTML{:else if p.format === 'builder'}<SquaresIcon class="size-4 text-muted-foreground" />{t('Eski düzenleyici')}{:else}<TextIcon class="size-4 text-muted-foreground" />BBCode{/if}
+                  {#if p.serverEnabled}<span class="inline-flex items-center gap-1 rounded-md bg-primary-soft px-1.5 py-0.5 text-[11px] font-semibold text-highlight"><HardDrivesIcon class="size-3" />{t('Sunucu')}</span>{/if}
                 </span>
               </Table.Cell>
               <Table.Cell class="hidden text-sm md:table-cell">{t(PAGE_LAYOUT_INFO[p.layout].label)}</Table.Cell>
@@ -94,9 +112,13 @@
                     {#snippet child({ props })}<Button {...props} variant="ghost" size="icon-sm" aria-label={t('İşlemler')}><DotsIcon weight="bold" /></Button>{/snippet}
                   </DropdownMenu.Trigger>
                   <DropdownMenu.Content align="end">
-                    <DropdownMenu.Item onSelect={() => window.open(`/pages/${p.slug}`, '_blank')}><ArrowSquareOutIcon />{t('Görüntüle')}</DropdownMenu.Item>
-                    {#if p.format !== 'html' || data.canCode}
-                      <DropdownMenu.Item onSelect={() => (location.href = `/studio/${p.id}`)}><PencilIcon />{t('Düzenle')}</DropdownMenu.Item>
+                    <DropdownMenu.Item onSelect={() => window.open(url(p), '_blank')}><ArrowSquareOutIcon />{t('Görüntüle')}</DropdownMenu.Item>
+                    <DropdownMenu.Item onSelect={() => goto(`/admin/pages/${p.id}`)}><PencilIcon />{t('Düzenle')}</DropdownMenu.Item>
+                    {#if landingOn && p.isPublished}
+                      {#if data.landingSlug === p.slug}<DropdownMenu.Item onSelect={() => setLanding(null)}><HouseIcon />{t('Açılış sayfası olmaktan çıkar')}</DropdownMenu.Item>
+                      {:else}<DropdownMenu.Item onSelect={() => setLanding(p.id)}><HouseIcon />{t('Açılış sayfası yap')}</DropdownMenu.Item>{/if}
+                    {/if}
+                    {#if (p.format !== 'html' && !p.serverEnabled && !p.js) || data.canCode}
                       <DropdownMenu.Item variant="destructive" onSelect={() => remove(p)}><TrashIcon />{t('Sil')}</DropdownMenu.Item>
                     {/if}
                   </DropdownMenu.Content>
@@ -110,9 +132,9 @@
   {:else}
     <EmptyState
       title={t('Henüz özel sayfa yok')}
-      description={t('BBCode ile içerik sayfası ya da HTML ile tamamen kendi tasarımın (UCP, açılış sayfası) olan sayfalar oluşturabilirsin.')}
+      description={t('BBCode ile içerik sayfası ya da HTML, CSS ve JavaScript ile tamamen kendi tasarımın (UCP, açılış sayfası) olan sayfalar oluşturabilirsin.')}
     >
-      <Button href="/studio/new"><PlusIcon weight="bold" />{t('İlk sayfayı oluştur')}</Button>
+      <Button href="/admin/pages/new"><PlusIcon weight="bold" />{t('İlk sayfayı oluştur')}</Button>
     </EmptyState>
   {/if}
 {/if}

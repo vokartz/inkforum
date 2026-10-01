@@ -158,12 +158,12 @@ export class SeoService {
     }
     const pages = await this.db.q
       .selectFrom('custom_pages')
-      .select(['slug', 'updated_at'])
+      .select(['slug', 'route', 'updated_at'])
       .where('is_published', '=', 1)
       .where('visibility', 'in', ['all', 'guests'])
       .execute();
     const landing = String(settings['home.landingPage'] ?? '');
-    for (const p of pages) if (p.slug !== landing) out.push({ loc: this.url(`/pages/${p.slug}`), lastmod: p.updated_at, priority: 0.6 });
+    for (const p of pages) if (p.slug !== landing) out.push({ loc: this.url(p.route ? `/${p.route}` : `/pages/${p.slug}`), lastmod: p.updated_at, priority: 0.6 });
     if (landing && pluginEnabled(settings, 'landing')) out.push({ loc: this.url('/forum'), lastmod: null, priority: 0.9 });
     for (const p of await this.policies.published()) out.push({ loc: this.url(`/policies/${p.key}`), lastmod: p.publishedAt ?? null, priority: 0.3 });
     if (pluginEnabled(settings, 'applications') && can(guest, 'applications.apply')) out.push({ loc: this.url('/applications'), lastmod: null, priority: 0.4 });
@@ -358,6 +358,18 @@ export class SeoService {
       '/register': 'Kayıt ol',
       '/login': 'Giriş yap',
     };
+    // Kök adresli özel sayfa (/ucp vb.)
+    const route = path.replace(/^\/+|\/+$/g, '');
+    if (route && !route.includes('.')) {
+      const pg = await this.db.q
+        .selectFrom('custom_pages')
+        .select(['title', 'meta_description'])
+        .where('route', '=', route.toLowerCase())
+        .where('is_published', '=', 1)
+        .where('visibility', 'in', ['all', 'guests'])
+        .executeTakeFirst();
+      if (pg) return { kicker: host, title: pg.title, meta: pg.meta_description ?? '' };
+    }
     if (path === '/wiki' && pluginEnabled(settings, 'wiki')) return { kicker: host, title: String(settings['wiki.name'] || 'Wiki'), meta: tr(String(settings['wiki.description'] ?? '')) };
     if (STATIC[path]) return { kicker: host, title: tr(STATIC[path]), meta: String(settings['general.forumDescription'] ?? '').slice(0, 110) };
     return null;

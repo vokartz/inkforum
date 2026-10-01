@@ -1,3 +1,4 @@
+import { Db } from '../database/db.service.js';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { adminAgent, createHarness, registerActive, type Agent, type Harness } from '../testing/harness.js';
 
@@ -95,10 +96,19 @@ describe('page builder', () => {
         { id: 'e', type: 'cta', title: 'Üyelere özel', visibility: 'members' },
       ],
     };
-    const bad = await admin.post('/api/admin/pages', { slug: 'giris', title: 'Giriş', format: 'builder', body: JSON.stringify({ blocks: [{ id: 'x', type: 'hero', buttons: [{ label: 'X', url: 'javascript://alert(1)' }] }] }) });
-    expect(bad.status).toBe(422);
-    const created = await admin.post('/api/admin/pages', { slug: 'giris', title: 'Giriş', format: 'builder', body: JSON.stringify(doc) });
-    expect(created.status).toBe(201);
+    // Görsel düzenleyici kaldırıldı: yeni blok sayfası oluşturulamaz, eski sayfalar görünmeye devam eder
+    const blocked = await admin.post('/api/admin/pages', { slug: 'giris', title: 'Giriş', format: 'builder', body: JSON.stringify(doc) });
+    expect(blocked.status).toBe(422);
+    const now = Date.now();
+    const id = (
+      await h.app
+        .get(Db)
+        .q.insertInto('custom_pages')
+        .values({ slug: 'giris', title: 'Giriş', format: 'builder', body: JSON.stringify({ version: 1, css: '', ...doc }), created_at: now, updated_at: now })
+        .returning('id')
+        .executeTakeFirstOrThrow()
+    ).id;
+    const created = { body: { id } };
 
     const guest = (await h.agent().get('/api/pages/giris')).body;
     expect(guest.blocks.map((b: { type: string }) => b.type)).toEqual(['hero', 'text', 'stats', 'latest']);

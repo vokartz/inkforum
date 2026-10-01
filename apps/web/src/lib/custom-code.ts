@@ -81,6 +81,17 @@ export interface ForumApiViewer {
   displayName: string;
   group: string | null;
   isGuest: boolean;
+  avatarUrl?: string | null;
+}
+
+/** Açık özel sayfanın bilgisi (yalnızca özel sayfalarda) */
+export interface ForumPageInfo {
+  id: number;
+  slug: string;
+  route: string | null;
+  title: string;
+  /** Sayfanın sunucu kodunun `json(...)` ile döndürdüğü veri */
+  data: unknown;
 }
 
 interface ForumApi {
@@ -90,6 +101,10 @@ interface ForumApi {
   token(): Promise<string>;
   /** Forum içi sayfa geçişlerinde çağrılır (tek sayfa uygulaması: sayfa yeniden yüklenmez). */
   onNavigate(cb: (url: URL) => void): () => void;
+  /** Özel sayfadaysa sayfanın bilgisi ve sunucu verisi */
+  page: ForumPageInfo | null;
+  /** Sayfanın sunucu koduna istek: forum.api('/visits', { method: 'POST', body: { a: 1 } }) */
+  api<T = unknown>(path?: string, init?: { method?: string; body?: unknown; query?: Record<string, string> }): Promise<T>;
 }
 
 declare global {
@@ -122,7 +137,29 @@ export function installForumApi(viewer: ForumApiViewer): void {
       window.addEventListener('forum:navigate', handler);
       return () => window.removeEventListener('forum:navigate', handler);
     },
+    page: null,
+    async api<T = unknown>(path = '/', init: { method?: string; body?: unknown; query?: Record<string, string> } = {}): Promise<T> {
+      const page = window.forum?.page;
+      if (!page) throw new Error(t('forum.api() yalnızca sunucu kodu olan özel sayfalarda kullanılabilir.'));
+      const qs = init.query ? `?${new URLSearchParams(init.query)}` : '';
+      const res = await fetch(`/api/page-api/${page.slug}${path.startsWith('/') ? path : `/${path}`}${qs}`, {
+        method: init.method ?? (init.body === undefined ? 'GET' : 'POST'),
+        credentials: 'same-origin',
+        headers: { accept: 'application/json', ...(init.body !== undefined ? { 'content-type': 'application/json' } : {}) },
+        body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
+      });
+      const type = res.headers.get('content-type') ?? '';
+      const data = res.status === 204 ? null : type.includes('json') ? await res.json() : await res.text();
+      if (!res.ok) throw Object.assign(new Error((data as { error?: { message?: string } } | null)?.error?.message ?? `HTTP ${res.status}`), { status: res.status, data });
+      return data as T;
+    },
   };
+}
+
+/** Özel sayfa açılınca/kapanınca `window.forum.page` güncellenir */
+export function setForumPage(viewer: ForumApiViewer, page: ForumPageInfo | null): void {
+  installForumApi(viewer);
+  window.forum!.page = page;
 }
 
 export function emitNavigate(url: URL): void {

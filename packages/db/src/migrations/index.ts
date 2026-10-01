@@ -27,6 +27,7 @@ import * as m0025 from './0025_topic_members.js';
 import * as m0026 from './0026_theme_styles.js';
 import * as m0027 from './0027_shoutbox.js';
 import * as m0028 from './0028_themes.js';
+import * as m0029 from './0029_page_code.js';
 
 /** Statik liste: paketlenmiş (bundle) sunucuda da dosya sistemi taraması gerekmez. */
 export const migrations: Record<string, Migration> = {
@@ -58,6 +59,7 @@ export const migrations: Record<string, Migration> = {
   '0026_theme_styles': m0026,
   '0027_shoutbox': m0027,
   '0028_themes': m0028,
+  '0029_page_code': m0029,
 };
 
 export const migrationProvider: MigrationProvider = {

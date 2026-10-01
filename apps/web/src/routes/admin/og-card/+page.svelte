@@ -13,7 +13,7 @@
   import SaveBar from '$lib/components/admin/SaveBar.svelte';
   import ColorField from '$lib/components/admin/themes/ColorField.svelte';
   import OptionCards from '$lib/components/admin/themes/OptionCards.svelte';
-  import ImageField from '$lib/components/builder/ImageField.svelte';
+  import ImageField from '$lib/components/admin/ImageField.svelte';
   import { api, errorMessage } from '$lib/api';
   import { cn } from '$lib/utils';
   import { t } from '$lib/i18n.svelte';

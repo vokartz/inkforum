@@ -1,5 +1,6 @@
 <script lang="ts">
   import '../app.css';
+  import '$lib/page-kit.css';
   import { FONT_OPTIONS } from '@forum/shared';
   import { onMount } from 'svelte';
   import { page, navigating } from '$app/state';
@@ -63,7 +64,7 @@
   });
   function forumApiViewer() {
     const u = viewer.user;
-    return { id: u?.id ?? 0, username: u?.username ?? '', displayName: u?.displayName ?? '', group: u?.primaryGroup?.name ?? null, isGuest: !u };
+    return { id: u?.id ?? 0, username: u?.username ?? '', displayName: u?.displayName ?? '', group: u?.primaryGroup?.name ?? null, isGuest: !u, avatarUrl: u?.avatarUrl ?? null };
   }
   // window.forum, sayfadaki parçacıklar çalışmadan önce hazır olmalı (alt bileşenler layout efektinden önce takılır).
   if (browser && untrack(() => data.custom)) installForumApi(untrack(forumApiViewer));

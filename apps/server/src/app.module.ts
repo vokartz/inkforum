@@ -66,6 +66,7 @@ import { EmojisController } from './forum/emojis.controller.js';
 import { TopicExtrasController } from './forum/topic-extras.controller.js';
 import { CustomService } from './custom/custom.service.js';
 import { BuilderService } from './custom/builder.service.js';
+import { PageRuntimeService } from './custom/page-runtime.service.js';
 import { WikiService } from './wiki/wiki.service.js';
 import { WikiController } from './wiki/wiki.controller.js';
 import { ApplicationsService } from './applications/applications.service.js';
@@ -168,6 +169,7 @@ export class AppModule {
         ThemesService,
         CustomService,
         BuilderService,
+        PageRuntimeService,
         WikiService,
         ApplicationsService,
         TicketsService,

@@ -1,6 +1,7 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, UploadedFile } from '@nestjs/common';
+import { All, Body, Controller, Delete, Get, HttpCode, Param, Post, Put, Query, Req, Res, UploadedFile } from '@nestjs/common';
+import type { Request, Response } from 'express';
 import { z } from 'zod';
-import { customSettingsInput, idParam, pageInput, PAGE_SLUG, snippetInput } from '@forum/shared';
+import { customSettingsInput, idParam, pageInput, pageTestInput, PAGE_SLUG, snippetInput, type PageServerResponse } from '@forum/shared';
 import { ZodPipe } from '../common/validation.js';
 import { AllowBeforeInstall, AdminEndpoint, RateLimit, RequireAuth } from '../common/decorators.js';
 import { CurrentViewer, can, type RequestViewer } from '../common/request-context.js';
@@ -9,17 +10,32 @@ import { CustomService } from './custom.service.js';
 import { SettingsService } from '../settings/settings.service.js';
 import { Errors } from '../common/errors.js';
 import { ImageUpload, type UploadedImage } from '../common/upload.js';
+import { ViewerService } from '../auth/viewer.service.js';
 
 const landingSchema = z.object({ id: z.number().int().positive().nullable() });
-const builderPreviewSchema = z.object({ body: z.string().max(500_000) });
 
 const slugParam = z.string().trim().toLowerCase().max(60).regex(PAGE_SLUG);
+const routeQuery = z.object({ path: z.string().trim().min(1).max(300) });
+
+/** Sorgu dizesini düz metin değerlere indirger (dizi parametrelerin ilki alınır) */
+function flatQuery(q: unknown, skip: string[] = []): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (q && typeof q === 'object')
+    for (const [k, v] of Object.entries(q as Record<string, unknown>)) {
+      if (skip.includes(k)) continue;
+      const val = Array.isArray(v) ? v[0] : v;
+      if (typeof val === 'string' && k.length <= 100) out[k] = val.slice(0, 2000);
+    }
+  return out;
+}
+const canManagePages = (v: RequestViewer) => can(v, 'admin.access') && (can(v, 'admin.pages.manage') || can(v, 'admin.customCode'));
 
 @Controller()
 export class CustomController {
   constructor(
     private readonly custom: CustomService,
     private readonly settings: SettingsService,
+    private readonly viewers: ViewerService,
   ) {}
 
   /** Ziyaretçiye göre özel kod paketi (parçacıklar, CSS, CSP ekleri). */
@@ -30,8 +46,32 @@ export class CustomController {
   }
 
   @Get('pages/:slug')
-  page(@Param('slug', new ZodPipe(slugParam)) slug: string, @CurrentViewer() v: RequestViewer) {
-    return this.custom.page(v, slug, can(v, 'admin.access') && (can(v, 'admin.pages.manage') || can(v, 'admin.customCode')));
+  page(@Param('slug', new ZodPipe(slugParam)) slug: string, @Query() query: unknown, @CurrentViewer() v: RequestViewer) {
+    return this.custom.page(v, slug, canManagePages(v), { query: flatQuery(query) });
+  }
+
+  /** Kök adresli sayfa (/ucp, /ucp/karakterler…): en uzun eşleşen sayfa */
+  @Get('page-route')
+  pageByRoute(@Query(new ZodPipe(routeQuery)) q: z.output<typeof routeQuery>, @Query() query: unknown, @CurrentViewer() v: RequestViewer) {
+    return this.custom.pageByRoute(v, q.path, canManagePages(v), flatQuery(query, ['path']));
+  }
+
+  /** Sayfanın sunucu kodu API'si: /api/page-api/:slug/… (GET, POST, PUT, PATCH, DELETE) */
+  @All(['page-api/:slug', 'page-api/:slug/*rest'])
+  @RateLimit({ limit: 120, windowMs: MINUTE })
+  async pageApi(@Param('slug', new ZodPipe(slugParam)) slug: string, @Req() req: Request, @Res() res: Response, @CurrentViewer() v: RequestViewer) {
+    const rest = String((req.params as Record<string, unknown>).rest ?? '')
+      .split(',')
+      .join('/');
+    const contentType = String(req.headers['content-type'] ?? '');
+    const out = await this.custom.pageApi(v, slug, {
+      method: req.method.toUpperCase(),
+      path: `/${rest}`.replace(/\/+$/, '') || '/',
+      query: flatQuery(req.query),
+      body: req.body ?? null,
+      headers: { 'content-type': contentType, accept: String(req.headers.accept ?? ''), referer: String(req.headers.referer ?? ''), 'user-agent': String(req.headers['user-agent'] ?? '') },
+    });
+    send(res, out);
   }
 
   /** UCP ve benzeri dış sistemler için kısa ömürlü imzalı kimlik belirteci. */
@@ -108,13 +148,13 @@ export class CustomController {
     return { ok: true };
   }
 
-  /** Sayfa oluşturucu canlı önizleme: kaydetmeden blokları çözümler */
-  @Post('admin/pages/builder-preview')
+  /** Sunucu kodunu dener (kaydetmeden de): yanıt, günlükler ve süre döner */
+  @Post('admin/pages/:id/test')
   @HttpCode(200)
-  @AdminEndpoint('admin.pages.manage')
-  @RateLimit({ limit: 240, windowMs: MINUTE, by: 'user' })
-  async builderPreview(@Body(new ZodPipe(builderPreviewSchema)) body: z.output<typeof builderPreviewSchema>, @CurrentViewer() v: RequestViewer) {
-    return { blocks: await this.custom.previewBuilder(v, body.body, can(v, 'admin.customCode')) };
+  @AdminEndpoint('admin.customCode')
+  @RateLimit({ limit: 120, windowMs: MINUTE, by: 'user' })
+  async testPage(@Param('id', new ZodPipe(idParam)) id: number, @Body(new ZodPipe(pageTestInput)) body: z.output<typeof pageTestInput>, @CurrentViewer() v: RequestViewer) {
+    return this.custom.testPage(v, id, body, await this.viewers.forUser(null, null, v.ip, v.userAgent));
   }
 
   @Post('admin/pages/images')
@@ -152,4 +192,19 @@ export class CustomController {
     await this.custom.deletePage(v, id, can(v, 'admin.customCode'));
     return { ok: true };
   }
+}
+
+/** Sunucu kodunun yanıtını HTTP yanıtına çevirir. HTML yanıtlar betik çalıştıramaz (CSP). */
+function send(res: Response, out: PageServerResponse): void {
+  if (out.type === 'redirect') return res.redirect(out.status, out.url);
+  if (out.type === 'none') return void res.status(204).end();
+  if (out.type === 'status') return void res.status(out.status).end();
+  for (const [k, val] of Object.entries(out.headers)) res.setHeader(k, val);
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  if (out.type === 'json') return void res.status(out.status).json(out.body);
+  if (out.type === 'html') {
+    res.setHeader('Content-Security-Policy', "default-src 'none'; img-src * data:; style-src 'unsafe-inline'; font-src *; form-action 'self'");
+    if (!res.getHeader('content-type')) res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  } else if (!res.getHeader('content-type')) res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.status(out.status).send(out.body);
 }

@@ -69,8 +69,28 @@ export type PageLayout = (typeof PAGE_LAYOUTS)[number];
 export const PAGE_LAYOUT_INFO: Record<PageLayout, { label: string; description: string }> = {
   default: { label: 'Kart', description: 'Forum çerçevesinde, okunaklı genişlikte bir kart.' },
   wide: { label: 'Geniş', description: 'Forum çerçevesinde, kartsız ve tam genişlik (kendi tasarımın için).' },
-  blank: { label: 'Ayrı site', description: 'Forumun üst çubuğu ve alt bilgisi olmadan; açılış sayfası, UCP gibi tamamen özel tasarımlar (menüyü "Menü çubuğu" bloğuyla ekleyin).' },
+  blank: { label: 'Ayrı site', description: 'Forumun üst çubuğu ve alt bilgisi olmadan; açılış sayfası, UCP gibi tamamen özel tasarımlar.' },
 };
+export const PAGE_SIDEBARS = ['none', 'left', 'right'] as const;
+export type PageSidebar = (typeof PAGE_SIDEBARS)[number];
+
+/** Kök adres: küçük harf, rakam, tire; "/" ile en fazla 3 parça (ör. "ucp", "ucp/karakterler") */
+export const PAGE_ROUTE = /^[a-z0-9]+(?:-[a-z0-9]+)*(?:\/[a-z0-9]+(?:-[a-z0-9]+)*){0,2}$/;
+/** Forumun kendi adresleri: özel sayfa bu adreslerle başlayamaz */
+export const RESERVED_ROUTES = [
+  'admin', 'api', 'pages', 'forum', 'f', 't', 'p', 'u', 'go', 'login', 'register', 'logout', 'messages', 'new', 'notifications', 'search', 'settings',
+  'members', 'groups', 'online', 'tags', 'tickets', 'applications', 'wiki', 'studio', 'embed', 'install', 'oauth', 'developers', 'cookies', 'policies',
+  'achievements', 'unread', 'mod', 'banned', 'change-password', 'confirm-email', 'forgot-password', 'reset-password', 'verify-email', 'uploads', 'emoji',
+  'brand', 'favicon.ico', 'robots.txt', 'sitemap.xml', 'manifest.webmanifest', 'og', 'p-api', 'health', '_app',
+];
+export function routeReserved(route: string): boolean {
+  const first = route.split('/')[0]!;
+  return RESERVED_ROUTES.includes(first) || first.startsWith('sitemap');
+}
+
+/** Sunucu kodunun dış istek atabileceği alan adı (joker: *.ornek.com) */
+export const HOST_PATTERN = /^(\*\.)?[a-z0-9-]+(\.[a-z0-9-]+)+(:\d{2,5})?$/i;
+export const SECRET_NAME = /^[A-Z][A-Z0-9_]{0,40}$/;
 
 export const PAGE_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
@@ -86,11 +106,64 @@ export const pageInput = z
     visibility: z.enum(CONTENT_VISIBILITY).default('all'),
     groupIds,
     isPublished: z.boolean().default(true),
+    /** Kök adres (ör. "ucp" → /ucp); boş = yalnızca /pages/{slug} */
+    route: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .transform((r) => r.replace(/^\/+|\/+$/g, ''))
+      .pipe(z.string().max(80).regex(PAGE_ROUTE, 'Adres küçük harf, rakam ve tireden oluşmalı (ör. ucp ya da ucp/karakterler).').or(z.literal('')))
+      .nullable()
+      .default(null)
+      .transform((r) => r || null),
+    css: z.string().max(200_000).default(''),
+    js: z.string().max(200_000).default(''),
+    sidebar: z.enum(PAGE_SIDEBARS).default('none'),
+    sidebarHtml: z.string().max(100_000).default(''),
+    serverEnabled: z.boolean().default(false),
+    serverCode: z.string().max(100_000).default(''),
+    allowedHosts: z.array(z.string().trim().toLowerCase().regex(HOST_PATTERN, 'Geçersiz alan adı (ör. api.ornek.com ya da *.ornek.com).')).max(30).default([]),
+    /** Gizli değerler: `value` verilmezse kayıtlı değer korunur, listede olmayanlar silinir */
+    secrets: z
+      .array(z.object({ name: z.string().trim().regex(SECRET_NAME, 'Ad BÜYÜK_HARF ve _ ile yazılmalı (ör. UCP_API_KEY).'), value: z.string().max(4000).optional() }))
+      .max(30)
+      .default([]),
   })
   .superRefine((v, ctx) => {
     if (v.visibility === 'groups' && !v.groupIds.length) ctx.addIssue({ code: 'custom', path: ['groupIds'], message: 'En az bir grup seçin.' });
+    if (v.route && routeReserved(v.route)) ctx.addIssue({ code: 'custom', path: ['route'], message: 'Bu adres forumun kendi sayfalarından biri; başka bir adres seçin.' });
+    if (new Set(v.secrets.map((x) => x.name)).size !== v.secrets.length) ctx.addIssue({ code: 'custom', path: ['secrets'], message: 'Gizli değer adları benzersiz olmalı.' });
   });
 export type PageInput = z.output<typeof pageInput>;
+
+/** Yönetim: sunucu kodunu deneme isteği */
+export const pageTestInput = z.object({
+  method: z.enum(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']).default('GET'),
+  /** Sayfa adresinden sonraki kısım ("/" = sayfanın kendisi) */
+  path: z.string().trim().max(300).default('/'),
+  query: z.record(z.string(), z.string().max(2000)).default({}),
+  body: z.string().max(100_000).default(''),
+  as: z.enum(['me', 'guest']).default('me'),
+  /** Kaydetmeden denemek için kod (boşsa kayıtlı kod) */
+  code: z.string().max(100_000).optional(),
+});
+export type PageTestInput = z.output<typeof pageTestInput>;
+
+/** Sunucu kodunun ürettiği yanıt */
+export type PageServerResponse =
+  | { type: 'json'; status: number; headers: Record<string, string>; body: unknown }
+  | { type: 'text' | 'html'; status: number; headers: Record<string, string>; body: string }
+  | { type: 'redirect'; status: number; url: string }
+  | { type: 'status'; status: number }
+  | { type: 'none' };
+
+export interface PageTestResult {
+  ok: boolean;
+  response: PageServerResponse | null;
+  error: string | null;
+  logs: string[];
+  ms: number;
+}
 
 /** CSP'ye eklenebilecek kaynak: https:// veya wss:// kökü (alt alan joker karakteri serbest). */
 export const CSP_SOURCE = /^(https|wss):\/\/(\*\.)?[a-z0-9-]+(\.[a-z0-9-]+)+(:\d{2,5})?$/i;
@@ -111,9 +184,10 @@ export interface AdminSnippet extends SnippetInput {
   updatedAt: number;
 }
 
-/** Yönetim: sayfa listesi / düzenleme */
-export interface AdminCustomPage extends PageInput {
+/** Yönetim: sayfa listesi / düzenleme (gizli değerlerin yalnızca adları gelir) */
+export interface AdminCustomPage extends Omit<PageInput, 'secrets'> {
   id: number;
+  secrets: Array<{ name: string }>;
   createdAt: number;
   updatedAt: number;
 }
@@ -153,11 +227,22 @@ export interface CustomPageView {
   updatedAt: number;
   /** format = builder: ziyaretçiye göre çözümlenmiş bloklar */
   blocks?: import('./builder.js').ResolvedBlock[];
-  /** format = builder: sayfaya özel CSS */
+  /** Sayfaya özel CSS ve JS (özel kod kapalıyken boş) */
   css?: string;
+  js?: string;
+  route?: string | null;
+  sidebar?: PageSidebar;
+  sidebarHtml?: string;
+  /** Sunucu kodunun `json(...)` ile döndürdüğü veri (sayfanın JS'inde `forum.page.data`) */
+  data?: unknown;
+  /** Sunucu kodunun açık olup olmadığı (sayfanın JS'i `forum.api()` ile çağırabilir) */
+  hasServer?: boolean;
   /** Ana sayfa (açılış sayfası) olarak seçili mi */
   isLanding?: boolean;
 }
+
+/** `GET /api/pages/:slug` yanıtı: sayfa ya da sunucu kodunun yönlendirmesi */
+export type CustomPageResult = CustomPageView | { redirect: string; status: number };
 
 export interface IntegrationToken {
   token: string;

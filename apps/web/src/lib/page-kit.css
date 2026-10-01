@@ -1,0 +1,108 @@
+/*
+ * Özel sayfa arayüz takımı (UI kit). Özel sayfaların HTML'inde kullanılabilen, sitenin temasını
+ * (renk, köşe, yazı tipi, açık/koyu mod) izleyen hazır sınıflar. Hepsi "f-" önekiyle başlar.
+ * Belge: Yönetim → Özel sayfalar → Belgeler.
+ */
+
+/* ---- Düzen ---- */
+.f-container { margin-inline: auto; width: 100%; max-width: var(--page-width, 80rem); }
+.f-narrow { margin-inline: auto; width: 100%; max-width: 48rem; }
+.f-stack { display: flex; flex-direction: column; gap: var(--f-gap, 1rem); }
+.f-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--f-gap, 0.75rem); }
+.f-between { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--f-gap, 0.75rem); }
+.f-center { display: grid; place-items: center; text-align: center; }
+.f-grid { display: grid; gap: var(--f-gap, 1rem); grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--f-min, 15rem)), 1fr)); }
+.f-grid-2, .f-grid-3, .f-grid-4 { display: grid; gap: var(--f-gap, 1rem); grid-template-columns: 1fr; }
+@media (min-width: 640px) { .f-grid-2, .f-grid-3, .f-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1024px) { .f-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } .f-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.f-section { padding-block: 2.5rem; }
+.f-gap-sm { --f-gap: 0.5rem; }
+.f-gap-lg { --f-gap: 1.5rem; }
+
+/* ---- Yüzeyler ---- */
+.f-card { border: 1px solid var(--border); border-radius: calc(var(--radius) * 1.6); background: var(--card); color: var(--card-foreground); padding: 1.25rem; box-shadow: var(--shadow-card); }
+.f-card-flat { border: 1px solid var(--border); border-radius: calc(var(--radius) * 1.6); background: var(--card); padding: 1.25rem; }
+.f-card-hover { transition: border-color 0.15s, transform 0.15s; }
+.f-card-hover:hover { border-color: color-mix(in oklab, var(--primary) 45%, var(--border)); transform: translateY(-1px); }
+.f-panel { border-radius: calc(var(--radius) * 1.3); background: var(--muted); padding: 1rem; }
+.f-hero { position: relative; isolation: isolate; overflow: hidden; border-radius: calc(var(--radius) * 2); padding: clamp(1.5rem, 5vw, 3.5rem); background: linear-gradient(135deg, color-mix(in oklab, var(--primary) 22%, var(--card)), var(--card)); border: 1px solid var(--border); }
+.f-divider { height: 1px; border: 0; background: var(--border); margin-block: 1rem; }
+
+/* ---- Yazı ---- */
+.f-title { font-size: clamp(1.6rem, 3vw, 2.25rem); font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; }
+.f-h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.01em; }
+.f-h3 { font-size: 1.05rem; font-weight: 650; }
+.f-lead { font-size: 1.05rem; color: var(--muted-foreground); line-height: 1.6; }
+.f-muted { color: var(--muted-foreground); }
+.f-small { font-size: 0.8125rem; }
+.f-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.f-link { color: var(--link); font-weight: 600; }
+.f-link:hover { text-decoration: underline; }
+.f-accent { color: var(--primary); }
+
+/* ---- Düğmeler ---- */
+.f-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; height: 2.5rem; padding-inline: 1rem; border-radius: var(--radius); font-size: 0.875rem; font-weight: 600; white-space: nowrap; background: var(--primary); color: var(--primary-foreground); border: 1px solid transparent; cursor: pointer; transition: opacity 0.15s, background 0.15s; }
+.f-btn:hover { opacity: 0.9; }
+.f-btn:disabled, .f-btn[aria-disabled='true'] { opacity: 0.5; pointer-events: none; }
+.f-btn-outline { background: var(--card); color: var(--foreground); border-color: var(--border); }
+.f-btn-outline:hover { background: var(--accent); opacity: 1; }
+.f-btn-ghost { background: transparent; color: var(--foreground); }
+.f-btn-ghost:hover { background: var(--accent); opacity: 1; }
+.f-btn-danger { background: var(--destructive); color: #fff; }
+.f-btn-sm { height: 2rem; padding-inline: 0.75rem; font-size: 0.8125rem; }
+.f-btn-lg { height: 3rem; padding-inline: 1.5rem; font-size: 1rem; }
+
+/* ---- Rozetler ve uyarılar ---- */
+.f-badge { display: inline-flex; align-items: center; gap: 0.35rem; border-radius: 999px; padding: 0.125rem 0.6rem; font-size: 0.75rem; font-weight: 600; background: var(--primary-soft); color: var(--highlight); }
+.f-badge-muted { background: var(--muted); color: var(--muted-foreground); }
+.f-badge-success { background: color-mix(in oklab, var(--success) 16%, transparent); color: var(--success); }
+.f-badge-warning { background: color-mix(in oklab, var(--warning) 18%, transparent); color: var(--warning); }
+.f-badge-danger { background: color-mix(in oklab, var(--destructive) 16%, transparent); color: var(--destructive); }
+.f-alert { display: flex; gap: 0.75rem; align-items: flex-start; border-radius: calc(var(--radius) * 1.3); border: 1px solid var(--border); background: var(--muted); padding: 0.875rem 1rem; font-size: 0.875rem; }
+.f-alert-info { border-color: color-mix(in oklab, var(--primary) 35%, transparent); background: var(--primary-soft); }
+.f-alert-success { border-color: color-mix(in oklab, var(--success) 35%, transparent); background: color-mix(in oklab, var(--success) 10%, transparent); }
+.f-alert-warning { border-color: color-mix(in oklab, var(--warning) 40%, transparent); background: color-mix(in oklab, var(--warning) 10%, transparent); }
+.f-alert-danger { border-color: color-mix(in oklab, var(--destructive) 40%, transparent); background: color-mix(in oklab, var(--destructive) 10%, transparent); }
+
+/* ---- Form ---- */
+.f-label { display: grid; gap: 0.375rem; font-size: 0.875rem; font-weight: 500; }
+.f-input, .f-select, .f-textarea { width: 100%; border-radius: var(--radius); border: 1px solid var(--input); background: var(--background); color: var(--foreground); padding: 0.5rem 0.75rem; font-size: 0.875rem; outline: none; }
+.f-input, .f-select { height: 2.5rem; }
+.f-textarea { min-height: 6rem; resize: vertical; }
+.f-input:focus, .f-select:focus, .f-textarea:focus { border-color: var(--ring); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 30%, transparent); }
+.f-check { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; }
+.f-check input { accent-color: var(--primary); width: 1rem; height: 1rem; }
+
+/* ---- Tablo ve liste ---- */
+.f-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+.f-table th { text-align: left; font-size: 0.75rem; font-weight: 600; color: var(--muted-foreground); text-transform: uppercase; letter-spacing: 0.04em; padding: 0.625rem 0.75rem; border-bottom: 1px solid var(--border); }
+.f-table td { padding: 0.75rem; border-bottom: 1px solid var(--border); }
+.f-table tr:last-child td { border-bottom: 0; }
+.f-table tbody tr:hover { background: var(--row-hover); }
+.f-list { display: grid; border: 1px solid var(--border); border-radius: calc(var(--radius) * 1.6); background: var(--card); overflow: hidden; }
+.f-list > * { padding: 0.875rem 1.125rem; border-bottom: 1px solid var(--border); }
+.f-list > *:last-child { border-bottom: 0; }
+.f-stat { display: grid; gap: 0.125rem; }
+.f-stat b { font-size: 1.6rem; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.f-stat span { font-size: 0.75rem; color: var(--muted-foreground); }
+
+/* ---- Görsel ve avatar ---- */
+.f-img { border-radius: calc(var(--radius) * 1.3); max-width: 100%; height: auto; }
+.f-avatar { width: var(--size, 40px); height: var(--size, 40px); border-radius: 999px; object-fit: cover; background: var(--muted); }
+.f-icon { width: 1.25em; height: 1.25em; display: inline-block; vertical-align: -0.2em; }
+
+/* ---- Sekmeler (data-f-tabs) ---- */
+.f-tabs { display: flex; gap: 1.25rem; border-bottom: 1px solid var(--border); }
+.f-tabs > button { margin-bottom: -1px; border-bottom: 2px solid transparent; padding: 0.625rem 0; font-size: 0.875rem; font-weight: 600; color: var(--muted-foreground); cursor: pointer; }
+.f-tabs > button[aria-selected='true'] { border-color: var(--primary); color: var(--foreground); }
+[data-f-panel][hidden] { display: none; }
+
+/* ---- Yardımcılar ---- */
+.f-hidden-mobile { display: none; }
+@media (min-width: 768px) { .f-hidden-mobile { display: revert; } .f-hidden-desktop { display: none; } }
+.f-skeleton { border-radius: var(--radius); background: linear-gradient(90deg, var(--muted), var(--accent), var(--muted)); background-size: 200% 100%; animation: f-shimmer 1.4s infinite; min-height: 1em; }
+@keyframes f-shimmer { to { background-position: -200% 0; } }
+
+/* Bileşenler (forum-*) blok olarak yerleşir */
+forum-user, forum-login, forum-stats, forum-online, forum-recent, forum-members, forum-countdown, forum-tabs { display: block; }
+forum-avatar { display: inline-block; }

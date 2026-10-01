@@ -794,6 +794,8 @@ export interface CustomPagesTable {
   slug: string;
   title: string;
   format: Def<'bbcode' | 'html' | 'builder'>;
+  /** Kök adres (ör. "ucp" → /ucp); boşsa /pages/{slug} */
+  route: string | null;
   body: Def<string>;
   body_html: Def<string>;
   layout: Def<'default' | 'wide' | 'blank'>;
@@ -805,6 +807,15 @@ export interface CustomPagesTable {
   updated_by: number | null;
   created_at: number;
   updated_at: number;
+  css: Def<string>;
+  js: Def<string>;
+  sidebar: Def<'none' | 'left' | 'right'>;
+  sidebar_html: Def<string>;
+  server_code: Def<string>;
+  server_enabled: Flag;
+  allowed_hosts_json: Def<string>;
+  /** Şifreli JSON: { AD: değer } */
+  secrets_enc: Def<string>;
 }
 
 export interface WikiPagesTable {
@@ -920,6 +931,14 @@ export interface TicketMessagesTable {
   is_internal: Flag;
   is_staff: Flag;
   created_at: number;
+}
+
+export interface PageKvTable {
+  page_id: number;
+  key: string;
+  value_json: string;
+  expires_at: number | null;
+  updated_at: number;
 }
 
 export interface CustomSnippetsTable {
@@ -1248,6 +1267,7 @@ export interface DB {
   conversation_messages: ConversationMessagesTable;
   custom_pages: CustomPagesTable;
   custom_snippets: CustomSnippetsTable;
+  page_kv: PageKvTable;
   tags: TagsTable;
   topic_tags: TopicTagsTable;
   topic_members: TopicMembersTable;
