@@ -1,0 +1,119 @@
+# InkForum sürüm yayını.
+#
+# `v*` etiketi gönderildiğinde:
+#   1. testler çalışır, sürüm paketi derlenir,
+#   2. Docker imajı ghcr.io/vokartz/inkforum'a (amd64 + arm64) yüklenir,
+#   3. bu depoda sürüm notlarıyla (İngilizce + Türkçe) yayın oluşturulur.
+# Kurulu forumlar yeni sürümü Yönetim → Güncellemeler ekranında otomatik görür.
+#
+# Varsayılan olarak GitHub'ın iş akışı anahtarı (GITHUB_TOKEN) kullanılır. GHCR paketi bu depoya bağlı değilse
+# "write:packages" izinli klasik bir belirteç INKFORUM_RELEASE_TOKEN adıyla eklenebilir.
+
+name: Sürüm yayınla
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+  packages: write
+  issues: write
+
+env:
+  IMAGE: ghcr.io/vokartz/inkforum
+
+jobs:
+  release:
+    name: Derle, test et, yayınla
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Sürüm bilgisi
+        id: v
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          PKG="$(node -p "require('./package.json').version")"
+          if [ "$VERSION" != "$PKG" ]; then echo "::error::Etiket ($VERSION) ile package.json sürümü ($PKG) aynı değil"; exit 1; fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "minor=$(echo "$VERSION" | cut -d. -f1,2)" >> "$GITHUB_OUTPUT"
+          if [[ "$VERSION" == *-* ]]; then echo "prerelease=true" >> "$GITHUB_OUTPUT"; else echo "prerelease=false" >> "$GITHUB_OUTPUT"; fi
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Derleme (sürüm modu)
+        run: pnpm build
+        env:
+          INKFORUM_RELEASE: '1'
+
+      - name: Denetimler ve testler
+        run: |
+          pnpm lint
+          pnpm typecheck
+          pnpm --filter @forum/shared --filter @forum/db test
+          pnpm --filter @forum/server test
+
+      - name: Sürüm paketleri
+        run: |
+          node scripts/release/build.mjs
+          node scripts/release/build.mjs --with-modules
+          ls -la release/dist
+
+      - name: Sürüm notları
+        run: node scripts/release/notes.mjs "${{ steps.v.outputs.version }}" > release/notes.md
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.INKFORUM_RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Docker imajı
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: |
+            VERSION=${{ steps.v.outputs.version }}
+            BUILD=${{ github.sha }}
+          tags: |
+            ${{ env.IMAGE }}:${{ steps.v.outputs.version }}
+            ${{ steps.v.outputs.prerelease == 'false' && format('{0}:{1}', env.IMAGE, steps.v.outputs.minor) || '' }}
+            ${{ steps.v.outputs.prerelease == 'false' && format('{0}:latest', env.IMAGE) || format('{0}:beta', env.IMAGE) }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Yayın oluştur
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          FLAGS=""
+          if [ "${{ steps.v.outputs.prerelease }}" = "true" ]; then FLAGS="--prerelease"; else FLAGS="--latest"; fi
+          # Yeniden çalıştırmada önceki (yarım kalmış) yayın silinir; etiket aynı depoda olduğu için korunur
+          gh release delete "v${{ steps.v.outputs.version }}" --yes 2>/dev/null || true
+          gh release create "v${{ steps.v.outputs.version }}" release/dist/* \
+            --verify-tag \
+            --title "InkForum v${{ steps.v.outputs.version }}" \
+            --notes-file release/notes.md $FLAGS
+
+      - name: Issue etiketleri
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for l in "bug:d73a4a" "needs-triage:fbca04" "enhancement:a2eeef" "import:5319e7" "translation:0e8a16" "security:b60205" "question:d876e3"; do
+            gh label create "${l%%:*}" --color "${l##*:}" --force >/dev/null
+          done

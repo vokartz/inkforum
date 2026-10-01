@@ -1,0 +1,88 @@
+name: 🚚 Import / migration problem
+description: Problems moving from SMF, phpBB, Invision Community (IPS), MyBB or another forum. (Türkçe yazabilirsiniz.)
+title: "[Import]: "
+labels: ["import", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        InkForum can import members, groups, categories, topics, posts, polls, private messages, attachments, avatars and rank images from other forums.
+        Please **never attach your database dump here** — it contains e-mail addresses and password hashes. If we need a sample, we will ask for an anonymised one privately.
+
+  - type: dropdown
+    id: source
+    attributes:
+      label: Source forum software
+      options:
+        - SMF 2.0
+        - SMF 2.1
+        - phpBB 3.0
+        - phpBB 3.1 / 3.2 / 3.3
+        - Invision Community (IPS) 4.x
+        - Invision Community (IPS) 5.x
+        - MyBB 1.8
+        - Other (please specify below)
+    validations:
+      required: true
+
+  - type: input
+    id: source_version
+    attributes:
+      label: Exact source version
+      placeholder: "SMF 2.1.4 · phpBB 3.3.12 · IPS 4.7.18"
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: InkForum version
+    validations:
+      required: true
+
+  - type: dropdown
+    id: method
+    attributes:
+      label: Import method
+      options:
+        - Uploaded SQL dump (.sql / .sql.gz)
+        - Direct database connection
+    validations:
+      required: true
+
+  - type: input
+    id: size
+    attributes:
+      label: Approximate size
+      placeholder: "12,000 members · 350,000 posts · dump 800 MB"
+
+  - type: checkboxes
+    id: what
+    attributes:
+      label: What went wrong?
+      options:
+        - label: Import did not start / platform not detected
+        - label: Import stopped with an error
+        - label: Members or passwords (login after import)
+        - label: Groups, ranks or permissions
+        - label: Categories / boards structure
+        - label: Topics or posts (missing, broken formatting, wrong authors)
+        - label: Polls
+        - label: Private messages
+        - label: Attachments, avatars or rank images
+        - label: Other
+
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: What did you expect, what happened instead? Include the import log shown in Admin → Import.
+    validations:
+      required: true
+
+  - type: textarea
+    id: example
+    attributes:
+      label: Example of broken content
+      description: For formatting problems paste the original post text (from the old forum) and how it looks in InkForum.
+      render: text

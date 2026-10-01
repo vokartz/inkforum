@@ -1,0 +1,910 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+/* Yazı tipleri: yalnızca seçili olan indirilir (@font-face tembel yüklenir). */
+@import '@fontsource-variable/roboto';
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/open-sans';
+@import '@fontsource-variable/rubik';
+@import '@fontsource-variable/nunito';
+@import '@fontsource-variable/manrope';
+@import '@fontsource-variable/montserrat';
+@import '@fontsource-variable/outfit';
+@import '@fontsource-variable/figtree';
+@import './theme-tokens.css';
+
+/*
+ * Tema: <html data-theme="light|dark|system">. "system" işletim sistemi tercihini izler.
+ * Koyu tema değişkenleri hem data-theme=dark hem de (system + prefers-color-scheme: dark) için uygulanır.
+ */
+/*
+ * bits-ui durumları `data-state="open|closed|checked|unchecked|active"` olarak yazar; shadcn bileşenleri ise
+ * `data-open:` gibi kısa varyantlar kullanır. Açılış/kapanış animasyonları ve etkin durum stilleri için eşleme:
+ */
+@custom-variant data-open (&:where([data-state='open'], [data-open]:not([data-open='false'])));
+@custom-variant data-closed (&:where([data-state='closed'], [data-closed]:not([data-closed='false'])));
+@custom-variant data-checked (&:where([data-state='checked'], [data-checked]:not([data-checked='false'])));
+@custom-variant data-unchecked (&:where([data-state='unchecked'], [data-unchecked]));
+@custom-variant data-active (&:where([data-state='active'], [data-active]:not([data-active='false'])));
+@custom-variant data-horizontal (&:where([data-orientation='horizontal']));
+@custom-variant data-vertical (&:where([data-orientation='vertical']));
+
+@custom-variant dark {
+  &:where([data-theme='dark'], [data-theme='dark'] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where([data-theme='system'], [data-theme='system'] *) {
+      @slot;
+    }
+  }
+}
+
+@theme inline {
+  /* Tüm köşeler --radius ile orantılı: "köşeli" seçilince hepsi sıfırlanır */
+  --radius-xs: calc(var(--radius) * 0.4);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.3);
+  --radius-2xl: calc(var(--radius) * 1.6);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-link: var(--link);
+  --color-highlight: var(--highlight);
+  --color-panel-header: var(--panel-header);
+  --color-row-hover: var(--row-hover);
+  --color-surface-2: var(--surface-2);
+  --color-primary-soft: var(--primary-soft);
+  --color-topbar: var(--topbar-bg);
+  --color-topbar-foreground: var(--topbar-fg);
+  --color-header: var(--header-bg);
+  --color-header-foreground: var(--header-fg);
+  --color-row-alt: var(--row-alt);
+  --shadow-card: var(--shadow-card);
+  --shadow-lift: var(--shadow-lift);
+  --font-sans: var(--app-font), 'Roboto Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    /* Tam genişlik sayfa blokları (100vw) yatay kaydırma çubuğu açmasın */
+    overflow-x: clip;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    letter-spacing: -0.01em;
+  }
+  ::selection {
+    background: color-mix(in oklch, var(--primary) 35%, transparent);
+  }
+  /*
+   * Sütun tanımı olmayan grid'ler tek, daralabilen sütun kullanır: uzun bir kod, bağlantı ya da
+   * kaydırılabilir şerit yüzünden grid içeriğe göre genişleyip mobilde ekranı taşırmaz.
+   * (Katman sırası sayesinde grid-cols-* yardımcıları her kırılımda bunun önüne geçer.)
+   */
+  :where(.grid) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------- Hareket yardımcıları ---------- */
+/* Yatay kaydırılan şeritler (sekmeler, menüler): kaydırma çubuğu gizli, dokunmatikte akıcı */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility animate-rise {
+  animation: forum-rise 0.45s var(--ease-out-expo) backwards;
+  animation-delay: calc(var(--i, 0) * 40ms);
+}
+@utility animate-pop {
+  animation: forum-pop 0.35s var(--ease-spring) both;
+}
+@utility lift {
+  transition:
+    transform 0.25s var(--ease-out-expo),
+    box-shadow 0.25s var(--ease-out-expo),
+    border-color 0.2s;
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lift);
+  }
+}
+@utility press {
+  transition: transform 0.12s;
+  &:active {
+    transform: scale(0.97);
+  }
+}
+@keyframes forum-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+@keyframes forum-pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+}
+@keyframes forum-ring {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  20% {
+    transform: rotate(14deg);
+  }
+  40% {
+    transform: rotate(-12deg);
+  }
+  60% {
+    transform: rotate(8deg);
+  }
+  80% {
+    transform: rotate(-4deg);
+  }
+}
+@keyframes forum-auth-zoom {
+  from {
+    transform: scale(1.08);
+  }
+}
+
+/* Görsel yüklenmemiş banner: vurgu renginden koyu degrade + nokta deseni + yavaş ışık */
+.forum-banner-pattern {
+  background:
+    radial-gradient(55% 140% at 88% -10%, color-mix(in oklch, var(--primary) 70%, white) 0%, transparent 60%),
+    radial-gradient(40% 90% at 8% 120%, color-mix(in oklch, var(--primary) 60%, black) 0%, transparent 70%),
+    linear-gradient(115deg, color-mix(in oklch, var(--primary) 38%, #06070b) 0%, color-mix(in oklch, var(--primary) 72%, #0b0c12) 55%, var(--primary) 100%);
+}
+.forum-banner-pattern::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgb(255 255 255 / 0.16) 1px, transparent 1.4px);
+  background-size: 18px 18px;
+  mask-image: linear-gradient(90deg, transparent 0%, black 45%, black 100%);
+}
+.forum-banner-pattern::after {
+  content: '';
+  position: absolute;
+  inset: -50% -20%;
+  background: linear-gradient(100deg, transparent 40%, rgb(255 255 255 / 0.09) 50%, transparent 60%);
+  animation: forum-banner-sweep 9s ease-in-out infinite;
+}
+@keyframes forum-banner-sweep {
+  0% {
+    transform: translateX(-60%);
+  }
+  100% {
+    transform: translateX(60%);
+  }
+}
+@keyframes forum-ping {
+  75%,
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+@keyframes forum-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+@utility shimmer {
+  background: linear-gradient(90deg, var(--muted) 25%, color-mix(in oklch, var(--muted) 50%, var(--card)) 50%, var(--muted) 75%);
+  background-size: 200% 100%;
+  animation: forum-shimmer 1.4s linear infinite;
+}
+
+/* Kullanıcı içeriği (Markdown çıktısı) */
+.prose-forum {
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.prose-forum p {
+  margin: 0 0 0.75em;
+}
+.prose-forum p:last-child {
+  margin-bottom: 0;
+}
+.prose-forum h1,
+.prose-forum h2,
+.prose-forum h3 {
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 1.25em 0 0.5em;
+}
+.prose-forum h1 {
+  font-size: 1.5rem;
+}
+.prose-forum h2 {
+  font-size: 1.25rem;
+}
+.prose-forum h3 {
+  font-size: 1.1rem;
+}
+.prose-forum h4 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 1em 0 0.4em;
+}
+/* BBCode başlıkları: bağlantı kimliği var, sabit üst çubuğun altında kalmasın */
+.prose-forum .bb-h {
+  scroll-margin-top: 5.5rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.prose-forum h2.bb-h {
+  font-size: 1.4rem;
+  padding-bottom: 0.35em;
+  border-bottom: 1px solid var(--border);
+  margin-top: 1.6em;
+}
+.prose-forum :first-child {
+  margin-top: 0;
+}
+.prose-forum ul,
+.prose-forum ol {
+  padding-left: 1.4em;
+  margin: 0 0 0.75em;
+}
+.prose-forum ul {
+  list-style: disc;
+}
+.prose-forum ol {
+  list-style: decimal;
+}
+.prose-forum a {
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.prose-forum blockquote {
+  border-left: 3px solid var(--border);
+  padding-left: 1em;
+  color: var(--muted-foreground);
+  margin: 0 0 0.75em;
+}
+.prose-forum code {
+  background: var(--muted);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+  font-size: 0.9em;
+}
+.prose-forum pre {
+  background: var(--muted);
+  border-radius: 8px;
+  padding: 0.75em 1em;
+  overflow-x: auto;
+  margin: 0 0 0.75em;
+}
+.prose-forum pre code {
+  background: none;
+  padding: 0;
+}
+.prose-forum img {
+  max-width: 100%;
+  border-radius: 6px;
+}
+.prose-forum hr {
+  border-color: var(--border);
+  margin: 1.25em 0;
+}
+.prose-forum table {
+  border-collapse: collapse;
+  margin: 0 0 0.75em;
+}
+.prose-forum th,
+.prose-forum td {
+  border: 1px solid var(--border);
+  padding: 0.35em 0.6em;
+}
+
+/* ---------- BBCode içerik ---------- */
+.prose-forum .bb-quote {
+  position: relative;
+  margin: 0.5em 0 0.9em;
+  padding: 0.65em 0.9em;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--primary);
+  border-radius: 0.6rem;
+  background: color-mix(in oklch, var(--muted) 55%, transparent);
+  color: var(--foreground);
+}
+.prose-forum .bb-quote-head {
+  display: flex;
+  align-items: center;
+  gap: 0.35em;
+  margin-bottom: 0.35em;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+.prose-forum .bb-quote-author {
+  color: var(--foreground);
+}
+.prose-forum .bb-quote-link {
+  text-decoration: none;
+  opacity: 0.7;
+}
+.prose-forum .bb-quote-link:hover {
+  opacity: 1;
+}
+.prose-forum .bb-quote .bb-quote {
+  background: color-mix(in oklch, var(--card) 70%, transparent);
+}
+.prose-forum .bb-spoiler {
+  margin: 0.5em 0 0.9em;
+  border: 1px dashed var(--border);
+  border-radius: 0.6rem;
+  background: color-mix(in oklch, var(--muted) 40%, transparent);
+}
+.prose-forum .bb-spoiler > summary {
+  cursor: pointer;
+  padding: 0.5em 0.9em;
+  font-size: 0.85rem;
+  font-weight: 600;
+  user-select: none;
+}
+.prose-forum .bb-spoiler[open] > summary {
+  border-bottom: 1px dashed var(--border);
+}
+.prose-forum .bb-spoiler-body {
+  padding: 0.65em 0.9em;
+}
+.prose-forum .bb-code {
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+.prose-forum .bb-code[data-lang]::before {
+  content: attr(data-lang);
+  display: block;
+  margin-bottom: 0.4em;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-foreground);
+}
+.prose-forum .bb-icode {
+  font-size: 0.88em;
+}
+.prose-forum .bb-mention {
+  display: inline-block;
+  padding: 0 0.3em;
+  border-radius: 0.35rem;
+  background: color-mix(in oklch, var(--primary) 14%, transparent);
+  color: var(--primary);
+  font-weight: 500;
+  text-decoration: none;
+}
+.prose-forum .bb-emoji {
+  display: inline-block;
+  width: 1.15em;
+  height: 1.15em;
+  margin: 0 0.05em;
+  vertical-align: -0.25em;
+}
+/* Özel emojiler: en-boy oranı korunur, biraz daha büyük (çıkartma gibi) */
+.prose-forum .bb-emoji-custom {
+  width: auto;
+  max-width: 4em;
+  height: 1.6em;
+  object-fit: contain;
+  vertical-align: -0.45em;
+}
+.prose-forum .bb-img {
+  display: inline-block;
+  max-height: 640px;
+  height: auto;
+  vertical-align: bottom;
+}
+/* Gömülü içerik */
+.prose-forum .bb-embed {
+  position: relative;
+  width: 100%;
+  margin: 0.6em 0 0.9em;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: color-mix(in oklch, var(--muted) 70%, transparent);
+  box-shadow: 0 0 0 1px var(--border);
+}
+.prose-forum .bb-embed iframe {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: transparent;
+}
+.prose-forum .bb-embed-ratio iframe {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+}
+.prose-forum .bb-embed[data-kind='video'] {
+  background: #000;
+}
+.prose-forum .bb-embed[data-kind='audio'],
+.prose-forum .bb-embed[data-kind='post'] {
+  background: transparent;
+  box-shadow: none;
+}
+.prose-forum .bb-embed-source {
+  position: absolute;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  z-index: 1;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 55%);
+  color: #fff !important;
+  font-size: 0.7rem;
+  text-decoration: none !important;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.prose-forum .bb-embed:hover .bb-embed-source {
+  opacity: 1;
+}
+.prose-forum .bb-embed:not(.bb-embed-ratio):not(.bb-embed-deferred) .bb-embed-source {
+  display: none;
+}
+.prose-forum .bb-embed-load {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  width: 100%;
+  height: 100%;
+  min-height: 120px;
+  cursor: pointer;
+  color: var(--muted-foreground);
+  font-size: 0.8rem;
+  transition: background 0.2s;
+}
+.prose-forum .bb-embed-ratio .bb-embed-load {
+  position: absolute;
+  inset: 0;
+}
+.prose-forum .bb-embed-load:hover {
+  background: color-mix(in oklch, var(--accent) 60%, transparent);
+}
+.prose-forum .bb-embed-load-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+.prose-forum .bb-embed-card {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin: 0.6em 0 0.9em;
+  padding: 0.85rem 1rem;
+  border-radius: 0.75rem;
+  background: #5865f2;
+  color: #fff !important;
+  text-decoration: none !important;
+  transition: filter 0.2s, transform 0.2s;
+}
+.prose-forum .bb-embed-card:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+.prose-forum .bb-embed-card-icon {
+  width: 2.75rem;
+  height: 2.75rem;
+  flex-shrink: 0;
+  border-radius: 0.75rem;
+  background: rgb(255 255 255 / 18%)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M20.3 4.4A19.8 19.8 0 0 0 15.4 3l-.6 1.3a18.4 18.4 0 0 0-5.6 0L8.6 3a19.7 19.7 0 0 0-4.9 1.5C.6 9.1-.3 13.6.1 18.1a19.9 19.9 0 0 0 6 3l1.3-2.1a12.9 12.9 0 0 1-2-1l.5-.4a14.2 14.2 0 0 0 12.2 0l.5.4c-.6.4-1.3.7-2 1l1.3 2.1a19.8 19.8 0 0 0 6-3c.5-5.2-.8-9.7-3.6-13.7ZM8 15.4c-1.2 0-2.2-1.1-2.2-2.4S6.8 10.6 8 10.6s2.2 1.1 2.2 2.4-1 2.4-2.2 2.4Zm8 0c-1.2 0-2.2-1.1-2.2-2.4s1-2.4 2.2-2.4 2.2 1.1 2.2 2.4-1 2.4-2.2 2.4Z'/%3E%3C/svg%3E")
+    center / 60% no-repeat;
+}
+.prose-forum .bb-embed-card-body {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  line-height: 1.3;
+}
+.prose-forum .bb-embed-card-body span {
+  font-size: 0.8rem;
+  opacity: 0.85;
+}
+.prose-forum .bb-embed-card-action {
+  flex-shrink: 0;
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.5rem;
+  background: #23a55a;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.prose-forum .bb-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 0 0 0.75em;
+}
+.prose-forum .bb-table th {
+  background: var(--muted);
+  font-weight: 600;
+  text-align: left;
+}
+.prose-forum .bb-list {
+  margin: 0.25em 0 0.75em;
+}
+.prose-forum .bb-hr {
+  margin: 1em 0;
+}
+
+/* ---------- Editör ---------- */
+.bb-editor .ProseMirror {
+  min-height: inherit;
+  outline: none;
+  white-space: pre-wrap;
+}
+.bb-editor .ProseMirror p {
+  margin: 0;
+  min-height: 1.7em;
+}
+.bb-editor .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--muted-foreground);
+}
+.bb-editor .ProseMirror blockquote.bb-quote[data-author]::before {
+  content: attr(data-author) ' yazdı:';
+  display: block;
+  margin-bottom: 0.3em;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+.bb-editor .bb-spoiler-edit {
+  margin: 0.5em 0;
+  padding: 0.5em 0.8em;
+  border: 1px dashed var(--border);
+  border-radius: 0.6rem;
+  background: color-mix(in oklch, var(--muted) 40%, transparent);
+}
+.bb-editor .bb-spoiler-edit::before {
+  content: 'Spoiler: ' attr(data-title);
+  display: block;
+  margin-bottom: 0.3em;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+.bb-editor .bb-media-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15em;
+  max-width: 420px;
+  margin: 0.5em 0;
+  padding: 0.7em 0.9em;
+  border-left: 4px solid var(--embed-color, var(--primary));
+  border-radius: 0.6rem;
+  background: color-mix(in oklch, var(--embed-color, var(--primary)) 10%, var(--muted));
+}
+.bb-editor .bb-media-edit-label {
+  font-weight: 600;
+}
+.bb-editor .bb-media-edit-src {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  overflow-wrap: anywhere;
+}
+.bb-editor .ProseMirror-selectednode {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.bb-editor .ProseMirror table {
+  border-collapse: collapse;
+  margin: 0.5em 0;
+}
+.bb-editor .ProseMirror td,
+.bb-editor .ProseMirror th {
+  min-width: 4em;
+  border: 1px solid var(--border);
+  padding: 0.3em 0.5em;
+  vertical-align: top;
+}
+.bb-editor .ProseMirror .selectedCell {
+  background: color-mix(in oklch, var(--primary) 12%, transparent);
+}
+
+/* ---------- Hareket ---------- */
+@keyframes forum-progress {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Sayfa geçişi: içerik alanı hafifçe kayarak belirir */
+::view-transition-old(page) {
+  animation: 140ms ease-out both forum-vt-out;
+}
+::view-transition-new(page) {
+  animation: 220ms ease-out both forum-vt-in;
+}
+@keyframes forum-vt-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes forum-vt-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* ================================================================
+ * Tema: Klasik (SMF 2 "Curve", modern yorum) — koyu mavi degrade sayfa üstü, ortalanmış çerçeve,
+ * çelik mavisi kategori şeritleri, ayrı hücreli bölüm satırları, altta çerçeveli bilgi merkezi
+ * ================================================================ */
+[data-style='classic'] {
+  font-size: 93.75%;
+}
+[data-style='classic'] body {
+  background:
+    linear-gradient(180deg, var(--smf-deep) 0, color-mix(in oklch, var(--smf-deep) 55%, var(--background)) 13rem, var(--background) 26rem) no-repeat,
+    var(--background);
+}
+/* Ortalanmış çerçeve */
+.smf-shell {
+  position: relative;
+  width: min(80rem, calc(100% - 1.5rem));
+  margin: 1.75rem auto 0;
+  border: 1px solid color-mix(in oklch, var(--border) 80%, black);
+  border-radius: calc(var(--radius) * 2);
+  background: var(--card);
+  box-shadow: 0 18px 40px -24px rgb(0 0 0 / 0.55);
+  overflow: clip;
+}
+.smf-shell > [data-part='page'] {
+  max-width: none;
+  padding-top: 1rem;
+}
+@media (max-width: 640px) {
+  .smf-shell {
+    width: 100%;
+    margin-top: 0;
+    border-radius: 0;
+    border-inline: 0;
+  }
+}
+/* Üst bölüm */
+.smf-top {
+  background: var(--smf-top);
+  border-bottom: 1px solid var(--border);
+}
+[data-style='classic'] .smf-banner {
+  border-bottom: 1px solid var(--border);
+}
+.smf-upper {
+  background: linear-gradient(180deg, color-mix(in oklch, var(--smf-cell) 70%, var(--card)) 0%, var(--card) 100%);
+}
+.smf-menu {
+  border-color: var(--border);
+}
+/* Düğmeler */
+.smf-button-active {
+  background: linear-gradient(180deg, color-mix(in oklch, var(--primary) 70%, white) 0%, var(--primary) 55%, color-mix(in oklch, var(--primary) 85%, black) 100%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.3);
+  text-shadow: 0 1px 0 rgb(0 0 0 / 0.15);
+}
+.smf-btn {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--input);
+  border-radius: 3px;
+  background: linear-gradient(180deg, var(--card) 0%, var(--smf-cell) 100%);
+  color: var(--smf-text);
+  font-weight: 600;
+  white-space: nowrap;
+  transition: border-color 0.15s;
+}
+.smf-btn:hover {
+  border-color: color-mix(in oklch, var(--primary) 60%, var(--input));
+}
+/* Kategori ve başlık şeritleri */
+.smf-catbg,
+[data-style='classic'] [data-part='category-header']:not([data-has-bg]) {
+  background: var(--cat-header-bg);
+  color: var(--cat-header-fg);
+  text-shadow: 0 1px 1px rgb(0 0 0 / 0.25);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25);
+}
+[data-style='classic'] [data-part='category'] {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+}
+[data-style='classic'] [data-part='category-header'] {
+  border-radius: calc(var(--radius) * 1.2);
+  padding-block: 0.55rem;
+  min-height: 0;
+  overflow: hidden;
+}
+[data-style='classic'] [data-part='category-header'] h2 {
+  font-size: 0.98rem;
+}
+[data-style='classic'] [data-part='category-header'] h2 > span:not(:first-child),
+[data-style='classic'] [data-part='board-columns'] {
+  display: none;
+}
+[data-style='classic'] [data-part='category-header']:not([data-has-bg]) p,
+[data-style='classic'] [data-part='category-header']:not([data-has-bg]) button {
+  color: color-mix(in srgb, currentColor 85%, transparent);
+}
+[data-style='classic'] [data-part='category'] > div {
+  border-top: 0;
+  padding: 3px 3px 0;
+}
+[data-style='classic'] [data-part='category'] .divide-y > * + * {
+  border-top: 0;
+  margin-top: 3px;
+}
+/* Bölüm hücreleri */
+.smf-cell {
+  background: var(--smf-cell);
+}
+.smf-cell-2 {
+  background: var(--smf-cell-2);
+}
+.smf-board > :first-child {
+  border-top-left-radius: 3px;
+  border-bottom-left-radius: 3px;
+}
+.smf-board > :last-child {
+  border-top-right-radius: 3px;
+  border-bottom-right-radius: 3px;
+}
+/* Bilgi merkezi ve yan bileşenler */
+.smf-info {
+  background: var(--card);
+}
+[data-style='classic'] [data-part='widget'] {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+[data-style='classic'] [data-part='widget'] > header {
+  background: var(--smf-title);
+  color: var(--smf-title-fg);
+  border-radius: calc(var(--radius) * 1.2);
+  padding: 0.5rem 0.85rem;
+  margin-bottom: 0.4rem;
+}
+[data-style='classic'] [data-part='widget'] > header span:first-child {
+  background: transparent;
+}
+[data-style='classic'] [data-part='page-title'] {
+  font-size: 1.15rem;
+}
+[data-style='classic'] [data-part='site-footer'] {
+  text-align: center;
+}
+/* Diğer sayfalardaki kartlar SMF pencereleri gibi */
+[data-style='classic'] [data-part='page'] .rounded-2xl {
+  border-radius: calc(var(--radius) * 1.4);
+}
+
+/* ================================================================
+ * Tema: Topluluk (IPS tarzı) — geniş kartlar, sade başlıklar, vurgu renkli sayfa başlığı
+ * ================================================================ */
+[data-style='community'] [data-part='category-header'] h2 {
+  font-size: 1.2rem;
+}
+[data-style='community'] [data-part='category-header'] + div {
+  border-top-color: transparent;
+}
+[data-style='community'] [data-part='category'] [data-part='board-row'] {
+  padding-block: 1.1rem;
+}
+[data-style='community'] [data-part='page-title'] {
+  color: var(--primary);
+  text-transform: uppercase;
+  font-size: 1.35rem;
+}
+[data-style='community'] [data-part='widget'] > header {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.85rem;
+  margin-bottom: 0.5rem;
+  position: relative;
+}
+[data-style='community'] [data-part='widget'] > header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 1rem;
+  width: 4rem;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--primary);
+}
+
+/* Kaydırınca beliren içerik (use:reveal) — yalnızca ilk ekranın altındakilere uygulanır */
+.reveal {
+  opacity: 0;
+  transition:
+    opacity 0.7s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1)),
+    transform 0.7s var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
+  transition-delay: var(--reveal-delay, 0ms);
+}
+.reveal-up {
+  transform: translateY(22px);
+}
+.reveal-zoom {
+  transform: scale(0.95);
+}
+.reveal.reveal-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* Sayfa oluşturucu: tam genişlik bölüm */
+.builder-bleed {
+  width: 100vw;
+  margin-inline: calc(50% - 50vw);
+}

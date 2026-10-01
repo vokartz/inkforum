@@ -1,0 +1,14 @@
+packages:
+  - apps/*
+  - packages/*
+
+onlyBuiltDependencies:
+  - '@swc/core'
+  - '@node-rs/argon2'
+  - esbuild
+  - better-sqlite3
+  - sharp
+
+overrides:
+  std-env: 4.2.0
+

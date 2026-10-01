@@ -1,0 +1,240 @@
+<script lang="ts">
+  import '../app.css';
+  import { FONT_OPTIONS } from '@forum/shared';
+  import { onMount } from 'svelte';
+  import { page, navigating } from '$app/state';
+  import { afterNavigate, beforeNavigate, onNavigate } from '$app/navigation';
+  import { tick, untrack } from 'svelte';
+  import { browser } from '$app/environment';
+  import type { SnippetPlacement, SnippetView } from '@forum/shared';
+  import ShieldWarningIcon from 'phosphor-svelte/lib/ShieldWarning';
+  import CustomHtml from '$lib/components/CustomHtml.svelte';
+  import { activateScripts, customScriptsRan, deferScripts, emitNavigate, fillTemplate, installForumApi } from '$lib/custom-code';
+  import { setCustomVars } from '$lib/custom-vars';
+  import WrenchIcon from 'phosphor-svelte/lib/Wrench';
+  import TriangleAlertIcon from 'phosphor-svelte/lib/Warning';
+  import { Toaster } from '$lib/components/ui/sonner';
+  import { Button } from '$lib/components/ui/button';
+  import SiteHeader from '$lib/components/layout/SiteHeader.svelte';
+  import SiteFooter from '$lib/components/layout/SiteFooter.svelte';
+  import CookieBanner from '$lib/components/layout/CookieBanner.svelte';
+  import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+  import NavProgress from '$lib/components/layout/NavProgress.svelte';
+  import SeoHead from '$lib/components/layout/SeoHead.svelte';
+  import { setLocale, t } from '$lib/i18n.svelte';
+  import { theme, readableOn } from '$lib/theme.svelte';
+  import { formatDate } from '$lib/format';
+  import { installEmbedRuntime } from '$lib/embed-runtime';
+  import { counters } from '$lib/counters.svelte';
+
+  let { data, children } = $props();
+  const viewer = $derived(data.viewer);
+  // Dil: sunucunun belirlediği değer (çizimden önce, eşzamanlı)
+  setLocale(untrack(() => data.viewer.locale));
+  $effect.pre(() => setLocale(data.viewer.locale));
+  const s = $derived(viewer.settings);
+
+  onMount(() => installEmbedRuntime());
+
+  // ---------- Özel kod (yönetimden eklenen HTML / CSS / JS) ----------
+  const custom = $derived(data.custom);
+  const byPlacement = $derived.by(() => {
+    const out: Partial<Record<SnippetPlacement, SnippetView[]>> = {};
+    for (const sn of custom?.snippets ?? []) (out[sn.placement] ??= []).push(sn);
+    return out;
+  });
+  const templateVars = $derived({
+    'forum.name': String(s['general.forumName'] ?? ''),
+    'forum.url': page.url.origin,
+    'viewer.id': viewer.user?.id ?? 0,
+    'viewer.username': viewer.user?.username ?? '',
+    'viewer.displayName': viewer.user?.displayName ?? '',
+    'viewer.group': viewer.user?.primaryGroup?.name ?? '',
+  });
+  setCustomVars(() => templateVars);
+  const headHtml = $derived((byPlacement.head ?? []).map((sn) => fillTemplate(sn.html, templateVars)).join('\n'));
+  const customCss = $derived(custom?.css ? `<style data-forum-custom>${custom.css.replace(/<\/style/gi, '<\\/style')}</style>` : '');
+  $effect(() => {
+    if (!headHtml) return;
+    void tick().then(() => activateScripts(document.head));
+  });
+  function forumApiViewer() {
+    const u = viewer.user;
+    return { id: u?.id ?? 0, username: u?.username ?? '', displayName: u?.displayName ?? '', group: u?.primaryGroup?.name ?? null, isGuest: !u };
+  }
+  // window.forum, sayfadaki parçacıklar çalışmadan önce hazır olmalı (alt bileşenler layout efektinden önce takılır).
+  if (browser && untrack(() => data.custom)) installForumApi(untrack(forumApiViewer));
+  $effect(() => {
+    if (custom) installForumApi(forumApiViewer());
+  });
+  afterNavigate((nav) => {
+    if (nav.type !== 'enter' && nav.to) emitNavigate(nav.to.url);
+  });
+  // Özel betik çalışmış bir sekmede yönetim paneli her zaman temiz (tam) yüklenir.
+  beforeNavigate((nav) => {
+    if (nav.type === 'leave' || !nav.to || !nav.to.url.pathname.startsWith('/admin') || page.url.pathname.startsWith('/admin')) return;
+    if (!customScriptsRan()) return;
+    nav.cancel();
+    location.href = nav.to.url.href;
+  });
+
+  // Okunmamış bildirim / mesaj sayaçları: sayfa verisiyle eşitlenir, üyelerde düzenli tazelenir.
+  $effect.pre(() => {
+    counters.set({ notifications: viewer.user?.unreadNotifications ?? 0, messages: viewer.user?.unreadMessages ?? 0 });
+  });
+  $effect(() => {
+    if (!viewer.user) return;
+    return counters.start();
+  });
+
+  // Tema tercihi ve forumun varsayılan modu istemci durumuyla eşitlenir.
+  function syncTheme() {
+    theme.init(data.theme, data.themeDefault);
+  }
+  syncTheme();
+  $effect.pre(syncTheme);
+
+  // Sayfa geçişlerinde yumuşak çapraz geçiş (destekleyen tarayıcılarda, hareket azaltma kapalıyken).
+  onNavigate((nav) => {
+    const doc = document as Document & { startViewTransition?: (cb: () => Promise<void>) => unknown };
+    if (!doc.startViewTransition || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (nav.from?.url.pathname === nav.to?.url.pathname) return;
+    return new Promise((resolve) => {
+      doc.startViewTransition!(async () => {
+        resolve();
+        await nav.complete;
+      });
+    });
+  });
+
+  // Uzun süren geçişlerde içerik hafifçe soluklaşır (ilerleme çubuğuyla birlikte).
+  let slow = $state(false);
+  let slowTimer: ReturnType<typeof setTimeout> | undefined;
+  $effect(() => {
+    clearTimeout(slowTimer);
+    if (navigating.to) slowTimer = setTimeout(() => (slow = true), 350);
+    else slow = false;
+  });
+
+  const accent = $derived(String(s['appearance.accentColor'] ?? '#7b61ff'));
+  const fontFamily = $derived(FONT_OPTIONS.find((f) => f.key === s['appearance.fontFamily'])?.family ?? FONT_OPTIONS[0].family);
+  // Renk yayılımı: vurgu renginin yüzeylere karışma oranı (theme-tokens.css → --tint)
+  const TINT: Record<string, number> = { none: 0, soft: 3, medium: 6, strong: 11 };
+  const tint = $derived(TINT[String(s['appearance.colorSpread'] ?? 'none')] ?? 0);
+  // `html` önekiyle tema dosyasındaki varsayılanlardan her zaman baskın gelir (yükleme sırasından bağımsız).
+  const accentCss = $derived(
+    `html:root{--app-font:${fontFamily};--tint:${tint}}` +
+      (/^#[0-9a-fA-F]{6}$/.test(accent) ? `html:root,html[data-theme]{--primary:${accent};--primary-foreground:${readableOn(accent)}}` : ''),
+  );
+  const favicon = $derived(s['appearance.faviconUrl'] as string | null | undefined);
+  // Site simgesi app.html'de sunucuda yazılır; yönetimden değişince sayfa yenilenmeden güncellenir.
+  $effect(() => {
+    const href = favicon || '/brand/inkforum-icon-192.png';
+    const link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+    if (link && link.getAttribute('href') !== href) link.href = href;
+  });
+  // Tema ve köşe ayarı sunucuda <html> üzerine yazılır; yönetimden değişince istemcide de güncellenir.
+  const themeStyle = $derived(String(s['appearance.themeStyle'] ?? 'modern'));
+  $effect(() => {
+    document.documentElement.dataset.style = themeStyle;
+    document.documentElement.dataset.radius = String(s['appearance.radius'] ?? 'auto');
+  });
+  const pageBg = $derived(s['appearance.backgroundUrl'] as string | null | undefined);
+  const pageBgDim = $derived(Math.min(95, Math.max(0, Number(s['appearance.backgroundDim'] ?? 80))));
+
+  const maintenance = $derived(s['general.maintenanceMode'] === true && !viewer.isAdmin && !page.url.pathname.startsWith('/login'));
+  const isAdminArea = $derived(page.url.pathname.startsWith('/admin'));
+  // Giriş, kayıt ve şifre sayfaları kendi tam ekran düzenini çizer (üst çubuk / alt bilgi yok).
+  const isAuthArea = $derived(/^\/(login|register|forgot-password|reset-password)(\/|$)/.test(page.url.pathname));
+  // Özel sayfaların "boş" düzeni: üst çubuk ve alt bilgi olmadan (UCP, açılış sayfası…).
+  const isBare = $derived(page.data.bare === true);
+  // Başka sitelere gömülen kartlarda özel kod çalışmaz
+  const isEmbed = $derived(page.url.pathname.startsWith('/embed/'));
+</script>
+
+<SeoHead settings={s} />
+
+<svelte:head>
+  <meta name="theme-color" content={theme.resolved === 'dark' ? '#0f1219' : '#f6f7fb'} />
+  {#if accentCss}{@html `<style>${accentCss}</style>`}{/if}
+  {#if !isAdminArea && !isEmbed}
+    {#if customCss}{@html customCss}{/if}
+    {#if headHtml}{@html deferScripts(headHtml)}{/if}
+  {/if}
+</svelte:head>
+
+{#snippet placement(key: SnippetPlacement)}
+  {#each byPlacement[key] ?? [] as sn (sn.id)}<CustomHtml html={sn.html} part="custom-{key}" />{/each}
+{/snippet}
+
+{#if data.safeMode && !isAdminArea}
+  <div class="border-b border-warning/40 bg-warning/15 text-sm" data-part="safe-mode">
+    <div class="mx-auto flex max-w-7xl items-center gap-2 px-4 py-2 sm:px-6">
+      <ShieldWarningIcon class="size-4 shrink-0" weight="fill" /> {t('Güvenli mod açık — özel HTML / CSS / JavaScript kodları çalışmıyor.')}
+      <a href="?safemode=0" data-sveltekit-reload class="ml-auto font-semibold underline">{t('Kapat')}</a>
+    </div>
+  </div>
+{/if}
+
+{#if maintenance}
+  <main class="mx-auto flex min-h-dvh max-w-lg flex-col items-center justify-center gap-4 px-6 text-center">
+    <div class="flex size-14 items-center justify-center rounded-2xl bg-muted"><WrenchIcon class="size-7" /></div>
+    <h1 class="text-2xl font-semibold">{t('{name} bakımda', { name: String(s['general.forumName'] ?? '') })}</h1>
+    <p class="text-muted-foreground">{s['general.maintenanceMessage']}</p>
+    {#if !viewer.user}<Button href="/login" variant="outline" size="sm">{t('Yönetici girişi')}</Button>{/if}
+  </main>
+{:else if isAdminArea}
+  {@render children()}
+{:else if isAuthArea || isBare}
+  {@render children()}
+  {#if !isEmbed}{@render placement('bodyEnd')}{/if}
+{:else}
+  {#if pageBg}
+    <!-- Forumun genel arka planı: görsel + okunurluk için tema renginde örtü -->
+    <div class="pointer-events-none fixed inset-0 -z-10" data-part="page-background" aria-hidden="true">
+      <div class="absolute inset-0 bg-cover bg-center" style="background-image:url('{pageBg}')"></div>
+      <div class="absolute inset-0" style="background:color-mix(in oklch, var(--background) {pageBgDim}%, transparent)"></div>
+    </div>
+  {/if}
+  <div class="flex min-h-dvh flex-col">
+    <!-- Klasik temada (SMF) üst alan ve içerik ortalanmış tek bir çerçevede -->
+    <div data-part="site-shell" class={themeStyle === 'classic' ? 'smf-shell' : 'contents'}>
+    <SiteHeader {viewer} nav={data.nav} />
+    {#if viewer.flags.ban && !viewer.flags.ban.cannotAccess}
+      <div class="border-b border-destructive/30 bg-destructive/10 text-sm text-destructive">
+        <div class="mx-auto flex max-w-7xl items-center gap-2 px-4 py-2 sm:px-6">
+          <TriangleAlertIcon class="size-4 shrink-0" />
+          <span>
+            {viewer.flags.ban.reason ? t('Hesabınız kısıtlandı: {reason}', { reason: viewer.flags.ban.reason }) : t('Hesabınız kısıtlandı.')}
+            {#if viewer.flags.ban.expiresAt}{t('(Bitiş: {date})', { date: formatDate(viewer.flags.ban.expiresAt) })}{/if}
+          </span>
+        </div>
+      </div>
+    {/if}
+    {#if s['general.maintenanceMode'] === true && viewer.isAdmin}
+      <div class="border-b border-warning/40 bg-warning/15 text-sm">
+        <div class="mx-auto flex max-w-7xl items-center gap-2 px-4 py-2 sm:px-6">
+          <WrenchIcon class="size-4" /> {t('Bakım modu açık — forum yalnızca yöneticilere görünüyor.')}
+          <a href="/admin/settings/general" class="ml-auto underline">{t('Ayarlar')}</a>
+        </div>
+      </div>
+    {/if}
+    <main
+      data-part="page"
+      class="mx-auto w-full max-w-7xl flex-1 px-4 py-6 transition-opacity duration-300 sm:px-6 sm:py-8 {slow ? 'opacity-60' : ''}"
+      style="view-transition-name: page"
+    >
+      {#if byPlacement.afterHeader}<div class="mb-6 grid gap-4" data-part="custom-after-header">{@render placement('afterHeader')}</div>{/if}
+      {@render children()}
+      {#if byPlacement.beforeFooter}<div class="mt-6 grid gap-4" data-part="custom-before-footer">{@render placement('beforeFooter')}</div>{/if}
+    </main>
+    </div>
+    <SiteFooter {viewer} />
+  </div>
+  {@render placement('bodyEnd')}
+  {#if s['cookies.bannerEnabled'] !== false}<CookieBanner text={String(s['cookies.bannerText'] ?? '')} />{/if}
+{/if}
+
+<NavProgress />
+<Toaster richColors position="top-center" />
+<ConfirmDialog />

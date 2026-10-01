@@ -1,0 +1,46 @@
+{
+  "name": "inkforum",
+  "version": "1.0.0",
+  "description": "InkForum — modern, hafif ve tamamen yönetilebilir topluluk yazılımı",
+  "license": "AGPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vokartz/inkforum.git"
+  },
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.34.6",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "start": "node --enable-source-maps --env-file-if-exists=.env apps/server/dist/main.js",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "db:migrate": "pnpm --filter @forum/server db:migrate",
+    "db:seed:dev": "pnpm --filter @forum/server db:seed:dev",
+    "release:version": "node scripts/release/version.mjs",
+    "release:notes": "node scripts/release/notes.mjs",
+    "release:build": "node scripts/release/build.mjs",
+    "i18n:extract": "node scripts/i18n/extract.mjs",
+    "i18n:merge": "node scripts/i18n/merge.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.0",
+    "esbuild": "0.27.7",
+    "eslint": "^10.11.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-svelte": "^3.23.0",
+    "globals": "^16.4.0",
+    "prettier": "^3.9.9",
+    "prettier-plugin-svelte": "^4.1.1",
+    "prettier-plugin-tailwindcss": "^0.8.1",
+    "turbo": "^2.11.5",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.71.0"
+  }
+}

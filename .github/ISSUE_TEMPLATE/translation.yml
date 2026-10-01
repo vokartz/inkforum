@@ -1,0 +1,53 @@
+name: 🌍 Translation
+description: Report a wrong / missing translation or offer a new language.
+title: "[i18n]: "
+labels: ["translation"]
+body:
+  - type: dropdown
+    id: language
+    attributes:
+      label: Language
+      options:
+        - English
+        - Türkçe
+        - Deutsch
+        - 中文 (简体)
+        - Español
+        - Français
+        - Русский
+        - Português (Brasil)
+        - New language (please specify below)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Type
+      options:
+        - Wrong or unnatural translation
+        - Missing translation (text still shown in another language)
+        - Text doesn't fit / layout breaks
+        - I want to translate a new language
+    validations:
+      required: true
+
+  - type: input
+    id: where
+    attributes:
+      label: Where does it appear?
+      placeholder: "Admin → Backups, 'Restore' dialog"
+
+  - type: textarea
+    id: current
+    attributes:
+      label: Current text
+      render: text
+
+  - type: textarea
+    id: suggested
+    attributes:
+      label: Suggested text
+      render: text
+    validations:
+      required: true

@@ -1,0 +1,167 @@
+name: 🐞 Bug report
+description: Something is broken or behaves differently than documented. (Türkçe yazabilirsiniz.)
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! A precise report gets fixed much faster.
+        **Security vulnerabilities must NOT be reported here** — use [private security advisories](https://github.com/vokartz/inkforum/security/advisories/new) instead.
+
+        > 💡 **Tip:** In your forum go to **Admin → System info → "Report a bug on GitHub"**. It opens this form with your version and environment already filled in.
+        > Türkçe: **Yönetim → Sistem bilgisi → "GitHub'da hata bildir"** düğmesi bu formu sürüm ve ortam bilgileriyle doldurarak açar.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you start
+      options:
+        - label: I searched [existing issues](https://github.com/vokartz/inkforum/issues?q=is%3Aissue) and this is not a duplicate.
+          required: true
+        - label: I am running the latest InkForum version (or I noted below why I can't update).
+          required: true
+        - label: This is not a security vulnerability.
+          required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: InkForum version
+      description: Shown in Admin → Updates (e.g. 1.2.0).
+      placeholder: "1.2.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install
+    attributes:
+      label: Installation type
+      options:
+        - Docker (official docker-compose.yml)
+        - Docker (Coolify / Dokploy / Portainer / other platform)
+        - Server package (Node.js, systemd / PM2)
+        - cPanel / Plesk / Passenger
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: database
+    attributes:
+      label: Database
+      options:
+        - SQLite (default)
+        - PostgreSQL
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      multiple: true
+      options:
+        - Forum (boards, topics, posts)
+        - Editor / BBCode / embeds
+        - Members, profiles, groups, permissions
+        - Private messages / notifications / e-mails
+        - Themes & appearance
+        - Studio (page builder) / landing page
+        - Plugins (Wiki, Applications, Tickets)
+        - Admin panel
+        - Installer / updates / backups
+        - Security / firewall (WAF) / login / 2FA
+        - SEO / sharing / embeds on other sites
+        - API / OAuth / webhooks
+        - Import from another forum (SMF, phpBB, IPS…)
+        - Translations / languages
+        - Mobile layout
+        - Performance
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - Critical — site down, data loss or everyone affected
+        - High — an important feature doesn't work, no workaround
+        - Medium — broken, but there is a workaround
+        - Low — cosmetic / minor annoyance
+    validations:
+      required: true
+
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: How often does it happen?
+      options:
+        - Every time
+        - Sometimes
+        - Happened once
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: A clear, short description of the problem.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The exact steps so we can see the bug ourselves.
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Scroll down to '...'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots / screen recording
+      description: Drag & drop images or videos here. Please hide private information.
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and device
+      placeholder: "Chrome 140 on Windows 11 · Safari on iPhone 15"
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Server logs
+      description: |
+        Relevant lines from `docker compose logs inkforum --tail 200` (or your process manager). Remove secrets.
+      render: shell
+
+  - type: textarea
+    id: system
+    attributes:
+      label: System summary
+      description: Paste the output of **Admin → System info → Copy summary**.
+      render: text
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Anything else?
+      description: Recent changes (update, new plugin, custom code/CSS), workarounds you found, related issues…
