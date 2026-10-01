@@ -70,6 +70,10 @@
   let themeStyle = $state<ThemeStyle>('modern');
   let radius = $state('auto');
   let postLayout = $state<'side' | 'top'>('side');
+  let authLayout = $state<'split' | 'centered' | 'cover'>('split');
+  let authSide = $state<'left' | 'right'>('left');
+  let authHeadline = $state('');
+  let authText = $state('');
   let footerText = $state('');
   let footerLinks = $state<Array<{ label: string; url: string; newTab: boolean }>>([]);
   let fontFamily = $state('roboto');
@@ -95,6 +99,10 @@
     themeStyle = (settingValue('appearance.themeStyle') ?? 'modern') as typeof themeStyle;
     radius = String(settingValue('appearance.radius') ?? 'auto');
     postLayout = (settingValue('appearance.postLayout') ?? 'side') as typeof postLayout;
+    authLayout = (settingValue('appearance.authLayout') ?? 'split') as typeof authLayout;
+    authSide = (settingValue('appearance.authImageSide') ?? 'left') as typeof authSide;
+    authHeadline = String(settingValue('appearance.authHeadline') ?? '');
+    authText = String(settingValue('appearance.authText') ?? '');
     cookieBanner = settingValue('cookies.bannerEnabled') !== false;
     poweredBy = settingValue('appearance.poweredBy') !== false;
     cookieText = String(settingValue('cookies.bannerText') ?? '');
@@ -142,6 +150,10 @@
         'appearance.themeStyle': themeStyle,
         'appearance.radius': radius,
         'appearance.postLayout': postLayout,
+        'appearance.authLayout': authLayout,
+        'appearance.authImageSide': authSide,
+        'appearance.authHeadline': authHeadline,
+        'appearance.authText': authText,
       });
       toast.success(t('Görünüm kaydedildi.'));
       await invalidateAll();
@@ -576,6 +588,56 @@
           </Card.Content>
         </Card.Root>
       </div>
+
+      <!-- Giriş ve kayıt sayfası -->
+      <Card.Root>
+        <Card.Header>
+          <Card.Title class="text-base">{t('Giriş ve kayıt sayfası')}</Card.Title>
+          <Card.Description>{t('Giriş, kayıt ve şifre sayfalarının düzeni. Görsel yüklemediyseniz sade koyu bir zemin kullanılır.')}</Card.Description>
+        </Card.Header>
+        <Card.Content class="grid gap-5">
+          <div class="grid gap-3 sm:grid-cols-3">
+            {#each [{ v: 'split', l: t('Bölünmüş'), d: t('Bir yanda görsel, diğer yanda form') }, { v: 'centered', l: t('Ortada kart'), d: t('Sade zeminde ortalanmış form') }, { v: 'cover', l: t('Tam ekran'), d: t('Tüm ekran görsel, üstünde form kartı') }] as o (o.v)}
+              <button type="button" onclick={() => (authLayout = o.v as typeof authLayout)} class={cn('grid gap-2 rounded-lg border p-2.5 text-left transition-colors hover:bg-accent', authLayout === o.v && 'border-primary bg-primary-soft')}>
+                <div class="relative flex h-16 overflow-hidden rounded border bg-muted/40">
+                  {#if o.v === 'split'}
+                    <span class={cn('w-1/2', authSide === 'right' && 'order-2')} style="background:color-mix(in oklab, {accent} 25%, #0d0f13)"></span>
+                    <span class="flex flex-1 items-center justify-center"><span class="h-9 w-12 rounded-sm border bg-card"></span></span>
+                  {:else if o.v === 'centered'}
+                    <span class="flex flex-1 items-center justify-center"><span class="h-11 w-14 rounded-md border bg-card shadow-sm"></span></span>
+                  {:else}
+                    <span class="absolute inset-0" style="background:color-mix(in oklab, {accent} 25%, #0d0f13)"></span>
+                    <span class="relative ml-auto mr-2 self-center h-12 w-14 rounded-md border bg-card/95"></span>
+                  {/if}
+                </div>
+                <span class="text-sm font-semibold">{o.l}<span class="block text-xs font-normal text-muted-foreground">{o.d}</span></span>
+              </button>
+            {/each}
+          </div>
+          {#if authLayout === 'split'}
+            <Field label={t('Görselin yeri')}>
+              <div class="flex w-fit gap-1 rounded-lg bg-muted p-1">
+                {#each [{ v: 'left', l: t('Solda') }, { v: 'right', l: t('Sağda') }] as o (o.v)}
+                  <button type="button" class={cn(segBtn, authSide === o.v ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground')} onclick={() => (authSide = o.v as typeof authSide)}>{o.l}</button>
+                {/each}
+              </div>
+            </Field>
+          {/if}
+          {#if authLayout !== 'centered'}
+            <div class="grid gap-4 md:grid-cols-2">
+              <Field label={t('Başlık')} hint={t('Boşsa "{name} topluluğuna hoş geldin".', { name: String(settingValue('general.forumName') ?? 'Forum') })}>
+                <Input bind:value={authHeadline} maxlength={120} />
+              </Field>
+              <Field label={t('Alt yazı')} hint={t('Boşsa forum açıklaması kullanılır.')}>
+                <Input bind:value={authText} maxlength={300} />
+              </Field>
+            </div>
+          {/if}
+          <div class="flex flex-wrap items-center gap-2">
+            <Button onclick={saveBrand} disabled={savingBrand}>{#if savingBrand}<LoaderIcon class="animate-spin" />{:else}<SaveIcon />{/if}{t('Kaydet')}</Button>
+          </div>
+        </Card.Content>
+      </Card.Root>
     </Tabs.Content>
 
     <!-- Menü -->
