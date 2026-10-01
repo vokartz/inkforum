@@ -15,7 +15,8 @@ afterEach(async () => {
   database = undefined;
 });
 
-describe.each(['sqlite', 'pglite'] as const)('migrations (%s)', (driver) => {
+// PGlite (WebAssembly PostgreSQL) tüm migration'ları birkaç saniyede uygular; yük altında 5 sn yetmez
+describe.each(['sqlite', 'pglite'] as const)('migrations (%s)', { timeout: 30_000 }, (driver) => {
   it('applies all migrations and can roll them back', async () => {
     const { db } = await freshDb(driver);
     const up = await migrateToLatest(db);
