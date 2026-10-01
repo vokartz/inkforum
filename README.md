@@ -54,7 +54,7 @@ Open `https://your-domain.com/install` in your browser. The wizard checks your s
 theme, administrator account, registration mode, plugins and (optionally) e-mail settings. That's it.
 
 > **Why a setup code?** It prevents anyone else from claiming a freshly installed, internet-facing server.
-> The code is only printed to the server log: `docker compose -f /opt/inkforum/docker-compose.yml logs inkforum | grep "Kurulum kodu"`
+> The code is only printed to the server log: `docker compose -f /opt/inkforum/docker-compose.yml logs inkforum | grep "Setup code"`
 
 ### Manual installation (Docker Compose)
 

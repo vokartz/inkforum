@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { z } from 'zod';
+import { LOCALES, type Locale } from '@forum/shared';
 
 const bool = z
   .union([z.boolean(), z.string()])
@@ -54,6 +55,8 @@ const envSchema = z.object({
   INKFORUM_BUILD: z.string().max(80).optional(),
   /** Kurulum sihirbazı kodu (boşsa açılışta rastgele üretilir) */
   INSTALL_CODE: z.string().max(20).optional(),
+  /** Kurulumdan önceki varsayılan dil (install.sh yazar); kurulumdan sonra yönetim panelindeki ayar geçerlidir */
+  DEFAULT_LOCALE: z.preprocess((v) => (v === '' ? undefined : v), z.enum(LOCALES).optional()),
 
   ADMIN_USERNAME: z.string().default('admin'),
   ADMIN_EMAIL: z.string().default('admin@example.com'),
@@ -99,6 +102,7 @@ export interface AppConfig {
   deploy: 'docker' | 'release' | 'source';
   updates: { repo: string; apiUrl: string; disabled: boolean; updaterUrl: string | null; updaterToken: string | null };
   installCode: string | null;
+  defaultLocale: Locale | null;
   workerEnabled: boolean;
   logLevel: 'error' | 'warn' | 'log' | 'debug' | 'verbose';
 }
@@ -221,6 +225,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Part
       updaterToken: e.UPDATER_TOKEN ?? null,
     },
     installCode: e.INSTALL_CODE?.trim() || null,
+    defaultLocale: e.DEFAULT_LOCALE ?? null,
     workerEnabled: e.WORKER_ENABLED,
     logLevel: e.LOG_LEVEL,
   };

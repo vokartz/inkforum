@@ -54,7 +54,7 @@ Abra `https://your-domain.com/install` no navegador. O assistente verifica seu s
 o tema, a conta de administrador, o modo de cadastro, os plugins e (opcionalmente) as configurações de e-mail. Pronto.
 
 > **Por que um código de instalação?** Ele impede que outra pessoa assuma um servidor recém-instalado e exposto à internet.
-> O código só é exibido no log do servidor: `docker compose -f /opt/inkforum/docker-compose.yml logs inkforum | grep "Kurulum kodu"`
+> O código só é exibido no log do servidor: `docker compose -f /opt/inkforum/docker-compose.yml logs inkforum | grep "Setup code"`
 
 ### Instalação manual (Docker Compose)
 

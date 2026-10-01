@@ -22,6 +22,7 @@ const NS = 'settings';
 export class SettingsService implements OnModuleInit {
   private readonly logger = new Logger('Settings');
   private values: SettingsValues = settingDefaults();
+  private stored = new Set<string>();
   private loaded = false;
 
   constructor(
@@ -40,23 +41,32 @@ export class SettingsService implements OnModuleInit {
   async reload(): Promise<void> {
     const rows = await this.db.q.selectFrom('settings').select(['key', 'value_json']).execute();
     const next = settingDefaults() as Record<string, unknown>;
+    const stored = new Set<string>();
     for (const row of rows) {
       const def = SETTINGS[row.key as SettingKey];
       if (!def) continue;
       try {
         const parsed = def.schema.safeParse(JSON.parse(row.value_json));
-        if (parsed.success) next[row.key] = parsed.data;
-        else this.logger.warn(`Geçersiz ayar değeri yok sayıldı: ${row.key}`);
+        if (parsed.success) {
+          next[row.key] = parsed.data;
+          stored.add(row.key);
+        } else this.logger.warn(`Geçersiz ayar değeri yok sayıldı: ${row.key}`);
       } catch {
         this.logger.warn(`Bozuk ayar değeri yok sayıldı: ${row.key}`);
       }
     }
     this.values = next as SettingsValues;
+    this.stored = stored;
     this.loaded = true;
   }
 
   get<K extends SettingKey>(key: K): SettingsValues[K] {
     return this.values[key];
+  }
+
+  /** Değer veritabanında kayıtlı mı (değilse varsayılan kullanılıyor) */
+  isStored(key: SettingKey): boolean {
+    return this.stored.has(key);
   }
 
   /** Eklenti açık mı (Yönetim → Eklentiler) */

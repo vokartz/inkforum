@@ -54,7 +54,7 @@ Das Skript:
 Theme, Administratorkonto, Registrierungsmodus, Plugins und (optional) E-Mail-Einstellungen. Das war's.
 
 > **Warum ein Einrichtungscode?** Er verhindert, dass jemand anderes einen frisch installierten, öffentlich erreichbaren Server für sich beansprucht.
-> Der Code wird nur im Server-Log ausgegeben: `docker compose -f /opt/inkforum/docker-compose.yml logs inkforum | grep "Kurulum kodu"`
+> Der Code wird nur im Server-Log ausgegeben: `docker compose -f /opt/inkforum/docker-compose.yml logs inkforum | grep "Setup code"`
 
 ### Manuelle Installation (Docker Compose)
 

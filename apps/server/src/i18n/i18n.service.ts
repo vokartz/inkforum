@@ -62,7 +62,9 @@ export class I18nService {
     return list.length ? list : [...LOCALES];
   }
 
+  /** Forum varsayılanı; kurulumdan önce (ayar kaydedilmemişken) DEFAULT_LOCALE ortam değişkeni */
   defaultLocale(): Locale {
+    if (this.config.defaultLocale && !this.settings.isStored('i18n.defaultLocale')) return this.config.defaultLocale;
     const d = this.settings.get('i18n.defaultLocale') as Locale;
     return isLocale(d) ? d : SOURCE_LOCALE;
   }

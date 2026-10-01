@@ -54,7 +54,7 @@ curl -fsSL https://raw.githubusercontent.com/vokartz/inkforum/main/install.sh | 
 тему, учётную запись администратора, режим регистрации, плагины и (по желанию) настройки почты. Вот и всё.
 
 > **Зачем нужен код установки?** Он не позволяет посторонним перехватить только что установленный сервер, доступный из интернета.
-> Код выводится только в журнал сервера: `docker compose -f /opt/inkforum/docker-compose.yml logs inkforum | grep "Kurulum kodu"`
+> Код выводится только в журнал сервера: `docker compose -f /opt/inkforum/docker-compose.yml logs inkforum | grep "Setup code"`
 
 ### Ручная установка (Docker Compose)
 

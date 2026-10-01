@@ -54,7 +54,7 @@ curl -fsSL https://raw.githubusercontent.com/vokartz/inkforum/main/install.sh | 
 主题、管理员账号、注册模式、插件以及（可选的）邮件设置。就这么简单。
 
 > **为什么需要安装码？** 它可以防止他人抢先接管一台刚安装好、暴露在公网上的服务器。
-> 安装码只会输出到服务器日志中：`docker compose -f /opt/inkforum/docker-compose.yml logs inkforum | grep "Kurulum kodu"`
+> 安装码只会输出到服务器日志中：`docker compose -f /opt/inkforum/docker-compose.yml logs inkforum | grep "Setup code"`
 
 ### 手动安装（Docker Compose）
 

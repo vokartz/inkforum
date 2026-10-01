@@ -166,3 +166,20 @@ describe('updates and backups', () => {
     expect((await guest.get('/api/admin/updates/summary')).status).toBe(401);
   });
 });
+
+describe('install wizard language (DEFAULT_LOCALE)', () => {
+  let h: Harness;
+  beforeAll(async () => {
+    h = await createHarness({ ADMIN_PASSWORD: '', INSTALL_CODE: CODE, DEFAULT_LOCALE: 'en' });
+  });
+  afterAll(async () => {
+    await h.close();
+  });
+
+  it('uses the installer language before setup and keeps it as the forum default', async () => {
+    const a = h.agent();
+    expect((await a.get('/api/auth/me')).body.locale).toBe('en');
+    expect((await a.post('/api/install', validInstall)).status).toBe(201);
+    expect(h.settings.get('i18n.defaultLocale')).toBe('en');
+  });
+});
