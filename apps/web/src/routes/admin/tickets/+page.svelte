@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { TICKET_PRIORITIES, TICKET_PRIORITY_LABELS, type AdminTicketCategory, type TicketCategoryInput } from '@forum/shared';
+  import { TICKET_AUTO_ASSIGN, TICKET_AUTO_ASSIGN_LABELS, TICKET_PRIORITIES, TICKET_PRIORITY_LABELS, type AdminTicketCategory, type TicketCategoryInput, type UserSummary } from '@forum/shared';
   import { invalidate } from '$app/navigation';
   import { toast } from 'svelte-sonner';
   import PageHeaderIcon from 'phosphor-svelte/lib/Lifebuoy';
@@ -11,6 +11,8 @@
   import LoaderIcon from 'phosphor-svelte/lib/CircleNotch';
   import EyeSlashIcon from 'phosphor-svelte/lib/EyeSlash';
   import UsersIcon from 'phosphor-svelte/lib/UsersThree';
+  import ShuffleIcon from 'phosphor-svelte/lib/ArrowsClockwise';
+  import UserAvatar from '$lib/components/UserAvatar.svelte';
   import * as Dialog from '$lib/components/ui/dialog';
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
@@ -29,7 +31,7 @@
   const staffGroups = $derived(data.groups.filter((g) => g.systemKey !== 'guest' && g.systemKey !== 'member'));
 
   const COLORS = ['#3b82f6', '#8b5cf6', '#ef4444', '#f59e0b', '#10b981', '#06b6d4', '#ec4899', '#64748b'];
-  const blank = (): TicketCategoryInput => ({ name: '', description: '', icon: 'lifebuoy', color: '#3b82f6', handlerGroupIds: [], isActive: true, sortOrder: (data.items?.length ?? 0) + 1, defaultPriority: 'normal', intro: '' });
+  const blank = (): TicketCategoryInput => ({ name: '', description: '', icon: 'lifebuoy', color: '#3b82f6', handlerGroupIds: [], isActive: true, sortOrder: (data.items?.length ?? 0) + 1, defaultPriority: 'normal', intro: '', autoAssign: 'none', autoAssignUserId: null, autoAssignOnline: false });
   let open = $state(false);
   let editId = $state<number | null>(null);
   let form = $state<TicketCategoryInput>(blank());
@@ -38,10 +40,28 @@
 
   function edit(c: AdminTicketCategory | null) {
     editId = c?.id ?? null;
-    form = c ? { name: c.name, description: c.description, icon: c.icon, color: c.color, handlerGroupIds: [...c.handlerGroupIds], isActive: c.isActive, sortOrder: c.sortOrder, defaultPriority: c.defaultPriority, intro: c.intro } : blank();
+    handlersKey = '';
+    form = c ? { name: c.name, description: c.description, icon: c.icon, color: c.color, handlerGroupIds: [...c.handlerGroupIds], isActive: c.isActive, sortOrder: c.sortOrder, defaultPriority: c.defaultPriority, intro: c.intro, autoAssign: c.autoAssign, autoAssignUserId: c.autoAssignUserId, autoAssignOnline: c.autoAssignOnline } : blank();
     errors = {};
     open = true;
   }
+  // Sorumlu gruplar değiştikçe "belirli yetkili" için aday listesi yenilenir
+  let handlers = $state<UserSummary[]>([]);
+  let handlersKey = '';
+  $effect(() => {
+    if (!open || form.autoAssign !== 'fixed') return;
+    const key = form.handlerGroupIds.join(',');
+    if (key === handlersKey) return;
+    handlersKey = key;
+    api
+      .get<{ items: UserSummary[] }>(`/api/admin/ticket-categories/handlers?groups=${key}`)
+      .then((r) => {
+        if (handlersKey === key) handlers = r.items;
+      })
+      .catch(() => (handlers = []));
+  });
+  const assigneeName = (c: AdminTicketCategory) => (c.autoAssign === 'fixed' && c.autoAssignUser ? c.autoAssignUser.displayName : t(TICKET_AUTO_ASSIGN_LABELS[c.autoAssign].label));
+
   async function save() {
     saving = true;
     errors = {};
@@ -94,6 +114,11 @@
             <UsersIcon class="size-3.5 text-muted-foreground" />
             {#each c.handlerGroupIds as g (g)}<span class="rounded-full bg-muted px-2 py-0.5 font-semibold">{groupName(g)}</span>{:else}<span class="text-warning">{t('Sorumlu grup yok (yöneticiler görür)')}</span>{/each}
           </p>
+          {#if c.autoAssign !== 'none'}
+            <p class="mt-1.5 inline-flex items-center gap-1 rounded-full bg-primary-soft px-2 py-0.5 text-xs font-semibold text-highlight">
+              <ShuffleIcon class="size-3.5" />{t('Otomatik atama: {mode}', { mode: assigneeName(c) })}{#if c.autoAssignOnline}<span class="font-normal opacity-80">· {t('önce çevrimiçi')}</span>{/if}
+            </p>
+          {/if}
           <p class="mt-1.5 text-xs text-muted-foreground">{t('{open} açık · {total} toplam · varsayılan öncelik {priority}', { open: c.openCount, total: c.totalCount, priority: t(TICKET_PRIORITY_LABELS[c.defaultPriority]).toLocaleLowerCase(localeTag()) })}</p>
         </div>
         <div class="flex flex-col gap-1">
@@ -125,6 +150,41 @@
             <button type="button" onclick={() => (form.handlerGroupIds = form.handlerGroupIds.includes(g.id) ? form.handlerGroupIds.filter((x) => x !== g.id) : [...form.handlerGroupIds, g.id])} class={cn('rounded-full border px-3 py-1 text-xs font-semibold', form.handlerGroupIds.includes(g.id) ? 'border-primary bg-primary-soft text-highlight' : 'hover:bg-accent')}>{tc(g.name)}</button>
           {/each}
         </div>
+      </Field>
+      <Field label={t('Otomatik yetkili atama')} hint={t('Yeni talepler açıldığı anda bir yetkiliye atanır ve yalnızca o kişiye bildirim gider.')} error={errors.autoAssignUserId}>
+        <div class="grid gap-2 sm:grid-cols-2" role="radiogroup">
+          {#each TICKET_AUTO_ASSIGN as m (m)}
+            <button
+              type="button"
+              role="radio"
+              aria-checked={form.autoAssign === m}
+              onclick={() => (form.autoAssign = m)}
+              class={cn('rounded-lg border p-3 text-left transition-colors', form.autoAssign === m ? 'border-primary bg-primary-soft' : 'hover:bg-accent')}
+            >
+              <span class={cn('block text-sm font-semibold', form.autoAssign === m && 'text-highlight')}>{t(TICKET_AUTO_ASSIGN_LABELS[m].label)}</span>
+              <span class="mt-0.5 block text-xs text-muted-foreground">{t(TICKET_AUTO_ASSIGN_LABELS[m].description)}</span>
+            </button>
+          {/each}
+        </div>
+        {#if form.autoAssign === 'fixed'}
+          <div class="mt-2 flex flex-wrap gap-1.5">
+            {#each handlers as u (u.id)}
+              <button
+                type="button"
+                onclick={() => (form.autoAssignUserId = u.id)}
+                class={cn('inline-flex items-center gap-1.5 rounded-full border py-1 pr-3 pl-1 text-xs font-semibold', form.autoAssignUserId === u.id ? 'border-primary bg-primary-soft text-highlight' : 'hover:bg-accent')}
+              ><UserAvatar user={u} size={20} />{u.displayName}</button>
+            {:else}
+              <p class="text-xs text-warning">{t('Seçili sorumlu gruplarda üye yok.')}</p>
+            {/each}
+          </div>
+        {/if}
+        {#if form.autoAssign === 'round_robin' || form.autoAssign === 'least_open'}
+          <label class="mt-2 flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm">
+            <span><span class="font-semibold">{t('Önce çevrimiçi yetkililer')}</span><span class="block text-xs text-muted-foreground">{t('Son 15 dakikada aktif olan yetkili varsa talep ona verilir.')}</span></span>
+            <Switch bind:checked={form.autoAssignOnline} />
+          </label>
+        {/if}
       </Field>
       <div class="grid grid-cols-2 gap-3">
         <Field label={t('Varsayılan öncelik')}>

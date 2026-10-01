@@ -20,6 +20,16 @@ export const TICKET_PRIORITY_LABELS: Record<TicketPriority, string> = { low: 'D�
 
 const color = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Renk #RRGGBB biçiminde olmalı.').nullable().default(null);
 
+/** Yeni talep geldiğinde sorumlu yetkili seçimi */
+export const TICKET_AUTO_ASSIGN = ['none', 'round_robin', 'least_open', 'fixed'] as const;
+export type TicketAutoAssign = (typeof TICKET_AUTO_ASSIGN)[number];
+export const TICKET_AUTO_ASSIGN_LABELS: Record<TicketAutoAssign, { label: string; description: string }> = {
+  none: { label: 'Kapalı', description: 'Talepler atanmadan gelir; ilk yanıtlayan yetkili sorumlu olur.' },
+  round_robin: { label: 'Sırayla', description: 'Kategorinin yetkilileri arasında sırayla dağıtılır.' },
+  least_open: { label: 'En az yükü olana', description: 'Açık talebi en az olan yetkiliye verilir.' },
+  fixed: { label: 'Belirli bir yetkili', description: 'Tüm talepler seçilen yetkiliye gider.' },
+};
+
 export const ticketCategoryInput = z.object({
   name: z.string().trim().min(1, 'Ad gerekli.').max(80),
   description: z.string().trim().max(300).default(''),
@@ -32,7 +42,10 @@ export const ticketCategoryInput = z.object({
   defaultPriority: z.enum(TICKET_PRIORITIES).default('normal'),
   /** Yeni talep formunda gösterilen bilgi (BBCode) */
   intro: z.string().max(5000).default(''),
-});
+  autoAssign: z.enum(TICKET_AUTO_ASSIGN).default('none'),
+  autoAssignUserId: z.number().int().positive().nullable().default(null),
+  autoAssignOnline: z.boolean().default(false),
+}).refine((v) => v.autoAssign !== 'fixed' || !!v.autoAssignUserId, { path: ['autoAssignUserId'], message: 'Talepleri alacak yetkiliyi seçin.' });
 export type TicketCategoryInput = z.output<typeof ticketCategoryInput>;
 
 export const ticketCreateInput = z.object({
@@ -73,6 +86,7 @@ export interface TicketCategory {
 
 export interface AdminTicketCategory extends TicketCategoryInput {
   id: number;
+  autoAssignUser: UserSummary | null;
   openCount: number;
   totalCount: number;
 }

@@ -904,6 +904,11 @@ export interface TicketCategoriesTable {
   intro_html: Def<string>;
   created_at: number;
   updated_at: number;
+  /** Yeni talepleri otomatik atama: none | round_robin | least_open | fixed */
+  auto_assign: Def<'none' | 'round_robin' | 'least_open' | 'fixed'>;
+  auto_assign_user_id: number | null;
+  /** Önce çevrimiçi yetkililer (yoksa tümü) */
+  auto_assign_online: Flag;
 }
 
 export interface TicketsTable {

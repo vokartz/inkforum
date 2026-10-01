@@ -132,6 +132,7 @@ export class TicketsService {
         .execute(),
     ]);
     const map = new Map(counts.map((c) => [c.category_id, c]));
+    const people = await this.users.summaries(rows.map((c) => c.auto_assign_user_id ?? 0));
     return rows.map((c) => ({
       id: c.id,
       name: c.name,
@@ -143,14 +144,26 @@ export class TicketsService {
       sortOrder: c.sort_order,
       defaultPriority: c.default_priority,
       intro: c.intro,
+      autoAssign: c.auto_assign,
+      autoAssignUserId: c.auto_assign_user_id,
+      autoAssignUser: people.get(c.auto_assign_user_id ?? 0) ?? null,
+      autoAssignOnline: c.auto_assign_online === 1,
       openCount: Number(map.get(c.id)?.open ?? 0),
       totalCount: Number(map.get(c.id)?.total ?? 0),
     }));
   }
 
+  /** Seçili sorumlu gruplardaki yetkililer (otomatik atama için seçim listesi) */
+  async handlerCandidates(groups: number[]): Promise<UserSummary[]> {
+    const people = await this.users.summaries(await this.groupUserIds(groups));
+    return [...people.values()].sort((a, b) => a.displayName.localeCompare(b.displayName, 'tr'));
+  }
+
   async saveCategory(v: RequestViewer, id: number | null, input: TicketCategoryInput): Promise<void> {
     const known = new Set((await this.groupCache.all()).map((g) => g.id));
     if (input.handlerGroupIds.some((g) => !known.has(g))) throw Errors.badRequest('Bilinmeyen grup seçildi.');
+    if (input.autoAssign === 'fixed' && !(await this.groupUserIds(input.handlerGroupIds)).includes(input.autoAssignUserId!))
+      throw Errors.validation({ autoAssignUserId: 'Seçilen kişi bu kategorinin sorumlu gruplarında değil.' });
     const now = this.clock.now();
     const values = {
       name: input.name,
@@ -163,6 +176,9 @@ export class TicketsService {
       default_priority: input.defaultPriority,
       intro: input.intro,
       intro_html: this.render.post(input.intro).html,
+      auto_assign: input.autoAssign,
+      auto_assign_user_id: input.autoAssign === 'fixed' ? input.autoAssignUserId : null,
+      auto_assign_online: input.autoAssignOnline ? 1 : 0,
       updated_at: now,
     };
     if (id) {
@@ -258,21 +274,63 @@ export class TicketsService {
     // Üyeler acil öncelik seçemez (yetkililer değiştirebilir)
     const priority = input.priority === 'urgent' ? 'high' : input.priority;
     const now = this.clock.now();
+    const assignee = await this.pickAssignee(cat, v.user!.id);
     const id = await this.db.tx(async () => {
       const t = await this.db.q
         .insertInto('tickets')
-        .values({ category_id: cat.id, user_id: v.user!.id, subject: input.subject, status: 'open', priority, message_count: 1, last_reply_at: now, created_at: now, updated_at: now })
+        .values({ category_id: cat.id, user_id: v.user!.id, subject: input.subject, status: 'open', priority, assignee_id: assignee, message_count: 1, last_reply_at: now, created_at: now, updated_at: now })
         .returning('id')
         .executeTakeFirstOrThrow();
       await this.db.q.insertInto('ticket_messages').values({ ticket_id: t.id, user_id: v.user!.id, body: input.body, body_html: this.render.post(input.body).html, created_at: now }).execute();
       return t.id;
     });
-    await this.notifyHandlers(cat, null, { ticketId: id, subject: input.subject, actorName: v.user!.display_name }, v.user!.id, 'ticket.new');
+    // Otomatik atandıysa yalnızca sorumlu yetkili, değilse kategorinin tüm yetkilileri bildirim alır
+    await this.notifyHandlers(cat, assignee, { ticketId: id, subject: input.subject, actorName: v.user!.display_name }, v.user!.id, 'ticket.new');
+    if (assignee) await this.audit.log({ type: 'moderation', action: 'ticket.auto_assign', actorId: null, data: { id, assigneeId: assignee, mode: cat.auto_assign } });
     return { id };
   }
 
-  private async handlerUserIds(cat: CatRow): Promise<number[]> {
-    let groupIds = ids(cat.handler_group_ids_json);
+  /**
+   * Otomatik atama: kategorinin yetkilileri arasından (talebi açan hariç) sırayla, en az açık talebi
+   * olana ya da sabit kişiye. "Önce çevrimiçi" açıksa son 15 dakikada aktif olanlar tercih edilir.
+   */
+  private async pickAssignee(cat: CatRow, requesterId: number): Promise<number | null> {
+    if (cat.auto_assign === 'none') return null;
+    let pool = (await this.handlerUserIds(cat)).filter((id) => id !== requesterId);
+    if (cat.auto_assign === 'fixed') return cat.auto_assign_user_id && pool.includes(cat.auto_assign_user_id) ? cat.auto_assign_user_id : null;
+    if (!pool.length) return null;
+    const users = await this.db.q.selectFrom('users').select(['id', 'last_active_at']).where('id', 'in', pool).where('status', '=', 'active').execute();
+    pool = users.map((u) => u.id).sort((a, b) => a - b);
+    if (cat.auto_assign_online) {
+      const since = this.clock.now() - 15 * 60_000;
+      const online = users.filter((u) => (u.last_active_at ?? 0) >= since).map((u) => u.id).sort((a, b) => a - b);
+      if (online.length) pool = online;
+    }
+    if (!pool.length) return null;
+    if (cat.auto_assign === 'least_open') {
+      const counts = await this.db.q
+        .selectFrom('tickets')
+        .select(['assignee_id', (eb) => eb.fn.countAll<number>().as('n')])
+        .where('assignee_id', 'in', pool)
+        .where('status', 'in', ACTIVE)
+        .groupBy('assignee_id')
+        .execute();
+      const load = new Map(counts.map((c) => [c.assignee_id!, Number(c.n)]));
+      return [...pool].sort((a, b) => (load.get(a) ?? 0) - (load.get(b) ?? 0) || a - b)[0]!;
+    }
+    // Sırayla: bu kategoride en son atanan yetkiliden sonraki
+    const last = await this.db.q.selectFrom('tickets').select('assignee_id').where('category_id', '=', cat.id).where('assignee_id', 'is not', null).orderBy('id', 'desc').limit(1).executeTakeFirst();
+    const next = pool.find((id) => id > (last?.assignee_id ?? 0));
+    return next ?? pool[0]!;
+  }
+
+  private handlerUserIds(cat: CatRow): Promise<number[]> {
+    return this.groupUserIds(ids(cat.handler_group_ids_json));
+  }
+
+  /** Verilen grupların (boşsa yönetici grubunun) etkin üyeleri */
+  private async groupUserIds(groups: number[]): Promise<number[]> {
+    let groupIds = groups;
     if (!groupIds.length) groupIds = (await this.groupCache.all()).filter((g) => g.system_key === 'admin').map((g) => g.id);
     if (!groupIds.length) return [];
     const now = this.clock.now();

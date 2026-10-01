@@ -85,3 +85,57 @@ describe('tickets', () => {
     expect((await staff.patch(`/api/tickets/${t.body.id}`, { assigneeId: otherId })).status).toBe(422);
   });
 });
+
+describe('automatic assignment', () => {
+  it('assigns new tickets in turn, by load or to a fixed staff member', async () => {
+    // İkinci yetkili
+    const ikinci = await registerActive(h, 'Deniz');
+    const ids = Object.fromEntries((await h.db.q.selectFrom('users').select(['id', 'username']).where('username', 'in', ['Burak', 'Deniz', 'Ahmet']).execute()).map((u) => [u.username, u.id])) as Record<'Burak' | 'Deniz' | 'Ahmet', number>;
+    await admin.post(`/api/admin/groups/${staffGroup}/members`, { userId: ids.Deniz, asPrimary: false, expiresAt: null });
+    await h.app.get(GroupCacheService).invalidate();
+    const cats = (await admin.get('/api/admin/ticket-categories')).body.items as Array<Record<string, unknown> & { id: number; name: string }>;
+    const cat = cats[1]!;
+    const save = (patch: Record<string, unknown>) => {
+      const { id: _id, openCount: _o, totalCount: _t, autoAssignUser: _u, ...rest } = cat;
+      return admin.put(`/api/admin/ticket-categories/${cat.id}`, { ...rest, handlerGroupIds: [staffGroup], ...patch });
+    };
+    const open = async (subject: string) => {
+      await h.db.q.updateTable('tickets').set({ status: 'closed' }).where('user_id', '=', ids.Ahmet).execute();
+      const r = await user.post('/api/tickets', { categoryId: cat.id, subject, body: 'Ayrıntılı bir açıklama metni.' });
+      expect(r.status).toBe(201);
+      return (await h.db.q.selectFrom('tickets').select('assignee_id').where('id', '=', r.body.id).executeTakeFirstOrThrow()).assignee_id;
+    };
+
+    expect((await save({ autoAssign: 'none' })).status).toBe(200);
+    expect(await open('Atamasız')).toBeNull();
+
+    await save({ autoAssign: 'round_robin' });
+    const a = await open('Sıra 1');
+    const b = await open('Sıra 2');
+    const c = await open('Sıra 3');
+    expect(new Set([a, b])).toEqual(new Set([ids.Burak, ids.Deniz]));
+    expect(c).toBe(a);
+
+    // En az yük: Deniz'in açık talebi yokken ona gider
+    await h.db.q.updateTable('tickets').set({ status: 'open', assignee_id: ids.Burak }).where('assignee_id', '=', ids.Deniz).execute();
+    await h.db.q.updateTable('tickets').set({ status: 'open' }).where('assignee_id', '=', ids.Burak).execute();
+    await save({ autoAssign: 'least_open' });
+    const before = await h.db.q.selectFrom('tickets').select('id').where('user_id', '=', ids.Ahmet).execute();
+    await h.db.q.updateTable('tickets').set({ user_id: ids.Burak }).where('id', 'in', before.map((x) => x.id)).execute();
+    expect(await open('Yük')).toBe(ids.Deniz);
+
+    expect((await save({ autoAssign: 'fixed', autoAssignUserId: null })).status).toBe(422);
+    expect((await save({ autoAssign: 'fixed', autoAssignUserId: ids.Ahmet })).status).toBe(422);
+    const cands = await admin.get(`/api/admin/ticket-categories/handlers?groups=${staffGroup}`);
+    expect(cands.body.items.map((u: { id: number }) => u.id).sort()).toEqual([ids.Burak, ids.Deniz].sort());
+    await save({ autoAssign: 'fixed', autoAssignUserId: ids.Burak });
+    const listed = (await admin.get('/api/admin/ticket-categories')).body.items.find((x: { id: number }) => x.id === cat.id);
+    expect(listed.autoAssignUser.id).toBe(ids.Burak);
+    expect(await open('Sabit')).toBe(ids.Burak);
+    // Sorumlu yetkili bildirimi alır
+    const notes = await h.db.q.selectFrom('notifications').select(['user_id', 'data_json']).where('type', '=', 'ticket.new').execute();
+    const sabit = notes.filter((n) => String(n.data_json).includes('Sabit'));
+    expect(sabit.map((n) => n.user_id)).toEqual([ids.Burak]);
+    expect(ikinci).toBeTruthy();
+  });
+});

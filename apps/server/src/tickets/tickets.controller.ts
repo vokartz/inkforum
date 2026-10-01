@@ -98,6 +98,13 @@ export class TicketsController {
     return { items: await this.tickets.adminCategories() };
   }
 
+  @Get('admin/ticket-categories/handlers')
+  @AdminEndpoint('admin.tickets')
+  async handlers(@Query('groups') groups?: string) {
+    const list = String(groups ?? '').split(',').map(Number).filter((n) => Number.isInteger(n) && n > 0).slice(0, 50);
+    return { items: await this.tickets.handlerCandidates(list) };
+  }
+
   @Post('admin/ticket-categories')
   @HttpCode(201)
   @AdminEndpoint('admin.tickets')
