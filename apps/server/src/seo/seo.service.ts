@@ -368,7 +368,6 @@ export class SeoService {
     if (!this.settings.get('seo.ogImages')) return null;
     const sharp = await this.storage.loadSharp();
     if (!sharp) return null;
-    const name = String(this.settings.get('general.forumName'));
     const svg = this.cardSvg(this.siteContent());
     return this.render(sharp, svg, 'site');
   }
