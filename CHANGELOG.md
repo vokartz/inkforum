@@ -8,6 +8,21 @@ Each version section becomes the GitHub release note and the update note in the 
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-10-02
+
+### Added
+
+- **Forum data in page server code:** custom pages' server code can read forum data with the visitor's permissions:
+  `forum.site`, `forum.stats()`, `forum.online()`, `forum.user(id or name)`, `forum.members()`, `forum.groups()`,
+  `forum.groupMembers()`, `forum.boards()`, `forum.topics()`, `forum.topic()`, `forum.userTopics()` and
+  `forum.search()`. `req.user` now includes the visitor's own e-mail, group names, permissions, post count,
+  reputation, achievement and warning points, so it can be sent to your own system with `fetch`. Other members'
+  e-mail and IP addresses are never exposed. Documented in *Admin → Pages → Docs*, with two new ready-made examples.
+
+### Fixed
+
+- The custom pages documentation overflowed to the right on wide tables and code samples.
+
 ## [1.4.1] - 2026-10-02
 
 ### Changed

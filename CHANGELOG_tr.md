@@ -9,6 +9,21 @@ güncelleme notuna dönüşür (panel yöneticinin diline uygun olanı gösterir
 
 ## [Yayımlanmamış]
 
+## [1.5.0] - 2026-10-02
+
+### Eklenenler
+
+- **Sayfa sunucu kodunda forum verisi:** özel sayfaların sunucu kodu forum verisini ziyaretçinin yetkileriyle okuyabilir:
+  `forum.site`, `forum.stats()`, `forum.online()`, `forum.user(kimlik ya da ad)`, `forum.members()`, `forum.groups()`,
+  `forum.groupMembers()`, `forum.boards()`, `forum.topics()`, `forum.topic()`, `forum.userTopics()` ve `forum.search()`.
+  `req.user` artık ziyaretçinin kendi e-postasını, grup adlarını, yetkilerini, mesaj sayısını, itibarını, başarı ve
+  uyarı puanını içerir; `fetch` ile kendi sisteminize gönderilebilir. Başka üyelerin e-posta ve IP adresleri hiçbir
+  zaman verilmez. *Yönetim → Sayfalar → Belgeler*'de anlatıldı, iki yeni hazır örnek eklendi.
+
+### Düzeltilenler
+
+- Özel sayfa belgeleri geniş tablo ve kod örneklerinde sağa taşıyordu.
+
 ## [1.4.1] - 2026-10-02
 
 ### Değişenler
