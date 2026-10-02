@@ -95,7 +95,7 @@
 <div
   bind:this={box}
   data-part="profile-cover"
-  class={cn('relative h-44 overflow-hidden sm:h-60', repositioning && 'cursor-grab touch-none select-none', dragging && 'cursor-grabbing')}
+  class={cn('relative overflow-hidden', cover ? 'h-44 sm:h-60' : 'h-28 sm:h-36', repositioning && 'cursor-grab touch-none select-none', dragging && 'cursor-grabbing')}
   style={cover
     ? `background:url('${cover.url}') center ${offset}%/cover no-repeat`
     : `background: color-mix(in oklch, ${color ?? 'var(--primary)'} 38%, var(--muted))`}

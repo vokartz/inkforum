@@ -593,7 +593,7 @@ export class ProfilesService {
     const staff = this.isStaff(viewer);
     const visible = rows.filter((r) => staff || !hidden.has(r.id));
     const summaries = await this.users.summaries(visible.map((r) => r.id));
-    const users: Array<UserSummary & { hidden: boolean }> = visible.map((r) => ({ ...summaries.get(r.id)!, hidden: hidden.has(r.id) }));
+    const users: Array<UserSummary & { hidden: boolean; lastActiveAt: number }> = visible.map((r) => ({ ...summaries.get(r.id)!, hidden: hidden.has(r.id), lastActiveAt: r.last_active_at ?? since }));
     return {
       users,
       total: rows.length,

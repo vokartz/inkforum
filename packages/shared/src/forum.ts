@@ -95,6 +95,8 @@ export interface ForumStats {
 
 export interface OnlineUser extends UserSummary {
   hidden: boolean;
+  /** Son etkinlik zamanı (ms) */
+  lastActiveAt?: number;
 }
 
 export interface OnlineSummary {

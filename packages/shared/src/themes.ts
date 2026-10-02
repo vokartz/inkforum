@@ -432,7 +432,7 @@ function paletteVars(p: ThemePalette): string[] {
 function backgroundCss(b: ThemeConfig['background'], accent: string): string {
   const fixed = b.fixed ? 'fixed' : 'scroll';
   if (b.kind === 'gradient' && b.from && b.to)
-    return `background:linear-gradient(${b.angle}deg, ${b.from}, ${b.to}) ${fixed};`;
+    return `background:linear-gradient(${b.angle}deg, ${b.from}, ${b.to}) ${fixed} ${b.to};`; // renk: kaydırma ve tam sayfa görüntüde boşluk kalmasın
   if (b.kind === 'pattern') {
     const c = `color-mix(in oklab, ${b.from || accent} 22%, transparent)`;
     const img = {

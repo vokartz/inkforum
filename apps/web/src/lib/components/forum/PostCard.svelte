@@ -193,7 +193,7 @@
           {/if}
         </div>
         {#if author}
-          <dl class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+          <dl class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground max-sm:basis-full max-sm:pl-[68px]">
             <div class="flex items-center gap-1"><MessageSquareIcon class="size-3.5" /><b class="text-foreground tabular-nums">{formatNumber(author.postCount)}</b> {t('mesaj')}</div>
             <div class="flex items-center gap-1"><HeartIcon class="size-3.5 {author.reputation > 0 ? 'text-destructive' : ''}" weight={author.reputation > 0 ? 'fill' : 'regular'} /><b class="text-foreground tabular-nums">{formatNumber(author.reputation)}</b> {t('itibar')}</div>
             <div class="hidden sm:block">{t('Kayıt: {date}', { date: formatDate(author.registeredAt) })}</div>

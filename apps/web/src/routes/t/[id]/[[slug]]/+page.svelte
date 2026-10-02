@@ -442,11 +442,12 @@
       </div>
     {/if}
   </div>
-  <div class="flex items-center gap-2">
+  <div class="flex flex-wrap items-center gap-2">
+    <Button variant="ghost" size="icon" onclick={share} class="text-muted-foreground" title={t('Bağlantıyı kopyala')} aria-label={t('Bağlantıyı kopyala')}><ShareIcon /></Button>
     {#if showMod}
       <DropdownMenu.Root>
         <DropdownMenu.Trigger>
-          {#snippet child({ props })}<Button {...props} variant="outline"><ShieldIcon />{t('Moderasyon')}</Button>{/snippet}
+          {#snippet child({ props })}<Button {...props} variant="outline" title={t('Moderasyon')}><ShieldIcon /><span class="max-sm:sr-only">{t('Moderasyon')}</span></Button>{/snippet}
         </DropdownMenu.Trigger>
         <DropdownMenu.Content align="end" class="w-56">
           {#if tv.can.approve && !topic.isApproved}<DropdownMenu.Item onSelect={() => mod('approve', t('Konu onaylandı.'))}><ShieldCheckIcon />{t('Konuyu onayla')}</DropdownMenu.Item>{/if}
@@ -486,10 +487,10 @@
     {/if}
     {#if viewer.user}
       <Button variant="outline" onclick={toggleSubscribe} disabled={subBusy} aria-pressed={subscribed} title={subscribed ? t('Takibi bırak') : t('Yeni yanıtlarda bildirim al')}>
-        {#if subscribed}<BellIcon weight="fill" class="text-primary" />{t('Takip ediliyor')}{:else}<BellSimpleIcon />{t('Takip et')}{/if}
+        {#if subscribed}<BellIcon weight="fill" class="text-primary" /><span class="max-sm:sr-only">{t('Takip ediliyor')}</span>{:else}<BellSimpleIcon /><span class="max-sm:sr-only">{t('Takip et')}</span>{/if}
       </Button>
     {/if}
-    {#if canReply}<Button onclick={scrollToReply}><ReplyIcon />{t('Yanıtla')}</Button>{/if}
+    {#if canReply}<Button onclick={scrollToReply} class="max-sm:flex-1"><ReplyIcon />{t('Yanıtla')}</Button>{/if}
   </div>
 </header>
 
@@ -509,10 +510,9 @@
   </div>
 {/if}
 
-<div class="mb-3 flex items-center justify-between gap-2">
-  <Button variant="ghost" size="sm" onclick={share} class="text-muted-foreground"><ShareIcon />{t('Bağlantıyı kopyala')}</Button>
-  <PageJump page={tv.posts.page} perPage={tv.posts.perPage} total={tv.posts.total} />
-</div>
+{#if tv.posts.total > tv.posts.perPage}
+  <div class="mb-3 flex justify-end"><PageJump page={tv.posts.page} perPage={tv.posts.perPage} total={tv.posts.total} /></div>
+{/if}
 
 <div class="grid gap-4">
   {#each tv.posts.items as post, i (post.id)}

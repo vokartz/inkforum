@@ -92,8 +92,8 @@
     <h1 class="text-2xl font-extrabold tracking-tight" data-part="page-title">{t('Forumlar')}</h1>
     <div class="flex flex-wrap items-center gap-2">
       {#if viewer.user}
-        <Button variant="ghost" href="/unread" class="text-muted-foreground"><BookmarkIcon />{t('Okunmamış içerik')}</Button>
-        <Button variant="ghost" onclick={markAllRead} disabled={marking} class="text-muted-foreground"><ChecksIcon />{t('Tümünü okundu say')}</Button>
+        <Button variant="ghost" href="/unread" class="text-muted-foreground" title={t('Okunmamış içerik')}><BookmarkIcon /><span class="max-sm:sr-only">{t('Okunmamış içerik')}</span></Button>
+        <Button variant="ghost" onclick={markAllRead} disabled={marking} class="text-muted-foreground" title={t('Tümünü okundu say')}><ChecksIcon /><span class="max-sm:sr-only">{t('Tümünü okundu say')}</span></Button>
       {/if}
       {#if forum.postableBoards.length && !viewer.user}
         <Button onclick={newTopic} class="press"><PlusIcon weight="bold" />{t('Yeni konu')}</Button>

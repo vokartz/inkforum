@@ -1,4 +1,4 @@
-import { Injectable, type OnModuleInit } from '@nestjs/common';
+import { Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import { sql } from 'kysely';
 import type { UserSummary } from '@forum/shared';
 import { Db } from '../database/db.service.js';
@@ -37,7 +37,7 @@ const RECALC_JOB = 'groups.recalcPostGroups';
 const NON_ASSIGNABLE = new Set(['guest', 'member', 'moderator']);
 
 @Injectable()
-export class GroupsService implements OnModuleInit {
+export class GroupsService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly db: Db,
     private readonly clock: Clock,
@@ -50,8 +50,26 @@ export class GroupsService implements OnModuleInit {
   ) {}
 
   onModuleInit(): void {
-    this.jobs.schedule('groups.expire', HOUR, () => this.expireMemberships().then(() => undefined));
+    this.jobs.schedule('groups.expire', HOUR, () => this.expireMemberships().then(() => this.recountMembers()));
     this.jobs.register(RECALC_JOB, () => this.recalcAllPostGroups());
+    // Kayıt, onay, rütbe ve grup değişikliklerinde sayılar kısa bir gecikmeyle yeniden hesaplanır
+    for (const e of ['user.registered', 'user.activated', 'user.groupsChanged', 'user.postCountChanged', 'user.banned'] as const) this.events.on(e, () => this.scheduleRecount());
+    this.scheduleRecount();
+  }
+
+  private recountTimer: ReturnType<typeof setTimeout> | null = null;
+  private scheduleRecount(): void {
+    if (this.recountTimer) return;
+    this.recountTimer = setTimeout(() => {
+      this.recountTimer = null;
+      this.recountMembers().catch(() => undefined);
+    }, 3000);
+    this.recountTimer.unref?.();
+  }
+
+  onModuleDestroy(): void {
+    if (this.recountTimer) clearTimeout(this.recountTimer);
+    this.recountTimer = null;
   }
 
   toDto(g: CachedGroup): GroupDto {
