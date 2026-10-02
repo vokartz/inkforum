@@ -24,6 +24,7 @@
   const p = $derived(data.policy);
   const viewer = $derived(data.viewer);
   const toc = $derived(extractHeadings(p.bodyHtml));
+  const canEdit = $derived(viewer.isAdmin || viewer.permissions.includes('admin.policies.manage'));
   const outdated = $derived(!!viewer.user && !!p.accepted && p.accepted.version < p.version);
   let historyOpen = $state(false);
 
@@ -76,8 +77,8 @@
           </div>
         </div>
         <div class="ml-auto flex gap-1.5 print:hidden">
-          {#if viewer.isAdmin}<Button href="/admin/policies/{p.policyId}" variant="ghost" size="icon-sm" title={t('Düzenle')}><PencilIcon /></Button>{/if}
-          <Button variant="ghost" size="icon-sm" onclick={() => window.print()} title={t('Yazdır')}><PrinterIcon /></Button>
+          {#if canEdit}<Button href="/admin/policies/{p.policyId}" variant="outline" size="sm"><PencilIcon />{t('Düzenle')}</Button>{/if}
+          <Button variant="ghost" size="sm" onclick={() => window.print()} title={t('Yazdır ya da PDF olarak kaydet')}><PrinterIcon /><span class="max-sm:sr-only">{t('Yazdır')}</span></Button>
         </div>
       </div>
 
@@ -107,6 +108,10 @@
         </details>
       {/if}
       <div class="prose-forum max-w-[72ch] text-[15px]">{@html p.bodyHtml}</div>
+      <!-- Yalnız kâğıtta: belgenin kaynağı -->
+      <p class="mt-8 hidden border-t pt-3 text-xs text-muted-foreground print:block">
+        {t('{title}, sürüm {version} · {forum} · {date} tarihinde yazdırıldı', { title: p.title, version: p.version, forum: String(viewer.settings['general.forumName'] ?? ''), date: formatDate(Date.now()) })}
+      </p>
     </div>
 
     <!-- Sürüm geçmişi -->

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { guardUnsaved } from '$lib/leave-guard';
   import {
     activeThemeOf,
     effectivePalette,
@@ -13,7 +14,7 @@
     type ThemeHtmlSlot,
   } from '@forum/shared';
   import { onMount } from 'svelte';
-  import { beforeNavigate, invalidate } from '$app/navigation';
+  import { invalidate } from '$app/navigation';
   import { toast } from 'svelte-sonner';
   import ArrowLeftIcon from 'phosphor-svelte/lib/ArrowLeft';
   import FloppyIcon from 'phosphor-svelte/lib/FloppyDisk';
@@ -180,14 +181,7 @@
     };
   });
 
-  beforeNavigate((nav) => {
-    if (
-      dirty &&
-      nav.type !== 'leave' &&
-      !confirm(t('Kaydedilmemiş değişiklikler var. Sayfadan çıkılsın mı?'))
-    )
-      nav.cancel();
-  });
+  guardUnsaved(() => dirty);
 
   async function save(activate = false) {
     if (!current) return;

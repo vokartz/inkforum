@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { guardUnsaved } from '$lib/leave-guard';
   import {
     PAGE_LAYOUT_INFO,
     PAGE_LAYOUTS,
@@ -11,7 +12,7 @@
     type ResolvedBlock,
   } from '@forum/shared';
   import { tick, untrack } from 'svelte';
-  import { beforeNavigate, goto } from '$app/navigation';
+  import { goto } from '$app/navigation';
   import { toast } from 'svelte-sonner';
   import ArrowLeftIcon from 'phosphor-svelte/lib/ArrowLeft';
   import FloppyIcon from 'phosphor-svelte/lib/FloppyDisk';
@@ -160,9 +161,7 @@
     }
   }
 
-  beforeNavigate((nav) => {
-    if (dirty && !left && !saving && !confirm(t('Kaydedilmemiş değişiklikler kaybolacak. Çıkılsın mı?'))) nav.cancel();
-  });
+  guardUnsaved(() => dirty && !left && !saving);
   function onkeydown(e: KeyboardEvent) {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
       e.preventDefault();

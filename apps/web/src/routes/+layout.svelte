@@ -269,6 +269,7 @@
     {/if}
     <main
       data-part="page"
+      data-print-title="{s['general.forumName']} · {page.url.origin}{page.url.pathname}"
       class="mx-auto w-full max-w-[var(--page-width,80rem)] flex-1 px-4 py-6 transition-opacity duration-300 sm:px-6 sm:py-8 {slow ? 'opacity-60' : ''}"
       style="view-transition-name: page"
     >

@@ -799,3 +799,146 @@
   width: 100vw;
   margin-inline: calc(50% - 50vw);
 }
+
+/* ---------- Yazdırma ----------
+ * Hangi tema ve mod seçili olursa olsun kâğıtta beyaz zemin, koyu yazı. Menü, alt bilgi, düğmeler ve editörler
+ * basılmaz; sayfa başında forum adı ve adres, kartlar sade çerçeveli olarak çıkar.
+ */
+@media print {
+  @page {
+    margin: 14mm 14mm 16mm;
+  }
+  html,
+  html[data-custom-theme],
+  html[data-custom-theme][data-theme] {
+    --background: #fff !important;
+    --foreground: #111 !important;
+    --card: #fff !important;
+    --card-foreground: #111 !important;
+    --popover: #fff !important;
+    --popover-foreground: #111 !important;
+    --muted: #f3f4f6 !important;
+    --muted-foreground: #555 !important;
+    --accent: #f3f4f6 !important;
+    --accent-foreground: #111 !important;
+    --secondary: #f3f4f6 !important;
+    --secondary-foreground: #111 !important;
+    --border: #d4d4d8 !important;
+    --input: #d4d4d8 !important;
+    --panel-header: #f7f7f8 !important;
+    --row-hover: transparent !important;
+    --row-alt: transparent !important;
+    --primary-soft: #eef2ff !important;
+    --highlight: #1d4ed8 !important;
+    --link: #1d4ed8 !important;
+    --shadow-card: none !important;
+    --shadow-lift: none !important;
+    color-scheme: light !important;
+    background: #fff !important;
+  }
+  body {
+    background: #fff !important;
+    color: #111 !important;
+    font-size: 11pt;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  /* Ekrana ait her şey */
+  [data-part='page-background'],
+  [data-part='site-banner'],
+  [data-part='site-footer'],
+  [data-part='cookie-banner'],
+  [data-part='breadcrumbs'],
+  [data-part^='theme-'],
+  [data-part='custom-after-header'],
+  [data-part='custom-before-footer'],
+  [data-part='nav-progress'],
+  [data-part='composer'],
+  [data-part='reply-box'],
+  [data-part='quick-reply'],
+  [data-part='topic-nav'],
+  [data-sonner-toaster],
+  [data-part='site-header'],
+  [data-part='site-nav'],
+  [data-part='topbar'],
+  .ProseMirror-menubar,
+  button,
+  [role='toolbar'] {
+    display: none !important;
+  }
+  main[data-part='page'] {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+  /* Sayfa başlığı: forum adı + adres (yalnız kâğıtta) */
+  main[data-part='page']::before {
+    content: attr(data-print-title);
+    display: block;
+    margin-bottom: 6mm;
+    padding-bottom: 3mm;
+    border-bottom: 1px solid #d4d4d8;
+    font-size: 9pt;
+    color: #555;
+  }
+  .shadow-card,
+  .shadow-lift,
+  .shadow-sm,
+  .shadow-md,
+  .shadow-lg {
+    box-shadow: none !important;
+  }
+  .animate-rise,
+  [class*='animate-in'] {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .backdrop-blur,
+  [class*='backdrop-blur'] {
+    backdrop-filter: none !important;
+  }
+  /* Okunaklı içerik */
+  .prose-forum {
+    max-width: none !important;
+    color: #111 !important;
+  }
+  .prose-forum a {
+    color: #1d4ed8 !important;
+    text-decoration: underline;
+  }
+  .prose-forum a[href^='http']::after {
+    content: ' (' attr(href) ')';
+    font-size: 8.5pt;
+    color: #555;
+    word-break: break-all;
+  }
+  .prose-forum img,
+  .prose-forum video,
+  .prose-forum iframe {
+    max-width: 100% !important;
+    break-inside: avoid;
+  }
+  .prose-forum iframe {
+    display: none !important;
+  }
+  article,
+  pre,
+  blockquote,
+  table,
+  figure,
+  li {
+    break-inside: avoid-page;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    break-after: avoid-page;
+  }
+  details > summary {
+    list-style: none;
+  }
+  details:not([open]) > :not(summary) {
+    display: block !important;
+  }
+}

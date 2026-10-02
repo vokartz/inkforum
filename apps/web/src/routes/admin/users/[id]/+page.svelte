@@ -27,7 +27,7 @@
   import BanForm from '$lib/components/admin/BanForm.svelte';
   import { api, errorMessage } from '$lib/api';
   import { createForm } from '$lib/form.svelte';
-  import { confirmAction } from '$lib/confirm.svelte';
+  import { confirmAction, promptAction } from '$lib/confirm.svelte';
   import { formatDate, formatDateTime, fromLocalInput, toLocalInput } from '$lib/format';
   import { can, profileUrl } from '$lib/viewer';
   import { t, tc } from '$lib/i18n.svelte';
@@ -105,7 +105,13 @@
   }
 
   async function reject() {
-    const reason = prompt(t('Reddetme gerekçesi (e-postada gösterilir, isteğe bağlı):'));
+    const reason = await promptAction({
+      title: t('{name} adlı üyenin başvurusu reddedilsin mi?', { name: d.summary.displayName }),
+      description: t('Gerekçe yazarsan üyeye gönderilen e-postada gösterilir.'),
+      input: { label: t('Gerekçe (isteğe bağlı)'), multiline: true, placeholder: t('ör. Kayıt bilgileri eksik') },
+      confirmLabel: t('Reddet'),
+      destructive: true,
+    });
     if (reason === null) return;
     if (await run(() => api.post(`/api/admin/users/${d.summary.id}/reject`, { reason: reason || null }), t('Başvuru reddedildi.'))) goto('/admin/users');
   }
@@ -191,7 +197,13 @@
   let banOpen = $state(false);
 
   async function revokeWarning(w: WarningItem) {
-    const reason = prompt(t('Geri alma gerekçesi (isteğe bağlı):'));
+    const reason = await promptAction({
+      title: t('Uyarı geri alınsın mı?'),
+      description: t('Uyarı puanı üyenin toplamından düşülür.'),
+      input: { label: t('Gerekçe (isteğe bağlı)'), multiline: true },
+      confirmLabel: t('Geri al'),
+      tone: 'warning',
+    });
     if (reason === null) return;
     await run(() => api.post(`/api/mod/warnings/${w.id}/revoke`, { reason: reason || null }), t('Uyarı geri alındı.'));
   }

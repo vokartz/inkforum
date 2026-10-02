@@ -1,6 +1,6 @@
 <script lang="ts">
   import { fly } from 'svelte/transition';
-  import { beforeNavigate } from '$app/navigation';
+  import { guardUnsaved } from '$lib/leave-guard';
   import FloppyIcon from 'phosphor-svelte/lib/FloppyDisk';
   import LoaderIcon from 'phosphor-svelte/lib/CircleNotch';
   import ArrowCounterClockwiseIcon from 'phosphor-svelte/lib/ArrowCounterClockwise';
@@ -19,9 +19,7 @@
   let { dirty, saving = false, count = null, onsave, onreset }: Props = $props();
 
   // Kaydedilmemiş değişiklikle sayfadan çıkarken sor.
-  beforeNavigate((nav) => {
-    if (dirty && !saving && nav.type !== 'leave' && !confirm(t('Kaydedilmemiş değişiklikler var. Sayfadan çıkılsın mı?'))) nav.cancel();
-  });
+  guardUnsaved(() => dirty && !saving);
 
   function onKey(e: KeyboardEvent) {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's' && dirty) {

@@ -115,9 +115,19 @@
       /* pano yok */
     }
   }
-  function choose(key: AdminMailTemplate['key']) {
+  async function choose(key: AdminMailTemplate['key']) {
     if (key === selectedKey) return;
-    if (dirty && !confirm(t('Kaydedilmemiş değişiklikler kaybolacak. Devam edilsin mi?'))) return;
+    if (
+      dirty &&
+      !(await confirmAction({
+        title: t('Kaydedilmemiş değişiklikler var'),
+        description: t('Başka bir şablona geçersen bu şablondaki değişiklikler kaybolacak.'),
+        confirmLabel: t('Kaydetmeden geç'),
+        cancelLabel: t('Şablonda kal'),
+        tone: 'warning',
+      }))
+    )
+      return;
     selectedKey = key;
     fill(data.templates.find((t) => t.key === key));
   }

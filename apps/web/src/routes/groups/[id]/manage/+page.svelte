@@ -16,7 +16,7 @@
   import EmptyState from '$lib/components/EmptyState.svelte';
   import Field from '$lib/components/Field.svelte';
   import { api, errorMessage } from '$lib/api';
-  import { confirmAction } from '$lib/confirm.svelte';
+  import { confirmAction, promptAction } from '$lib/confirm.svelte';
   import { formatDate, fromLocalInput } from '$lib/format';
   import { t, tc } from '$lib/i18n.svelte';
 
@@ -37,7 +37,17 @@
 
   async function handle(id: number, approve: boolean) {
     let response: string | null = null;
-    if (!approve) response = prompt(t('Reddetme gerekçesi (isteğe bağlı):')) || null;
+    if (!approve) {
+      const reason = await promptAction({
+        title: t('Katılım isteği reddedilsin mi?'),
+        description: t('Gerekçe yazarsan üyeye bildirimle iletilir.'),
+        input: { label: t('Gerekçe (isteğe bağlı)'), multiline: true },
+        confirmLabel: t('Reddet'),
+        destructive: true,
+      });
+      if (reason === null) return;
+      response = reason || null;
+    }
     await run(() => api.post(`/api/groups/requests/${id}`, { approve, response }), approve ? t('İstek onaylandı.') : t('İstek reddedildi.'));
   }
 

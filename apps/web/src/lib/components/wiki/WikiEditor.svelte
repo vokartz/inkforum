@@ -1,7 +1,8 @@
 <script lang="ts">
   import type { WikiPageInput, WikiTreeNode } from '@forum/shared';
+  import { guardUnsaved } from '$lib/leave-guard';
   import { untrack } from 'svelte';
-  import { beforeNavigate, goto, invalidate } from '$app/navigation';
+  import { goto, invalidate } from '$app/navigation';
   import { toast } from 'svelte-sonner';
   import FloppyIcon from 'phosphor-svelte/lib/FloppyDisk';
   import LoaderIcon from 'phosphor-svelte/lib/CircleNotch';
@@ -80,9 +81,7 @@
     }
   }
 
-  beforeNavigate((nav) => {
-    if (dirty && !saved && !confirm(t('Kaydedilmemiş değişiklikler kaybolacak. Çıkılsın mı?'))) nav.cancel();
-  });
+  guardUnsaved(() => dirty && !saved);
   function onkeydown(e: KeyboardEvent) {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
       e.preventDefault();
