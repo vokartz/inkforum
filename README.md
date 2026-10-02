@@ -89,7 +89,7 @@ only the image, use the image tag `latest` and enter the resource's **Deploy Web
 | Disk | 5 GB | 20 GB + uploads |
 | Software | Docker 24+ with the Compose plugin | — |
 
-Can't use Docker (cPanel/Passenger, Plesk, plain Node.js)? Every release also ships a **server package** — see
+Can't use Docker (cPanel/Passenger, Plesk, plain Node.js)? Every release also ships a **server package** — see [Installing on cPanel](#installing-on-cpanel-shared-hosting) and
 [Installation without Docker](#installation-without-docker).
 
 ## ✨ Features
@@ -199,14 +199,14 @@ docker run --rm -v inkforum_inkforum-storage:/data -v "$PWD":/backup alpine tar 
 
 ## 🚚 Import from another forum
 
-Moving from **SMF 2.x**, **phpBB 3.x**, **Invision Community 4/5** or **MyBB 1.8**? Upload the old forum's MySQL dump
+Moving from **SMF 2.x**, **phpBB 3.x**, **Invision Community 4/5**, **MyBB 1.8** or **XenForo 2.x**? Upload the old forum's MySQL dump
 (`.sql` / `.sql.gz`) in **Admin → Forum migration**. The platform, version and table prefix are detected automatically, and
 broken characters from double-encoded databases can be repaired with a live preview.
 
 - Members, groups (with colours), ranks and **rank images**, categories and boards, **board access** and moderators
 - Topics, posts (with quotes and mentions), polls, private messages, attachments, avatars and bans
 - Members sign in with their **old passwords**; the hash is upgraded to argon2id on first login
-- Old links (`viewtopic.php?t=…`, `index.php?topic=…`, `showthread.php?tid=…`, `/topic/12-…`) redirect to the new pages
+- Old links (`viewtopic.php?t=…`, `index.php?topic=…`, `showthread.php?tid=…`, `/topic/12-…`, `/threads/title.12/`) redirect to the new pages
 - An automatic backup is taken before the import starts
 
 ## ⚙️ Configuration
@@ -224,6 +224,37 @@ Every forum setting lives in the admin panel. The `.env` file only describes the
 | `INKFORUM_PORT`, `INKFORUM_BIND` | Published port and bind address |
 | `UPDATES_DISABLED` | Disable update checks on offline servers |
 | `WAF_DISABLED` | Emergency switch to disable the firewall |
+
+## Installing on cPanel (shared hosting)
+
+If your cPanel has **Setup Node.js App**, you can install InkForum without SSH. The built-in SQLite database is used, so
+you don't need to create a MySQL database.
+
+1. **Node.js 22 or newer** is required. If 22 is not in the version list under *Setup Node.js App → Create Application*,
+   ask your host to enable it.
+2. Download `inkforum-<version>-linux-x64.tar.gz` from [Releases](https://github.com/vokartz/inkforum/releases/latest)
+   (dependencies included, no `npm install` needed).
+3. In **File Manager**, upload the package to your home folder and **Extract** it. It creates an `inkforum/` folder
+   containing `server.mjs` and `app.cjs`.
+4. **Setup Node.js App → Create Application**:
+   - *Node.js version*: 22.x (latest)
+   - *Application mode*: Production
+   - *Application root*: `inkforum`
+   - *Application URL*: the domain the forum should run on (e.g. `forum.example.com`)
+   - *Application startup file*: `app.cjs`
+5. Click **Create**, then **Restart** the application and open your address. The setup wizard asks for the site
+   address, the admin account and the language.
+6. **Cron Jobs**: Passenger stops idle applications, so e-mails and scheduled tasks should also run from cron. Add this
+   command **every five minutes** (copy the first part from the command shown at the top of *Setup Node.js App*):
+
+   ```bash
+   source /home/USER/nodevenv/inkforum/22/bin/activate && cd /home/USER/inkforum && node app.cjs cron
+   ```
+
+**Updates** install with one click from *Admin → Updates*: the package is downloaded, verified with SHA-256, swapped in
+and the app restarts through Passenger. The previous version is kept and can be restored from the same page.
+Environment variables can be set in *Setup Node.js App* or in a `.env` file in the application folder. The same settings
+(startup file `app.cjs`) work with Plesk's Node.js extension.
 
 ## Installation without Docker
 

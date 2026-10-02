@@ -90,7 +90,7 @@ anahtarını **Yönetim → Güncellemeler → Coolify ile güncelleme** bölüm
 | Yazılım | Docker 24+ ve Compose eklentisi | — |
 
 Docker kullanamayan ortamlar (cPanel/Passenger, Plesk, doğrudan Node.js) için her sürümle birlikte
-**sunucu paketi** de yayımlanır; bkz. [Docker'sız kurulum](#docker-sız-kurulum).
+**sunucu paketi** de yayımlanır; bkz. [cPanel ile kurulum](#cpanel-ile-kurulum-paylaşımlı-hosting) ve [Docker'sız kurulum](#docker-sız-kurulum).
 
 ## ✨ Özellikler
 
@@ -199,14 +199,14 @@ docker run --rm -v inkforum_inkforum-storage:/data -v "$PWD":/backup alpine tar 
 
 ## 🚚 Başka forumdan taşıma
 
-**SMF 2.x**, **phpBB 3.x**, **Invision Community 4/5** ya da **MyBB 1.8** kullanıyor musunuz? **Yönetim → Forum taşıma**
+**SMF 2.x**, **phpBB 3.x**, **Invision Community 4/5**, **MyBB 1.8** ya da **XenForo 2.x** kullanıyor musunuz? **Yönetim → Forum taşıma**
 ekranına eski forumun MySQL dökümünü (`.sql` / `.sql.gz`) yükleyin. Platform, sürüm ve tablo öneki otomatik bulunur;
 Türkçe karakter bozulmaları (ör. `ÅŸ`) önizlemeli olarak onarılır.
 
 - Üyeler, gruplar (renkleriyle), rütbeler ve **rütbe görselleri**, kategori ve bölümler, **bölüm erişimleri** ve moderatörler
 - Konular, mesajlar (alıntı ve bahsetmelerle), anketler, özel mesajlar, ekler, avatarlar ve yasaklar
 - Üyeler **eski şifreleriyle** giriş yapar; ilk girişte şifre InkForum’un güvenli biçimine (argon2id) çevrilir
-- Eski bağlantılar (`viewtopic.php?t=…`, `index.php?topic=…`, `showthread.php?tid=…`, `/topic/12-…`) yeni sayfalara yönlenir
+- Eski bağlantılar (`viewtopic.php?t=…`, `index.php?topic=…`, `showthread.php?tid=…`, `/topic/12-…`, `/threads/baslik.12/`) yeni sayfalara yönlenir
 - Başlamadan önce otomatik yedek alınır
 
 ## ⚙️ Yapılandırma
@@ -224,6 +224,38 @@ Forumla ilgili her ayar yönetim panelindedir. `.env` dosyası yalnızca altyap�
 | `INKFORUM_PORT`, `INKFORUM_BIND` | Yayınlanan port ve dinlenen arayüz |
 | `UPDATES_DISABLED` | İnternete çıkamayan sunucularda sürüm denetimini kapatır |
 | `WAF_DISABLED` | Acil durumda güvenlik duvarını devre dışı bırakır |
+
+## cPanel ile kurulum (paylaşımlı hosting)
+
+cPanel'de **Setup Node.js App** (Node.js uygulaması oluştur) menüsü varsa InkForum'u SSH olmadan kurabilirsiniz.
+Veritabanı olarak dahili SQLite kullanılır; MySQL veritabanı açmanız gerekmez.
+
+1. **Node.js 22 veya üzeri** gerekir. *Setup Node.js App → Create Application* ekranında sürüm listesinde 22 yoksa
+   barındırma firmanızdan Node.js 22'yi açmasını isteyin.
+2. [Sürümler](https://github.com/vokartz/inkforum/releases/latest) sayfasından `inkforum-<sürüm>-linux-x64.tar.gz`
+   paketini indirin (bağımlılıklar içindedir, `npm install` gerekmez).
+3. **Dosya Yöneticisi**'nde paketi ana klasörünüze yükleyip **Extract** ile açın. `server.mjs` ve `app.cjs`
+   dosyalarını içeren bir `inkforum/` klasörü oluşur.
+4. **Setup Node.js App → Create Application**:
+   - *Node.js version*: 22.x (en yenisi)
+   - *Application mode*: Production
+   - *Application root*: `inkforum`
+   - *Application URL*: forumun açılacağı alan adı (ör. `forum.siteniz.com`)
+   - *Application startup file*: `app.cjs`
+5. **Create**'e basın, ardından uygulamayı **Restart** edin ve adresinizi açın. Kurulum sihirbazı açılır; site
+   adresi, yönetici hesabı ve dil burada ayarlanır.
+6. **Zamanlanmış görevler (Cron Jobs)**: Passenger boşta kalan uygulamayı durdurduğu için e-postalar ve zamanlanmış
+   işler cron ile de çalıştırılmalı. *Cron Jobs* ekranında **beş dakikada bir** şu komutu ekleyin
+   (ilk satırdaki yolu *Setup Node.js App* ekranının üstünde gösterilen komuttan kopyalayın):
+
+   ```bash
+   source /home/KULLANICI/nodevenv/inkforum/22/bin/activate && cd /home/KULLANICI/inkforum && node app.cjs cron
+   ```
+
+**Güncellemeler** *Yönetim → Güncellemeler* ekranından tek tıkla kurulur: paket indirilir, SHA-256 ile doğrulanır,
+dosyalar değiştirilir ve uygulama Passenger üzerinden yeniden başlatılır. Önceki sürüm saklanır, sorun olursa aynı
+ekrandan geri alınabilir. Ortam değişkenleri *Setup Node.js App* ekranından ya da uygulama klasöründeki `.env`
+dosyasından verilebilir. Plesk'in Node.js eklentisinde de aynı ayarlar (başlangıç dosyası `app.cjs`) geçerlidir.
 
 ## Docker'sız kurulum
 

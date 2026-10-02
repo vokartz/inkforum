@@ -132,7 +132,8 @@ const releasePkg = {
   description: 'InkForum — topluluk yazılımı',
   license: 'AGPL-3.0-only',
   engines: { node: '>=22.13' },
-  scripts: { start: 'node --env-file-if-exists=.env server.mjs', migrate: 'node --env-file-if-exists=.env cli.mjs migrate' },
+  main: 'app.cjs',
+  scripts: { start: 'node app.cjs', cron: 'node app.cjs cron', migrate: 'node --env-file-if-exists=.env cli.mjs migrate' },
   dependencies: runtimeDeps,
   optionalDependencies: optionalDeps,
 };
@@ -149,6 +150,9 @@ if (!commit) {
 writeFileSync(join(out, 'BUILD'), `${commit.slice(0, 12) || 'local'} ${new Date().toISOString().slice(0, 10)}\n`);
 for (const f of ['LICENSE', 'CHANGELOG.md', 'CHANGELOG_tr.md']) if (existsSync(join(root, f))) cpSync(join(root, f), join(out, f));
 cpSync(join(root, '.env.example'), join(out, '.env.example'));
+// cPanel / Passenger / PM2 başlangıç dosyası (app.js: cPanel'in varsayılan adı)
+cpSync(join(root, 'scripts/release/files/app.cjs'), join(out, 'app.cjs'));
+writeFileSync(join(out, 'app.js'), "// cPanel'in varsayılan başlangıç dosyası; asıl dosya app.cjs\nimport('./app.cjs');\n");
 // Arayüz ve e-posta çevirileri (sunucu I18nService bunları <kök>/i18n klasöründen okur)
 cpSync(join(root, 'packages/shared/i18n'), join(out, 'i18n'), { recursive: true });
 // Paylaşım görselleri (Open Graph) için yazı tipi: işletim sisteminde font olmasa da metin doğru çizilir
