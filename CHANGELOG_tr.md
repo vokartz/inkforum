@@ -9,6 +9,28 @@ güncelleme notuna dönüşür (panel yöneticinin diline uygun olanı gösterir
 
 ## [Yayımlanmamış]
 
+## [1.4.0] - 2026-10-02
+
+### Eklenenler
+
+- **XenForo 2'den taşıma:** üyeler eski şifreleriyle giriş yapar; gruplar, unvan merdiveni, görüntüleme izinleriyle
+  bölümler, konular, mesajlar (alıntı, bahsetme, medya, spoiler, ekler), anketler, özel yazışmalar ve yasaklar aktarılır.
+  Eski `/threads/…`, `/posts/…`, `/forums/…` ve `/members/…` bağlantıları yeni sayfalara yönlenir.
+- **cPanel'e kurulum:** sunucu paketi cPanel *Setup Node.js App* (Passenger) ve Plesk'te `app.cjs` başlangıç dosyasıyla,
+  SSH gerekmeden çalışır. Zamanlanmış görevler `node app.cjs cron` ile çalışır. Adım adım rehber README'de.
+
+### Değişenler
+
+- Bildirimler güne göre gruplanır; her türün ikonu var, okunmamışlar belirgin.
+- Çevrimiçi sayfası üye ve misafir sayılarını, her üyenin son görülme zamanını gösterir.
+- Konu düğmeleri telefonda sığar, mesaj yazarının istatistikleri ayrı satıra geçer.
+- Kapak resmi olmayan profillerde başlık alanı daha kısa.
+
+### Düzeltilenler
+
+- Grup üye sayıları kayıt ve rütbe değişikliklerinden sonra 0'da kalıyordu.
+- Geçişli sayfa arka planları uzun sayfalarda ekranın altında bitiyordu.
+
 ## [1.3.0] - 2026-10-01
 
 ### Eklenenler

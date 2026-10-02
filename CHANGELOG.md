@@ -8,6 +8,28 @@ Each version section becomes the GitHub release note and the update note in the 
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-02
+
+### Added
+
+- **Import from XenForo 2:** members sign in with their old passwords; groups, the user title ladder, forums with their
+  view permissions, threads, posts (quotes, mentions, media, spoilers, attachments), polls, conversations and bans are
+  moved over. Old `/threads/…`, `/posts/…`, `/forums/…` and `/members/…` links redirect to the new pages.
+- **Install on cPanel:** the server package runs under cPanel's *Setup Node.js App* (Passenger) and Plesk with the
+  startup file `app.cjs`, no SSH needed. Scheduled tasks run with `node app.cjs cron`. Step by step guide in the README.
+
+### Changed
+
+- Notifications are grouped by day with an icon for each type and a clear unread state.
+- The online page shows member and guest totals and when each member was last active.
+- Topic buttons fit on phones and the post author's stats move to their own row.
+- Profiles without a cover image use a shorter header.
+
+### Fixed
+
+- Group member counts stayed at 0 after sign-ups and rank changes.
+- Gradient page backgrounds stopped at the bottom of the screen on long pages.
+
 ## [1.3.0] - 2026-10-01
 
 ### Added
