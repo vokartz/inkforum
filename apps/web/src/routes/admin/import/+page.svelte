@@ -55,6 +55,7 @@
     { key: 'phpbb', name: 'phpBB', versions: '3.0 – 3.3' },
     { key: 'ips', name: 'Invision Community', versions: '4.x · 5.x' },
     { key: 'mybb', name: 'MyBB', versions: '1.8' },
+    { key: 'xenforo', name: 'XenForo', versions: '2.x' },
   ];
 
   const PHASES: Array<{ key: string; label: string }> = [
@@ -242,7 +243,7 @@
 <PageHeader
   icon={PageHeaderIcon}
   title={t('Forum taşıma')}
-  description={t('SMF, phpBB, Invision Community veya MyBB forumunu üyeleri, konuları, yetkileri ve rütbe görselleriyle birlikte InkForum’a taşı.')}
+  description={t('SMF, phpBB, Invision Community, MyBB veya XenForo forumunu üyeleri, konuları, yetkileri ve rütbe görselleriyle birlikte InkForum’a taşı.')}
 >
   {#snippet actions()}
     <Button variant="outline" href="/admin/maintenance"><WrenchIcon />{t('Bakım ve yedekler')}</Button>
@@ -509,12 +510,13 @@
             <pre class="overflow-x-auto rounded-lg bg-muted px-3 py-2 text-xs">mysqldump --default-character-set=utf8mb4 \
   -u {t('KULLANICI')} -p {t('VERITABANI')} | gzip &gt; forum.sql.gz</pre>
             <p class="text-muted-foreground">{t('SMF, phpBB ve MyBB’de kendi yedekleme aracının ürettiği SQL dosyası da kullanılabilir.')}</p>
+            <p class="text-muted-foreground">{t('XenForo: yalnızca xf_ ile başlayan tabloları dışa aktarmak yeterli. Ekli dosyalar eski forumdan indirilir; aktarım sırasında forum açık olmalı ve misafirler ekleri görebilmeli.')}</p>
           </Card.Content>
         </Card.Root>
         <Card.Root>
           <Card.Content class="grid gap-3 text-sm">
             <p class="flex gap-2"><KeyIcon class="mt-0.5 size-4 shrink-0 text-primary" />{t('Üyeler eski şifreleriyle giriş yapar; ilk girişte şifreleri InkForum’un güvenli biçimine (argon2id) çevrilir.')}</p>
-            <p class="flex gap-2"><LinkIcon class="mt-0.5 size-4 shrink-0 text-primary" />{t('Eski konu, bölüm ve profil bağlantıları (viewtopic.php, index.php?topic=…) yeni sayfalara yönlenir; arama motoru sıralaman korunur.')}</p>
+            <p class="flex gap-2"><LinkIcon class="mt-0.5 size-4 shrink-0 text-primary" />{t('Eski konu, bölüm ve profil bağlantıları (viewtopic.php, /threads/…, index.php?topic=…) yeni sayfalara yönlenir; arama motoru sıralaman korunur.')}</p>
             <p class="flex gap-2"><ShieldCheckIcon class="mt-0.5 size-4 shrink-0 text-primary" />{t('Grup renkleri, rütbe görselleri, bölüm erişimleri ve moderatörler de aktarılır.')}</p>
           </Card.Content>
         </Card.Root>

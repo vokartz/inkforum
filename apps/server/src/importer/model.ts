@@ -1,6 +1,6 @@
 /* eslint-disable no-control-regex -- işaretçiler bilerek kontrol karakterleriyle yazılır */
 /**
- * Kaynak forumdan bağımsız ara model. Her okuyucu (SMF, phpBB, IPS, MyBB) ara depodaki tabloları bu biçime
+ * Kaynak forumdan bağımsız ara model. Her okuyucu (SMF, phpBB, IPS, MyBB, XenForo) ara depodaki tabloları bu biçime
  * çevirir; içe aktarma servisi yalnızca bu modeli bilir.
  *
  * Mesaj gövdeleri InkForum BBCode'udur. Henüz yeni kimliği bilinmeyen başvurular işaretçiyle yazılır ve
@@ -12,13 +12,14 @@
 import type { SqlValue } from './sql-dump.js';
 import type { SourceCharset } from './text.js';
 
-export type Platform = 'smf' | 'phpbb' | 'ips' | 'mybb';
+export type Platform = 'smf' | 'phpbb' | 'ips' | 'mybb' | 'xenforo';
 
 export const PLATFORM_NAMES: Record<Platform, string> = {
   smf: 'Simple Machines Forum',
   phpbb: 'phpBB',
   ips: 'Invision Community (IPS)',
   mybb: 'MyBB',
+  xenforo: 'XenForo',
 };
 
 export const MARK_OPEN = '\u0001';

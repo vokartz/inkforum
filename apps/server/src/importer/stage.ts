@@ -120,6 +120,11 @@ export const WANTED_SUFFIXES = [
   'core_applications', 'core_validating', 'core_pfields_content',
   // MyBB
   'usergroups', 'usertitles', 'threads', 'pollvotes', 'privatemessages', 'datacache', 'forumpermissions', 'banned', 'userfields', 'banfilters',
+  // XenForo (xf_ öneki)
+  'xf_user', 'xf_user_group', 'xf_user_authenticate', 'xf_user_profile', 'xf_user_ban', 'xf_user_title_ladder', 'xf_node', 'xf_link_forum', 'xf_forum',
+  'xf_thread', 'xf_post', 'xf_attachment', 'xf_attachment_data', 'xf_poll', 'xf_poll_response', 'xf_poll_vote', 'xf_conversation_master',
+  'xf_conversation_message', 'xf_conversation_recipient', 'xf_moderator_content', 'xf_ban_email', 'xf_ip_match', 'xf_ip', 'xf_option', 'xf_addon',
+  'xf_permission_entry_content',
 ];
 
 /** Gereksiz büyük tablolar (arama dizinleri, günlükler, oturumlar) */
@@ -140,6 +145,10 @@ export function keepRow(table: string, value: (column: string) => SqlValue): boo
     return typeof key === 'string' && IPS_WORD_KEYS.test(key);
   }
   if (table.endsWith('datacache')) return value('title') === 'version';
+  // XenForo: IP günlüğünden yalnızca mesaj ve kayıt IP'leri, ayarlardan yalnızca forum adresi
+  if (/xf_ip$/.test(table)) return value('content_type') === 'post' || (value('content_type') === 'user' && value('action') === 'register');
+  if (/xf_option$/.test(table)) return value('option_id') === 'boardUrl' || value('option_id') === 'boardTitle';
+  if (/xf_addon$/.test(table)) return value('addon_id') === 'XF';
   return true;
 }
 
@@ -160,6 +169,8 @@ export function detectPlatform(stage: Stage): Detection | null {
   if (smf) return { platform: 'smf', prefix: smf.slice(0, -'members'.length) };
   const phpbb = find('users', ['username_clean', 'user_password']);
   if (phpbb) return { platform: 'phpbb', prefix: phpbb.slice(0, -'users'.length) };
+  const xf = find('user', ['user_id', 'user_state', 'secondary_group_ids']);
+  if (xf) return { platform: 'xenforo', prefix: xf.slice(0, -'user'.length) };
   const mybb = find('users', ['uid', 'salt', 'loginkey']);
   if (mybb) return { platform: 'mybb', prefix: mybb.slice(0, -'users'.length) };
   return null;

@@ -506,4 +506,124 @@ describe('forum importer', () => {
     expect(editors.color).toBe('#00aa00');
     await loginAgent(h, 'Ece', 'IpsPass9');
   }, 60_000);
+
+  it('imports XenForo 2 with bcrypt and salted SHA-256 passwords, node permissions and XF BBCode', async () => {
+    const bc = await bcrypt('XfPass#1');
+    const salt = 'c0ffee'.repeat(10);
+    const sha256 = (x: string) => createHash('sha256').update(x, 'utf8').digest('hex');
+    const ser = (o: Record<string, string>) => `a:${Object.keys(o).length}:{${Object.entries(o).map(([k, v]) => `s:${k.length}:"${k}";s:${Buffer.byteLength(v)}:"${v}";`).join('')}}`;
+    const sql = dump([
+      { name: 'xf_addon', columns: ['addon_id', 'version_string'], rows: [['XF', '2.2.15'], ['Other', '1.0']] },
+      { name: 'xf_option', columns: ['option_id', 'option_value'], rows: [['boardUrl', 'https://eski.xf.test/'], ['boardTitle', 'Eski XF'], ['other', 'x']] },
+      {
+        name: 'xf_user_group',
+        columns: ['user_group_id', 'title', 'username_css'],
+        rows: [[1, 'Guests', ''], [2, 'Registered', ''], [3, 'Administrative', 'color: #e03030;'], [4, 'Moderating', ''], [5, 'VIP', 'color: #ffaa00; font-weight: bold;']],
+      },
+      { name: 'xf_user_title_ladder', columns: ['minimum_level', 'title'], rows: [[0, 'Çaylak'], [100, 'Usta']] },
+      {
+        name: 'xf_user',
+        columns: ['user_id', 'username', 'email', 'user_group_id', 'secondary_group_ids', 'register_date', 'last_activity', 'message_count', 'user_state', 'custom_title', 'avatar_date', 'gravatar'],
+        rows: [
+          [1, 'Mert', 'mert@eski.test', 2, '3,5', T0, T0 + 50, 2, 'valid', 'Kurucu', 0, ''],
+          [2, 'Selin', 'selin@eski.test', 2, '', T0 + 1, T0 + 60, 1, 'valid', '', 0, ''],
+          [3, 'Yasakli', 'yasak@eski.test', 2, '', T0 + 2, T0 + 2, 0, 'valid', '', 0, ''],
+        ],
+      },
+      {
+        name: 'xf_user_authenticate',
+        columns: ['user_id', 'scheme_class', 'data'],
+        rows: [
+          [1, 'XF:Core12', ser({ hash: bc })],
+          [2, 'XF:Core', ser({ hash: sha256(sha256('SelinPw9') + salt), salt, hashFunc: 'sha256' })],
+          [3, 'XF:NoPassword', ''],
+        ],
+      },
+      { name: 'xf_user_profile', columns: ['user_id', 'dob_day', 'dob_month', 'dob_year', 'signature', 'location', 'website'], rows: [[1, 5, 6, 1990, '[B]imza[/B]', 'İzmir', '']] },
+      { name: 'xf_user_ban', columns: ['user_id', 'ban_user_id', 'ban_date', 'end_date', 'user_reason'], rows: [[3, 1, T0, 0, 'spam']] },
+      {
+        name: 'xf_node',
+        columns: ['node_id', 'title', 'description', 'node_type_id', 'parent_node_id', 'display_order', 'lft', 'rgt'],
+        rows: [
+          [1, 'Ana Kategori', '', 'Category', 0, 1, 1, 6],
+          [2, 'Sohbet', 'Genel <b>sohbet</b>', 'Forum', 1, 1, 2, 3],
+          [3, 'VIP Salonu', '', 'Forum', 1, 2, 4, 5],
+          [4, 'Kurallar', '', 'Page', 1, 3, 6, 7],
+        ],
+      },
+      {
+        name: 'xf_permission_entry_content',
+        columns: ['permission_entry_id', 'content_type', 'content_id', 'user_group_id', 'user_id', 'permission_group_id', 'permission_id', 'permission_value', 'permission_value_int'],
+        rows: [
+          [1, 'node', 3, 1, 0, 'general', 'viewNode', 'reset', 0],
+          [2, 'node', 3, 2, 0, 'general', 'viewNode', 'reset', 0],
+          [3, 'node', 3, 5, 0, 'general', 'viewNode', 'content_allow', 0],
+        ],
+      },
+      {
+        name: 'xf_thread',
+        columns: ['thread_id', 'node_id', 'title', 'user_id', 'username', 'post_date', 'view_count', 'sticky', 'discussion_open', 'discussion_state', 'discussion_type'],
+        rows: [
+          [1, 2, 'XF konusu', 1, 'Mert', T0, 12, 1, 1, 'visible', 'poll'],
+          [2, 2, 'Yönlendirme', 1, 'Mert', T0, 0, 0, 1, 'visible', 'redirect'],
+          [3, 3, 'Gizli VIP', 1, 'Mert', T0, 0, 0, 0, 'visible', 'discussion'],
+        ],
+      },
+      {
+        name: 'xf_post',
+        columns: ['post_id', 'thread_id', 'user_id', 'username', 'post_date', 'message', 'ip_id', 'message_state', 'last_edit_date'],
+        rows: [
+          [10, 1, 1, 'Mert', T0, 'İlk [B]mesaj[/B]', 7, 'visible', 0],
+          [
+            11,
+            1,
+            2,
+            'Selin',
+            T0 + 5,
+            '[QUOTE="Mert, post: 10, member: 1"]İlk[/QUOTE]\nSelam [USER=1]@Mert[/USER]\n[MEDIA=youtube]dQw4w9WgXcQ[/MEDIA]\n[ISPOILER]sır[/ISPOILER] [HEADING=1]Başlık[/HEADING]\n[URL unfurl="true"]https://a.test[/URL] [PLAIN][B]x[/B][/PLAIN] [SIZE=5]büyük[/SIZE]',
+            0,
+            'visible',
+            T0 + 9,
+          ],
+          [12, 3, 1, 'Mert', T0, 'gizli', 0, 'visible', 0],
+        ],
+      },
+      { name: 'xf_ip', columns: ['ip_id', 'user_id', 'content_type', 'content_id', 'action', 'ip', 'log_date'], rows: [[7, 1, 'post', 10, 'insert', Buffer.from([10, 0, 0, 9]), T0], [8, 1, 'user', 1, 'register', Buffer.from([10, 0, 0, 8]), T0], [9, 1, 'user', 1, 'login', Buffer.from([1, 1, 1, 1]), T0]] },
+      { name: 'xf_poll', columns: ['poll_id', 'content_type', 'content_id', 'question', 'max_votes', 'change_vote', 'close_date'], rows: [[1, 'thread', 1, 'Hangisi?', 1, 1, 0]] },
+      { name: 'xf_poll_response', columns: ['poll_response_id', 'poll_id', 'response', 'response_vote_count'], rows: [[1, 1, 'Elma', 1], [2, 1, 'Armut', 0]] },
+      { name: 'xf_poll_vote', columns: ['user_id', 'poll_response_id', 'poll_id', 'vote_date'], rows: [[2, 1, 1, T0]] },
+      { name: 'xf_conversation_master', columns: ['conversation_id', 'title', 'user_id', 'username', 'start_date'], rows: [[1, 'Özel konu', 1, 'Mert', T0]] },
+      { name: 'xf_conversation_recipient', columns: ['conversation_id', 'user_id', 'recipient_state'], rows: [[1, 1, 'active'], [1, 2, 'active']] },
+      { name: 'xf_conversation_message', columns: ['message_id', 'conversation_id', 'message_date', 'user_id', 'username', 'message'], rows: [[1, 1, T0, 1, 'Mert', 'Selam [I]Selin[/I]']] },
+      { name: 'xf_ban_email', columns: ['banned_email', 'reason'], rows: [['*@spam.test', 'spam']] },
+    ]);
+    const { ready } = await runImport(sql, 'xenforo.sql');
+    expect(ready.analysis).toMatchObject({ platform: 'xenforo', version: '2.2.15', baseUrl: 'https://eski.xf.test' });
+    expect(ready.analysis.counts).toMatchObject({ users: 3, categories: 1, boards: 2, topics: 2, posts: 3, polls: 1, conversations: 1 });
+
+    const boards = await h.db.q.selectFrom('boards').select(['id', 'name', 'description', 'permission_profile_id']).orderBy('id').execute();
+    expect(boards.map((b) => b.name)).toEqual(['Sohbet', 'VIP Salonu']);
+    expect(boards[0]).toMatchObject({ description: 'Genel sohbet', permission_profile_id: null });
+    expect(boards[1]!.permission_profile_id).not.toBeNull();
+
+    const topic = await topicByTitle('XF konusu');
+    expect(topic).toMatchObject({ is_pinned: 1, view_count: 12 });
+    const posts = await postsOf(topic.id);
+    const mert = await h.db.q.selectFrom('users').selectAll().where('username', '=', 'Mert').executeTakeFirstOrThrow();
+    expect(posts[0]!.body_bbcode).toBe('İlk [B]mesaj[/B]');
+    expect(posts[1]!.body_bbcode).toBe(
+      `[quote author="Mert" post=${posts[0]!.id}]İlk[/quote]\nSelam [mention=${mert.id}]${mert.display_name}[/mention]\n[media]https://www.youtube.com/watch?v=dQw4w9WgXcQ[/media]\n[spoiler]sır[/spoiler] [h2]Başlık[/h2]\n[url]https://a.test[/url] [noparse][B]x[/B][/noparse] [size=5]büyük[/size]`,
+    );
+    expect((await topicByTitle('Gizli VIP')).is_locked).toBe(1);
+    await expect(topicByTitle('Yönlendirme')).rejects.toThrow();
+
+    const vip = await h.db.q.selectFrom('member_groups').selectAll().where('name', '=', 'VIP').executeTakeFirstOrThrow();
+    expect(vip.color).toBe('#ffaa00');
+    expect(await h.db.q.selectFrom('member_groups').select('name').where('name', '=', 'Usta').executeTakeFirst()).toBeTruthy();
+    expect(await h.db.q.selectFrom('polls').selectAll().executeTakeFirst()).toMatchObject({ question: 'Hangisi?' });
+    expect(await h.db.q.selectFrom('conversations').select('title').where('title', '=', 'Özel konu').executeTakeFirst()).toBeTruthy();
+
+    await loginAgent(h, 'Mert', 'XfPass#1');
+    await loginAgent(h, 'Selin', 'SelinPw9');
+  }, 60_000);
 });

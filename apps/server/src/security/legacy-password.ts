@@ -171,6 +171,13 @@ export async function verifyLegacy(hash: string, password: string): Promise<bool
     }
     case 'md5salt':
       return safeEqual(md5hex(md5hex(b64(a)) + md5hex(password)), b.toLowerCase());
+    case 'xfcore': {
+      // XenForo 1.x / 2.x eski düzeni: f(f(şifre) + tuz), f = sha256 ya da sha1
+      const [fn, stored = ''] = b.split('.');
+      if (fn !== 'sha256' && fn !== 'sha1') return false;
+      const h = (x: string) => createHash(fn).update(x, 'utf8').digest('hex');
+      return safeEqual(h(h(password) + b64(a)), stored.toLowerCase());
+    }
     case 'ipsmd5': {
       const salt = b64(a);
       for (const pw of new Set([ipsClean(password), ipsClean(password, true), password])) {
@@ -190,4 +197,5 @@ export const legacyHash = {
   phpbb: (stored: string) => `$legacy$phpbb$${enc(stored)}$`,
   md5salt: (salt: string, hash: string) => `$legacy$md5salt$${enc(salt)}$${hash.toLowerCase()}`,
   ipsmd5: (salt: string, hash: string) => `$legacy$ipsmd5$${enc(salt)}$${hash.toLowerCase()}`,
+  xfcore: (salt: string, hash: string, fn: 'sha256' | 'sha1') => `$legacy$xfcore$${enc(salt)}$${fn}.${hash.toLowerCase()}`,
 };

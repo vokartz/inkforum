@@ -211,6 +211,99 @@ export function mybbToBBCode(raw: string): string {
   return tidy(p.restore(s));
 }
 
+// ---------- XenForo ----------
+
+/** XenForo [MEDIA=site]kimlik[/MEDIA] → tam adres */
+const XF_MEDIA: Record<string, (id: string) => string> = {
+  youtube: (id) => `https://www.youtube.com/watch?v=${id.replace(/:(\d+)$/, '&t=$1')}`,
+  vimeo: (id) => `https://vimeo.com/${id}`,
+  dailymotion: (id) => `https://www.dailymotion.com/video/${id}`,
+  twitch: (id) => `https://www.twitch.tv/${id.replace(/^clip:/, 'clip/')}`,
+  spotify: (id) => `https://open.spotify.com/${id.replace(/:/g, '/')}`,
+  soundcloud: (id) => `https://soundcloud.com/${id}`,
+  twitter: (id) => `https://twitter.com/i/status/${id}`,
+  x: (id) => `https://x.com/i/status/${id}`,
+  instagram: (id) => `https://www.instagram.com/p/${id}/`,
+  tiktok: (id) => `https://www.tiktok.com/embed/v2/${id}`,
+  reddit: (id) => `https://www.reddit.com/r/${id}`,
+  streamable: (id) => `https://streamable.com/${id}`,
+};
+
+/** XenForo SIZE=1..7 → InkForum boyutu (aynı ölçek) */
+const XF_SIZES: Record<string, string> = { '1': '1', '2': '2', '3': '3', '4': '4', '5': '5', '6': '6', '7': '7' };
+
+/**
+ * XenForo 2.x BBCode → InkForum BBCode. XenForo mesajları zaten BBCode'dur; farklı olanlar alıntı öznitelikleri,
+ * [ATTACH], [USER], [MEDIA], [ISPOILER], [PLAIN], [HEADING], [INDENT] ve [URL unfurl] etiketleridir.
+ */
+export function xenforoToBBCode(raw: string): string {
+  let s = cleanText(raw);
+  const p = protect(s, ['code', 'php', 'html', 'plain', 'icode'], (tag, value, body) => {
+    if (tag === 'plain') return `[noparse]${body}[/noparse]`;
+    if (tag === 'icode') return `[icode]${body}[/icode]`;
+    const lang = tag === 'code' ? (value ?? '').replace(/["']/g, '').trim().toLowerCase() : tag;
+    return `[code${lang && lang !== 'rich' && /^[a-z0-9+#-]{1,20}$/.test(lang) ? `=${lang}` : ''}]${body}[/code]`;
+  });
+  s = p.text
+    // [ATTACH type="full" alt="…"]123[/ATTACH], [ATTACH=full]123[/ATTACH]
+    .replace(/\[attach(?:=[^\]]*|\s[^\]]*)?\]\s*(\d+)\s*\[\/attach\]/gi, (_m, id: string) => mark('a', id))
+    .replace(/\[media=([a-z0-9_]+)\]([\s\S]*?)\[\/media\]/gi, (_m, site: string, id: string) => {
+      const make = XF_MEDIA[site.toLowerCase()];
+      const v = id.trim();
+      return make ? `[media]${make(v)}[/media]` : /^https?:\/\//i.test(v) ? `[url]${v}[/url]` : v;
+    })
+    .replace(/\[user=(\d+)\]([\s\S]*?)\[\/user\]/gi, (_m, id: string, name: string) => `[mention=${mark('u', id)}]${name.replace(/^@/, '')}[/mention]`);
+  s = rewriteTags(s, (name, rest, closing) => {
+    switch (name) {
+      case 'quote': {
+        if (closing) return '[/quote]';
+        // [QUOTE="Ad, post: 123, member: 45"] ya da [QUOTE=Ad]
+        const v = mainValue(rest) ?? '';
+        const [who, ...meta] = v.split(',');
+        const post = meta.map((m) => /post:\s*(\d+)/.exec(m)?.[1]).find(Boolean) ?? null;
+        return quoteTag(who?.trim() || null, post);
+      }
+      case 'ispoiler':
+        return closing ? '[/spoiler]' : '[spoiler]';
+      case 'spoiler': {
+        if (closing) return '[/spoiler]';
+        const title = (mainValue(rest) ?? '').replace(/[\]"]/g, '').trim();
+        return title ? `[spoiler="${title}"]` : '[spoiler]';
+      }
+      case 'heading': {
+        const level = Math.min(4, Math.max(2, Number((mainValue(rest) ?? '2').trim()) + 1 || 2));
+        return closing ? '\u0007' : `\u0007${level}\u0007`;
+      }
+      case 'indent':
+        return '';
+      case 'size': {
+        if (closing) return '[/size]';
+        const v = (mainValue(rest) ?? '').trim();
+        return `[size=${XF_SIZES[v] ?? (/^\d{1,2}px$/i.test(v) ? v.toLowerCase() : '3')}]`;
+      }
+      case 'url': {
+        if (closing) return '[/url]';
+        const v = mainValue(rest.replace(/\s+unfurl=("[^"]*"|\S+)/i, ''));
+        return v ? `[url=${v}]` : '[url]';
+      }
+      case 'img':
+        return closing ? '[/img]' : '[img]';
+      case 'table':
+        return closing ? '[/table]' : '[table]';
+      case 'left':
+      case 'center':
+      case 'right':
+      case 'justify':
+        return closing ? `[/${name}]` : `[${name}]`;
+      default:
+        return null;
+    }
+  });
+  // [HEADING=n]…[/HEADING] → [h2..h4]
+  s = s.replace(/\u0007(\d)\u0007([\s\S]*?)\u0007/g, (_m, l: string, body: string) => `[h${l}]${body.trim()}[/h${l}]`).replace(/\u0007\d?\u0007?/g, '');
+  return tidy(p.restore(s));
+}
+
 // ---------- IPS (HTML) ----------
 
 interface HNode {

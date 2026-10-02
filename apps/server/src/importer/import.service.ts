@@ -35,6 +35,7 @@ import { SmfReader } from './readers/smf.js';
 import { PhpbbReader } from './readers/phpbb.js';
 import { IpsReader } from './readers/ips.js';
 import { MybbReader } from './readers/mybb.js';
+import { XenforoReader } from './readers/xenforo.js';
 
 export interface ImportOptions {
   charset: SourceCharset;
@@ -288,6 +289,8 @@ export class ImportService implements OnModuleInit {
         return new IpsReader(stage, prefix, ctx);
       case 'mybb':
         return new MybbReader(stage, prefix, ctx);
+      case 'xenforo':
+        return new XenforoReader(stage, prefix, ctx);
     }
   }
 

@@ -103,7 +103,7 @@ async function wafGate(event: Parameters<Handle>[0]['event']): Promise<Response 
 
 type LegacyKind = 'topic' | 'post' | 'board' | 'user';
 
-/** SMF, phpBB, MyBB ve IPS adres biçimlerinden eski kimliği çıkarır */
+/** SMF, phpBB, MyBB, IPS ve XenForo adres biçimlerinden eski kimliği çıkarır */
 function legacyTarget(url: URL): { kind: LegacyKind; id: string } | null {
   const path = url.pathname.toLowerCase();
   const full = decodeURIComponent(url.pathname + url.search);
@@ -127,6 +127,13 @@ function legacyTarget(url: URL): { kind: LegacyKind; id: string } | null {
     if (msg) return { kind: 'post', id: msg };
     return hit('topic', /[?&;]topic=(\d+)/i.exec(full)?.[1] ?? null) ?? hit('board', /[?&;]board=(\d+)/i.exec(full)?.[1] ?? null) ?? (/action=profile/i.test(full) ? hit('user', q('u')) : null);
   }
+  // XenForo (/threads/baslik.12/, /threads/12/post-34, /posts/34/, /forums/ad.3/, /members/ad.5/, index.php?threads/…)
+  m = /(?:^|\/|\?)(threads|posts|forums|members)\/(?:[^/?#]*\.)?(\d+)\/?(?:(?:page-\d+\/?)?#?post-(\d+))?/.exec(full.toLowerCase());
+  if (m) {
+    if (m[3]) return { kind: 'post', id: m[3] };
+    return { kind: m[1] === 'threads' ? 'topic' : m[1] === 'posts' ? 'post' : m[1] === 'forums' ? 'board' : 'user', id: m[2]! };
+  }
+  if (/\/goto\/post$/.test(path) || /[?&]goto\/post/.test(full)) return hit('post', q('id'));
   // IPS (/topic/12-baslik/, /forum/3-ad/, /profile/5-ad/, index.php?/topic/…)
   m = /\/(topic|forum|profile)\/(\d+)-/.exec(full.toLowerCase());
   if (m) return { kind: m[1] === 'topic' ? 'topic' : m[1] === 'forum' ? 'board' : 'user', id: m[2]! };
