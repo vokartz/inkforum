@@ -9,6 +9,20 @@ güncelleme notuna dönüşür (panel yöneticinin diline uygun olanı gösterir
 
 ## [Yayımlanmamış]
 
+## [1.4.1] - 2026-10-02
+
+### Değişenler
+
+- **Yeni özel mesaj sayfası** konu açma ekranıyla aynı düzende: alıcılar, başlık ve mesaj alanları "Gerekli" etiketi
+  ve karakter sayacıyla, altta sabit gönder çubuğu, yanda katılımcılar ve ipuçları.
+- **Forumun kendi onay pencereleri:** kaydedilmemiş değişiklikle sayfadan ayrılırken (ayarlar, tema stüdyosu, sayfalar,
+  wiki, e-posta şablonları) tarayıcının kutusu yerine forumun penceresi çıkar. Başvuru ve grup isteği reddetme ile uyarı
+  geri alma gerekçeleri de aynı pencerede yazılır.
+- **Yazdırma** her sayfada, tema ne olursa olsun sade ve açık renkli: menü, alt bilgi, düğmeler ve yanıt kutusu basılmaz;
+  üstte forum adı ve sayfa adresi, bağlantıların yanında adresleri yer alır.
+- **Politika sayfaları:** politika yönetme yetkisi olan herkese yazılı *Düzenle* ve *Yazdır* düğmeleri görünür; basılı
+  kopyada sürüm ve yazdırma tarihi yer alır.
+
 ## [1.4.0] - 2026-10-02
 
 ### Eklenenler

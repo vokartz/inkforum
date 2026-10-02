@@ -8,6 +8,20 @@ Each version section becomes the GitHub release note and the update note in the 
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-10-02
+
+### Changed
+
+- **New private message page** uses the same layout as starting a topic: recipients, title and message with required
+  markers and a character counter, a sticky send bar, and a side panel with the participants and tips.
+- **Forum-style dialogs:** leaving a page with unsaved changes (settings, theme studio, pages, wiki, e-mail templates)
+  asks in the forum's own dialog instead of the browser's box. Reasons for rejecting applications and group requests
+  or revoking warnings are entered in the same dialog.
+- **Printing** uses a clean light layout on every page whatever the theme: no menus, footer, buttons or reply box, the
+  forum name and page address on top, and link addresses after links.
+- **Policy pages** show labelled *Edit* and *Print* buttons to everyone allowed to manage policies, and printed copies
+  note the version and print date.
+
 ## [1.4.0] - 2026-10-02
 
 ### Added
