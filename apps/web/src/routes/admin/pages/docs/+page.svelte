@@ -23,6 +23,7 @@
     ['js', 'Tarayıcı JavaScript API\'si'],
     ['server', 'Sunucu kodu'],
     ['request', 'İstek (req)'],
+    ['forum-data', 'Forum verisi (forum.*)'],
     ['responses', 'Yanıtlar'],
     ['fetch', 'Dış servis çağrıları (fetch)'],
     ['kv', 'Veri saklama (kv)'],
@@ -80,9 +81,36 @@
     ['req.query', 'Sorgu dizesi: /ucp?sekme=2 → { sekme: "2" }'],
     ['req.body', 'İstek gövdesi (JSON ise nesne olarak)'],
     ['req.headers', 'content-type, accept, referer, user-agent'],
-    ['req.user', 'Giriş yapan üye ya da null: { id, username, name, avatarUrl, groups, primaryGroup, isAdmin, emailVerified }'],
+    ['req.user', 'Giriş yapan üye ya da null (alanlar aşağıda)'],
     ['req.ip', 'Ziyaretçinin IP adresi'],
     ['req.page', '{ id, slug, route, title, url }'],
+  ];
+
+  const USER: Array<[string, string]> = [
+    ['id, username, name, url', 'Üye kimliği, kullanıcı adı, görünen ad, profil adresi'],
+    ['email, emailVerified', 'Yalnızca sayfayı açan üyenin kendi e-postası ve doğrulanmış mı'],
+    ['avatarUrl, color, title', 'Avatar adresi, grup rengi, özel unvan'],
+    ['groups, primaryGroup', 'Grup kimlikleri dizisi ve baskın grubun kimliği'],
+    ['groupList, group', 'Grupların ad ve rengiyle listesi; baskın grup { id, name, color }'],
+    ['isAdmin, isStaff, permissions', 'Yönetici mi, yetkili mi, yetki anahtarları (ör. "mod.warnings.issue")'],
+    ['postCount, reputation, achievementPoints, warningPoints', 'Mesaj sayısı, itibar, başarı puanı, uyarı puanı'],
+    ['registeredAt, lastActiveAt, locale', 'Kayıt ve son etkinlik zamanı (ms), arayüz dili'],
+  ];
+
+  const FORUM: Array<[string, string]> = [
+    ['forum.site', '{ name, description, url, locale, version, registrationOpen, now } — beklemeden kullanılır'],
+    ['await forum.stats()', '{ members, topics, posts, newestMember, online: { members, guests, total } }'],
+    ['await forum.online()', '{ members, guests, total, users: [üye…] } — durumunu gizleyenler listede yok'],
+    ['await forum.user(kimlik ya da ad)', 'Herkese açık profil: ad, adres, avatar, gruplar, mesaj sayısı, kayıt tarihi, çevrimiçi mi, konum, yaş, özel alanlar, son başarılar. Bulunamazsa null'],
+    ['await forum.members({ search, group, sort, dir, limit, page })', 'Üye listesi; sort: registered, name, posts, active, achievements → { total, items }'],
+    ['await forum.groups()', 'Görünen gruplar: { id, name, description, color, memberCount, isMember }'],
+    ['await forum.groupMembers(grupKimliği, limit)', 'Bir grubun üyeleri → { total, items }'],
+    ['await forum.boards()', 'Kategoriler ve içlerindeki bölümler: ad, açıklama, adres, konu/mesaj sayısı, alt bölümler'],
+    ['await forum.topics({ board, sort, limit })', 'Bölüm verilmezse son konular; board ile o bölümün konuları. sort: latest, newest, replies, views, title'],
+    ['await forum.topic(kimlik)', 'Konu: başlık, adres, bölüm, yazar, yanıt ve görüntülenme sayısı, ilk mesajın html ve düz metni'],
+    ['await forum.userTopics(kimlik ya da ad, limit)', 'Bir üyenin açtığı konular'],
+    ['await forum.search(sorgu, { board, titleOnly, limit })', 'Konu araması'],
+    ['await forum.token()', 'Giriş yapan üye için imzalı kimlik belirteci (aşağıda)'],
   ];
 
   const RES: Array<[string, string]> = [
@@ -95,6 +123,26 @@
   ];
 
   const SNIPPETS = {
+    forumData: `async function handle(req) {
+  // Paralel çağrılar daha hızlıdır
+  const [stats, son, ben] = await Promise.all([
+    forum.stats(),
+    forum.topics({ limit: 5 }),
+    req.user ? forum.user(req.user.id) : null,
+  ]);
+
+  // Dış sisteme forum verisi göndermek (İzinli alan adlarına ekleyin)
+  if (req.kind === 'api' && req.path === '/senkron' && req.user) {
+    await fetch('https://api.sunucum.com/forum-uyesi', {
+      method: 'POST',
+      headers: { authorization: 'Bearer ' + secrets.API_KEY },
+      body: { id: req.user.id, ad: req.user.name, eposta: req.user.email, gruplar: req.user.groupList.map((g) => g.name), mesaj: req.user.postCount },
+    });
+    return json({ ok: true });
+  }
+
+  return json({ forum: forum.site.name, uyeler: stats.members, cevrimici: stats.online?.total ?? 0, son, ben });
+}`,
     tokens: `[data-custom-page="ucp"] .f-card {
   border-color: color-mix(in oklab, var(--primary) 40%, var(--border));
 }
@@ -197,7 +245,7 @@ function dogrula(token, secret) {
       <thead class="bg-muted/50 text-left text-xs text-muted-foreground"><tr><th class="px-3 py-2 font-semibold">{head[0]}</th><th class="px-3 py-2 font-semibold">{head[1]}</th></tr></thead>
       <tbody>
         {#each rows as [a, b] (a)}
-          <tr class="border-t align-top"><td class="px-3 py-2 font-mono text-xs whitespace-nowrap">{a}</td><td class="px-3 py-2 text-muted-foreground">{t(b)}</td></tr>
+          <tr class="border-t align-top"><td class="w-2/5 px-3 py-2 font-mono text-xs [overflow-wrap:anywhere]">{a}</td><td class="px-3 py-2 text-muted-foreground">{t(b)}</td></tr>
         {/each}
       </tbody>
     </table>
@@ -215,7 +263,7 @@ function dogrula(token, secret) {
     {/each}
   </nav>
 
-  <article class="grid max-w-3xl gap-10 text-[15px] leading-relaxed [&_h2]:scroll-mt-24 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:tracking-tight [&_h3]:text-base [&_h3]:font-semibold [&_section]:grid [&_section]:gap-3">
+  <article class="grid min-w-0 max-w-3xl grid-cols-[minmax(0,1fr)] gap-10 [&_section]:grid-cols-[minmax(0,1fr)] text-[15px] leading-relaxed [&_h2]:scroll-mt-24 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:tracking-tight [&_h3]:text-base [&_h3]:font-semibold [&_section]:grid [&_section]:gap-3">
     <section id="overview">
       <h2>{t('Genel bakış')}</h2>
       <p>{t('Özel sayfalar forumun içinde, kendi adresinde açılan sayfalardır: UCP, kurallar rehberi, etkinlik takvimi, başvuru formu, açılış sayfası… Bir sayfa dört parçadan oluşabilir:')}</p>
@@ -306,6 +354,17 @@ function dogrula(token, secret) {
       {@render table(REQ, [t('Alan'), t('Açıklama')])}
     </section>
 
+    <section id="forum-data">
+      <h2>{t('Forum verisi (forum.*)')}</h2>
+      <p>{t('Sunucu kodu forumun verisini okuyabilir ve isterse fetch ile kendi sisteminize gönderebilir. Her çağrı sayfayı açan ziyaretçinin yetkileriyle yapılır: göremediği bölüm, gizli konu ya da gizli profil bilgisi burada da görünmez. Başka üyelerin e-posta ve IP adresleri hiçbir zaman verilmez. Çağrılar salt okunurdur; bir istekte en fazla 40 çağrı yapılabilir.')}</p>
+      <h3>{t('req.user alanları')}</h3>
+      {@render table(USER, [t('Alan'), t('Açıklama')])}
+      <h3>{t('forum nesnesi')}</h3>
+      {@render table(FORUM, [t('Kullanım'), t('Döndürdüğü')])}
+      <p>{t('Üye nesneleri her yerde aynı biçimdedir: { id, username, name, url, avatarUrl, color, title, group }.')}</p>
+      {@render code(SNIPPETS.forumData, 'js')}
+    </section>
+
     <section id="responses">
       <h2>{t('Yanıtlar')}</h2>
       {@render table(RES, [t('İşlev'), t('Ne olur')])}
@@ -327,7 +386,7 @@ function dogrula(token, secret) {
     <section id="secrets">
       <h2>{t('Gizli değerler ve kimlik belirteci')}</h2>
       <p>{t('API anahtarı gibi değerleri Sunucu → Gizli değerler bölümüne ekleyin; kodda secrets.AD ile okunur. Değerler veritabanında şifreli saklanır, yönetim ekranında bile yeniden gösterilmez ve tarayıcıya hiç gönderilmez.')}</p>
-      <p>{t('forum.token() giriş yapan üye için kısa ömürlü, imzalı bir kimlik belirteci (JWT, HS256) üretir. Dış sisteminiz belirteci Özel kod → Entegrasyon bölümündeki gizli anahtarla doğrulayıp üyenin kim olduğunu bilir; şifre paylaşmaya gerek kalmaz. Misafirde boş metin döner. forum.user(id) bir üyenin herkese açık özetini verir.')}</p>
+      <p>{t('forum.token() giriş yapan üye için kısa ömürlü, imzalı bir kimlik belirteci (JWT, HS256) üretir. Dış sisteminiz belirteci Özel kod → Entegrasyon bölümündeki gizli anahtarla doğrulayıp üyenin kim olduğunu bilir; şifre paylaşmaya gerek kalmaz. Misafirde boş metin döner.')}</p>
       {@render code(SNIPPETS.verifyNode, 'js')}
     </section>
 

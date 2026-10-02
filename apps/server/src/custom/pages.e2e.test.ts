@@ -146,4 +146,58 @@ describe('code pages', () => {
       await h.settings.set('custom.enabled', true);
     }
   });
+
+  it('gives server code read-only forum data with the visitor permissions', async () => {
+    const boards = await h.db.q.selectFrom('boards').select(['id', 'name']).execute();
+    // Üyelerin konu açabildiği ilk bölüm
+    let board = boards[0]!;
+    let t = { status: 0, body: {} as { topicId: number } };
+    for (const b of boards) {
+      t = await member.post(`/api/boards/${b.id}/topics`, { title: 'Sunucu kodu konusu', body: 'İlk mesajın [b]metni[/b]' });
+      board = b;
+      if (t.status === 201) break;
+    }
+    expect(t.status).toBe(201);
+    const code = `
+async function handle(req) {
+  const [stats, me, them, boards, recent, topic, search, groups, members, online, nobody] = await Promise.all([
+    forum.stats(), forum.user(req.user ? req.user.id : 0), forum.user('Oyuncu'), forum.boards(), forum.topics({ limit: 5 }),
+    forum.topic(${t.body.topicId}), forum.search('Sunucu'), forum.groups(), forum.members({ limit: 5, sort: 'name', dir: 'asc' }),
+    forum.online(), forum.user('boyle-biri-yok'),
+  ]);
+  const inBoard = await forum.topics({ board: ${board.id}, limit: 3 });
+  return json({
+    site: forum.site.name, hasUrl: typeof forum.site.url === 'string', version: forum.site.version,
+    me: req.user && { name: req.user.name, email: req.user.email, groups: Array.isArray(req.user.groups), groupList: req.user.groupList.length, postCount: req.user.postCount, isStaff: req.user.isStaff },
+    stats: { members: stats.members, topics: stats.topics },
+    them: them && { name: them.name, url: them.url, hasEmail: 'email' in them },
+    meProfile: me && me.name,
+    boards: boards.length, recent: recent.map((r) => r.title), inBoard: inBoard.map((r) => r.title),
+    topic: topic && { title: topic.title, text: topic.text, author: topic.author.name },
+    search: search.map((s) => s.title), groups: groups.length > 0, members: members.items.map((m) => m.name), onlineTotal: typeof online.total,
+    nobody,
+  });
+}`;
+    const created = await admin.post('/api/admin/pages', { slug: 'veri', title: 'Veri', format: 'html', route: 'veri', body: '<p>x</p>', serverEnabled: true, serverCode: code });
+    expect(created.status).toBe(201);
+    const res = await member.get('/api/page-api/veri/x');
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      hasUrl: true,
+      me: { name: 'Oyuncu', email: expect.stringContaining('@'), groups: true, isStaff: false },
+      them: { name: 'Oyuncu', hasEmail: false },
+      meProfile: 'Oyuncu',
+      recent: expect.arrayContaining(['Sunucu kodu konusu']),
+      inBoard: expect.arrayContaining(['Sunucu kodu konusu']),
+      topic: { title: 'Sunucu kodu konusu', text: 'İlk mesajın metni', author: 'Oyuncu' },
+      groups: true,
+      onlineTotal: 'number',
+      nobody: null,
+    });
+    expect(res.body.stats.topics).toBeGreaterThan(0);
+    expect(res.body.boards).toBeGreaterThan(0);
+    // Misafir: kendi bilgisi yok, gizli olmayan veriler görünür
+    const guest = await h.agent().get('/api/page-api/veri/x');
+    expect(guest.body.me).toBeNull();
+  });
 });

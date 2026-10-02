@@ -9,6 +9,7 @@ import { CryptoService } from '../security/crypto.service.js';
 import { safeFetch } from '../security/safe-fetch.js';
 import type { RequestViewer } from '../common/request-context.js';
 import { runHandler, type SandboxResult } from './sandbox.js';
+import { PageForumApi } from './page-forum-api.js';
 
 type PageRow = Row<'custom_pages'>;
 
@@ -57,6 +58,7 @@ export class PageRuntimeService {
     private readonly settings: SettingsService,
     private readonly users: UsersService,
     private readonly crypto: CryptoService,
+    private readonly forumApi: PageForumApi,
   ) {}
 
   /** Sunucu kodu bu sayfada çalışmalı mı (özel kod kapalıyken hiçbiri çalışmaz) */
@@ -85,24 +87,14 @@ export class PageRuntimeService {
   ): Promise<SandboxResult & { response: PageServerResponse | null }> {
     const hosts = parseJson<string[]>(page.allowed_hosts_json, []);
     let fetches = 0;
-    const user = viewer.user
-      ? {
-          id: viewer.user.id,
-          username: viewer.user.username,
-          name: viewer.user.display_name,
-          avatarUrl: (await this.users.summaries([viewer.user.id])).get(viewer.user.id)?.avatarUrl ?? null,
-          groups: viewer.groupIds,
-          primaryGroup: viewer.user.primary_group_id,
-          isAdmin: viewer.isAdmin,
-          emailVerified: viewer.user.email_verified_at != null,
-        }
-      : null;
+    const user = await this.forumApi.viewerInfo(viewer);
     const pageInfo = { id: page.id, slug: page.slug, route: page.route, title: page.title, url: page.route ? `/${page.route}` : `/pages/${page.slug}` };
 
     const result = await runHandler(
       opts.code ?? page.server_code,
-      { req: { ...req, user, ip: viewer.ip, page: pageInfo }, secrets: this.secrets(page) },
+      { req: { ...req, user, ip: viewer.ip, page: pageInfo }, secrets: this.secrets(page), __site: this.forumApi.site() },
       {
+        ...this.forumApi.bridges(viewer),
         fetch: async (url: unknown, initJson: unknown) => {
           if (++fetches > MAX_FETCHES) throw new Error(`Bir istekte en fazla ${MAX_FETCHES} fetch yapılabilir.`);
           let u: URL;
@@ -160,12 +152,6 @@ export class PageRuntimeService {
           } catch {
             return '';
           }
-        },
-        user: async (id: unknown) => {
-          const n = Number(id);
-          if (!Number.isInteger(n) || n <= 0) return 'null';
-          const s = (await this.users.summaries([n])).get(n);
-          return JSON.stringify(s ?? null);
         },
       },
     );

@@ -56,9 +56,21 @@ const kv = {
   delete: async (key) => { await __bridge.kvDelete(String(key)); },
   list: async (prefix = '') => JSON.parse(await __bridge.kvList(String(prefix))),
 };
+const __call = async (name, ...args) => JSON.parse(await __bridge[name](...args));
 const forum = {
+  site: typeof __site === 'undefined' ? null : __site,
   token: async (audience) => __bridge.token(audience ? String(audience) : ''),
-  user: async (id) => JSON.parse(await __bridge.user(Number(id))),
+  stats: () => __call('fStats'),
+  online: () => __call('fOnline'),
+  user: (idOrName) => __call('fUser', typeof idOrName === 'number' ? idOrName : String(idOrName ?? '')),
+  members: (opts = {}) => __call('fMembers', JSON.stringify(opts)),
+  groups: () => __call('fGroups'),
+  groupMembers: (id, limit = 30) => __call('fGroupMembers', Number(id), Number(limit)),
+  boards: () => __call('fBoards'),
+  topics: (opts = {}) => __call('fTopics', JSON.stringify(opts)),
+  topic: (id) => __call('fTopic', Number(id)),
+  userTopics: (idOrName, limit = 10) => __call('fUserTopics', typeof idOrName === 'number' ? idOrName : String(idOrName ?? ''), Number(limit)),
+  search: (query, opts = {}) => __call('fSearch', String(query ?? ''), JSON.stringify(opts)),
 };
 const console = { log: (...a) => __bridge.log(a.map((x) => typeof x === 'string' ? x : JSON.stringify(x)).join(' ')) };
 console.error = console.log; console.warn = console.log; console.info = console.log;

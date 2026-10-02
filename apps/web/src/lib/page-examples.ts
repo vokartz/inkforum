@@ -35,6 +35,77 @@ async function handle(req) {
 
 export const PAGE_EXAMPLES: PageExample[] = [
   {
+    key: 'forum-data',
+    title: 'Forum verisi: istatistik, son konular ve üye kartı',
+    description: 'Sunucu kodu forum.stats(), forum.topics() ve forum.user() ile veriyi çeker; sayfa {{data.*}} ile gösterir.',
+    html: `<div class="f-stack">
+  <div class="f-grid f-grid-3">
+    <div class="f-card"><div class="f-muted">Üye</div><div class="f-title">{{data.uyeler}}</div></div>
+    <div class="f-card"><div class="f-muted">Konu</div><div class="f-title">{{data.konular}}</div></div>
+    <div class="f-card"><div class="f-muted">Şu an çevrimiçi</div><div class="f-title">{{data.cevrimici}}</div></div>
+  </div>
+  <div class="f-card">
+    <h3>Merhaba {{data.ad}}</h3>
+    <p class="f-muted">{{data.mesaj}} mesaj · {{data.grup}}</p>
+  </div>
+  <div class="f-card"><h3>Son konular</h3><ul id="son"></ul></div>
+</div>`,
+    js: `const list = document.getElementById('son');
+for (const k of forum.page.data?.son ?? []) {
+  const li = document.createElement('li');
+  const a = document.createElement('a');
+  a.href = k.url;
+  a.textContent = k.title + ' (' + k.replies + ' yanıt)';
+  li.append(a);
+  list.append(li);
+}`,
+    server: `async function handle(req) {
+  const [stats, son] = await Promise.all([forum.stats(), forum.topics({ limit: 8 })]);
+  const u = req.user;
+  return json({
+    uyeler: stats.members,
+    konular: stats.topics,
+    cevrimici: stats.online?.total ?? 0,
+    ad: u ? u.name : 'misafir',
+    mesaj: u ? u.postCount : 0,
+    grup: u?.group?.name ?? 'Misafir',
+    son,
+  });
+}
+`,
+  },
+  {
+    key: 'sync',
+    title: 'Senkron: üye bilgilerini kendi sisteminize gönderin',
+    description: 'Üye sayfayı açınca adı, e-postası, grupları ve mesaj sayısı kendi API\'nize POST edilir (gizli anahtarla).',
+    hosts: ['api.sunucum.com'],
+    secrets: ['API_KEY'],
+    server: `// Sayfa her açıldığında üyenin forum bilgileri kendi sisteminize gider.
+// İzinli alan adlarına api.sunucum.com, Gizli değerlere API_KEY ekleyin.
+async function handle(req) {
+  if (!req.user) return redirect('/login?next=' + encodeURIComponent(req.page.url));
+  const u = req.user;
+  const res = await fetch('https://api.sunucum.com/forum/uye', {
+    method: 'POST',
+    headers: { authorization: 'Bearer ' + secrets.API_KEY },
+    body: {
+      forumId: u.id,
+      kullaniciAdi: u.username,
+      ad: u.name,
+      eposta: u.email,
+      epostaDogrulandi: u.emailVerified,
+      gruplar: u.groupList.map((g) => g.name),
+      yetkili: u.isStaff,
+      mesaj: u.postCount,
+      itibar: u.reputation,
+      kayit: u.registeredAt,
+    },
+  });
+  return json({ gonderildi: res.ok });
+}
+`,
+  },
+  {
     key: 'ucp-sso',
     title: 'UCP: tek oturumla yönlendirme',
     description: '/ucp açılınca üye imzalı bir belirteçle kendi UCP sitenize yönlendirilir; misafir giriş sayfasına gider.',

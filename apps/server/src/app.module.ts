@@ -65,6 +65,7 @@ import { TopicExtrasController } from './forum/topic-extras.controller.js';
 import { CustomService } from './custom/custom.service.js';
 import { BuilderService } from './custom/builder.service.js';
 import { PageRuntimeService } from './custom/page-runtime.service.js';
+import { PageForumApi } from './custom/page-forum-api.js';
 import { WikiService } from './wiki/wiki.service.js';
 import { WikiController } from './wiki/wiki.controller.js';
 import { ApplicationsService } from './applications/applications.service.js';
@@ -166,6 +167,7 @@ export class AppModule {
         CustomService,
         BuilderService,
         PageRuntimeService,
+        PageForumApi,
         WikiService,
         ApplicationsService,
         TicketsService,
