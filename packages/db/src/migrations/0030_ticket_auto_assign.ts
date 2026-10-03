@@ -1,7 +1,6 @@
 import type { Kysely } from 'kysely';
 import { flag, textDefault } from './_helpers.js';
 
-/** Destek kategorisi: yeni talepleri sorumlu yetkiliye otomatik atama (sırayla / en az yük / sabit kişi) */
 export async function up(db: Kysely<any>): Promise<void> {
   await db.schema.alterTable('ticket_categories').addColumn('auto_assign', 'text', textDefault('none')).execute();
   await db.schema.alterTable('ticket_categories').addColumn('auto_assign_user_id', 'integer').execute();

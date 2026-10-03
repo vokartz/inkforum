@@ -5,15 +5,11 @@
     value: ComboValue;
     label: string;
     description?: string | null;
-    /** İsim rengi (grup rengi gibi) */
     color?: string | null;
-    /** Seçeneğin başındaki renkli nokta */
     swatch?: string | null;
-    /** Avatar */
     avatar?: { displayName: string; avatarUrl: string | null; color?: string | null } | null;
     group?: string | null;
     disabled?: boolean;
-    /** Arama için ek anahtar kelimeler */
     keywords?: string;
   }
 </script>
@@ -34,11 +30,8 @@
   import { t } from '$lib/i18n.svelte';
 
   interface Props {
-    /** Sabit seçenekler (ya da `load` ile uzaktan arama). */
     options?: ComboOption[];
-    /** Uzaktan arama: sorguya göre seçenek döner. */
     load?: (query: string) => Promise<ComboOption[]>;
-    /** Uzaktan aramada seçili değerlerin etiketleri için başlangıç seçenekleri. */
     selected?: ComboOption[];
     value?: ComboValue | null | ComboValue[];
     multiple?: boolean;
@@ -46,7 +39,6 @@
     searchPlaceholder?: string;
     emptyText?: string;
     clearable?: boolean;
-    /** Listede olmayan değer eklenebilir (etiket girişi). */
     creatable?: boolean;
     searchable?: boolean;
     disabled?: boolean;
@@ -91,9 +83,7 @@
   let inputEl = $state<HTMLInputElement | null>(null);
   let listEl = $state<HTMLDivElement | null>(null);
   const listId = `cb-${Math.random().toString(36).slice(2, 9)}`;
-  /** Görülen tüm seçenekler (seçili etiketleri göstermek için). */
   const known = new Map<string, ComboOption>();
-  /** Sayı/metin karışık değerler için tip bağımsız karşılaştırma */
   const same = (a: ComboValue, b: ComboValue) => String(a) === String(b);
   const has = (list: ComboValue[], v: ComboValue) => list.some((x) => same(x, v));
 
@@ -233,7 +223,6 @@
   }
 
   $effect(() => {
-    // Sorgu değişince ilk seçilebilir satıra dön.
     void query;
     active = 0;
   });

@@ -1,25 +1,9 @@
-/**
- * Özel sayfalarda HTML içinde kullanılabilen hazır bileşenler (Web Components). Örnek:
- *
- *   <forum-user></forum-user>               giriş yapan üyenin kartı (misafire giriş düğmeleri)
- *   <forum-login></forum-login>             giriş / kayıt düğmeleri (üyeye gizlenir)
- *   <forum-stats></forum-stats>             konu, mesaj, üye sayıları
- *   <forum-online limit="20"></forum-online> çevrimiçi üyeler
- *   <forum-recent limit="5"></forum-recent>  son konular
- *   <forum-avatar user="12" size="40"></forum-avatar>
- *   <forum-countdown to="2026-12-31T20:00:00+03:00"></forum-countdown>
- *   <forum-tabs> … </forum-tabs>            sekmeler (data-tab / data-f-panel)
- *
- * Bileşenler yalnızca herkese açık forum API'sini kullanır; görünüm sitenin temasını izler (f-* sınıfları).
- * Belge: Yönetim → Özel sayfalar → Belgeler.
- */
 import type { ForumIndex, RecentTopicItem, UserSummary } from '@forum/shared';
 import { t } from '$lib/i18n.svelte';
 import { formatCompact, timeAgo } from '$lib/format';
 
 const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
-/** Aynı sayfadaki bileşenler aynı veriyi bir kez ister */
 const cache = new Map<string, Promise<unknown>>();
 function get<T>(url: string): Promise<T> {
   let p = cache.get(url) as Promise<T> | undefined;
@@ -40,7 +24,9 @@ function avatar(u: Pick<UserSummary, 'displayName' | 'avatarUrl'> | null, size: 
 const profile = (u: Pick<UserSummary, 'id' | 'username'>) => `/u/${u.id}/${encodeURIComponent(u.username ?? '')}`;
 const nameHtml = (u: UserSummary) => `<a class="f-link" href="${profile(u)}" style="${u.color ? `color:${esc(u.color)}` : ''}">${esc(u.displayName)}</a>`;
 
-abstract class ForumElement extends HTMLElement {
+const ElementBase = (typeof HTMLElement === 'undefined' ? class {} : HTMLElement) as typeof HTMLElement;
+
+abstract class ForumElement extends ElementBase {
   connectedCallback() {
     if (this.dataset.ready) return;
     this.dataset.ready = '1';
@@ -166,7 +152,6 @@ class ForumCountdown extends ForumElement {
   }
 }
 
-/** <forum-tabs><div class="f-tabs"><button data-tab="a">A</button>…</div><div data-f-panel="a">…</div>…</forum-tabs> */
 class ForumTabs extends ForumElement {
   render() {
     const buttons = [...this.querySelectorAll<HTMLButtonElement>('[data-tab]')];
@@ -194,7 +179,6 @@ const ELEMENTS: Record<string, CustomElementConstructor> = {
   'forum-tabs': ForumTabs,
 };
 
-/** Bileşenleri bir kez tanımlar (özel sayfa açılınca çağrılır) */
 export function defineForumElements(): void {
   if (typeof customElements === 'undefined') return;
   for (const [name, ctor] of Object.entries(ELEMENTS)) if (!customElements.get(name)) customElements.define(name, ctor);

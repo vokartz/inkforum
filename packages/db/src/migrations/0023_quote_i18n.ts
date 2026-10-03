@@ -1,9 +1,5 @@
 import { sql, type Kysely } from 'kysely';
 
-/**
- * Alıntı başlığı dilden bağımsız: "yazdı:" / "Alıntı:" metni kayıtlı HTML'den çıkarılır, arayüz ziyaretçinin
- * dilinde CSS ile gösterir. Önceden işlenmiş içerikteki Türkçe metinler yeni işaretlemeyle değiştirilir.
- */
 const COLUMNS: Array<[table: string, column: string]> = [
   ['posts', 'body_html'],
   ['conversation_messages', 'body_html'],
@@ -34,5 +30,4 @@ export async function up(db: Kysely<any>): Promise<void> {
 }
 
 export async function down(): Promise<void> {
-  /* yalnızca görünüm; geri alınacak bir şey yok */
 }

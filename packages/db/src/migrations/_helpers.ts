@@ -1,12 +1,6 @@
 import type { ColumnDefinitionBuilder, CreateTableBuilder, Kysely } from 'kysely';
 import { isSqlite } from '../dialect.js';
 
-/**
- * Taşınabilir migration yardımcıları (SQLite + PostgreSQL).
- * Kurallar: zaman = bigint ms (DB varsayılanı yok), bayrak = smallint 0/1, JSON = text.
- * Yalnızca yeni tablo / addColumn / createIndex. CHECK kısıtı ve dialect'e özel tip yok.
- */
-
 type Builder = (col: ColumnDefinitionBuilder) => ColumnDefinitionBuilder;
 
 export function helpers(db: Kysely<any>) {
@@ -15,7 +9,6 @@ export function helpers(db: Kysely<any>) {
   return {
     sqlite,
 
-    /** Otomatik artan birincil anahtar. `big` yüksek hacimli tablolar içindir (PG'de bigint). */
     table(name: string, opts: { big?: boolean } = {}): CreateTableBuilder<string, 'id'> {
       const type = sqlite ? 'integer' : opts.big ? 'bigint' : 'integer';
       return db.schema
@@ -25,7 +18,6 @@ export function helpers(db: Kysely<any>) {
         );
     },
 
-    /** Birincil anahtarı otomatik olmayan tablo. */
     plainTable(name: string): CreateTableBuilder<string, never> {
       return db.schema.createTable(name);
     },

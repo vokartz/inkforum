@@ -45,7 +45,6 @@ describe('tags', () => {
     const tooMany = await ali.post(`/api/boards/${chat}/topics`, { title: 'Çok etiket', body: 'x', tags: ['a1', 'a2', 'a3', 'a4', 'a5', 'a6'] });
     expect(tooMany.status).toBe(422);
 
-    // İlk mesaj düzenlenirken etiketler değişir, sayaçlar güncellenir.
     const edit = await ali.put(`/api/posts/${res.body.postId}`, { body: 'Merhaba', tags: ['Oyun'] });
     expect(edit.status).toBe(200);
     const after = (await h.agent().get('/api/tags/sehir')).body;

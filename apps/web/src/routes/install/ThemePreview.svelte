@@ -1,6 +1,5 @@
 <script lang="ts">
   import type { ThemeStyle } from '@forum/shared';
-  /** Kurulum sihirbazındaki tema kartları için küçük, canlı önizleme (gerçek temayı yüklemeden). */
   let { theme, accent, mode }: { theme: ThemeStyle; accent: string; mode: 'dark' | 'light' } = $props();
   const dark = $derived(mode === 'dark');
   const bg = $derived(dark ? '#12141b' : '#f4f5f9');

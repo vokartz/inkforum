@@ -27,8 +27,6 @@ const reviewQuery = z.object({
 export class ApplicationsController {
   constructor(private readonly apps: ApplicationsService) {}
 
-  // ---------- Üye ----------
-
   @Get('applications')
   list(@CurrentViewer() v: RequestViewer) {
     return this.apps.list(v);
@@ -98,8 +96,6 @@ export class ApplicationsController {
     await this.apps.decide(v, id, body.decision, body.reason);
     return { ok: true };
   }
-
-  // ---------- Yönetim ----------
 
   @Get('admin/application-forms')
   @AdminEndpoint('admin.applications')

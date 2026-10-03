@@ -21,7 +21,6 @@ export interface CreateUserInput {
   mustChangePassword?: boolean;
   policiesEpoch?: number;
   birthdate?: string | null;
-  /** Arayüz dili ('' = otomatik) */
   locale?: string;
 }
 
@@ -58,7 +57,6 @@ export class UsersService {
       .executeTakeFirst();
   }
 
-  /** İsim başka bir üyenin kullanıcı adı veya görünen adıyla çakışıyor mu? */
   async isNameTaken(name: string, excludeUserId?: number): Promise<boolean> {
     const c = canonicalName(name);
     let q = this.db.q
@@ -121,14 +119,12 @@ export class UsersService {
       .execute();
   }
 
-  /** Son etkinlik zamanını en fazla dakikada bir günceller. */
   async touchActivity(user: UserRow, ip: string | null): Promise<void> {
     const now = this.clock.now();
     if (user.last_active_at && now - user.last_active_at < ACTIVITY_THROTTLE_MS && user.last_ip === ip) return;
     await this.db.q.updateTable('users').set({ last_active_at: now, last_ip: ip }).where('id', '=', user.id).execute();
   }
 
-  /** Mesaj sayısına göre mesaj grubunu yeniden hesaplar. */
   async recalcPostGroup(userId: number): Promise<void> {
     const user = await this.db.q.selectFrom('users').select(['post_count', 'post_group_id']).where('id', '=', userId).executeTakeFirst();
     if (!user) return;
@@ -140,9 +136,6 @@ export class UsersService {
     }
   }
 
-  // ---------- Özet (listelerde ve kartlarda kullanılan görünüm) ----------
-
-  /** Görünen grup: süresi dolmamış ana grup, yoksa mesaj grubu. */
   async displayGroup(user: Pick<UserRow, 'primary_group_id' | 'primary_group_expires_at' | 'post_group_id'>): Promise<CachedGroup | undefined> {
     const map = await this.groups.map();
     const now = this.clock.now();

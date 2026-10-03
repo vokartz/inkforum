@@ -40,7 +40,6 @@
     return cats.map((c) => ({ ...c, items: d.items.filter((a) => (a.categoryId ?? 0) === c.id) })).filter((c) => c.id !== 0 || c.items.length);
   });
 
-  // ----- Başarı formu -----
   let open = $state(false);
   let editing = $state<AchievementDto | null>(null);
   let f = $state({
@@ -132,7 +131,6 @@
     }
   }
 
-  // ----- Sahipler / elle verme -----
   let holdersOpen = $state(false);
   let holdersOf = $state<AchievementDto | null>(null);
   let holders = $state<Paginated<{ user: UserSummary | null; awardedAt: number; source: string; reason: string | null }> | null>(null);
@@ -165,7 +163,6 @@
     await refresh();
   }
 
-  // ----- Kategoriler -----
   let catOpen = $state(false);
   let catName = $state('');
   let catDesc = $state('');

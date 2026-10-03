@@ -7,7 +7,6 @@ import { ForumAccessService } from './forum-access.service.js';
 
 const PER_PAGE = 20;
 
-/** Onay bekleyen konu ve mesajlar (yalnızca görüntüleyenin onaylayabildiği bölümler). */
 @Injectable()
 export class ModQueueService {
   constructor(

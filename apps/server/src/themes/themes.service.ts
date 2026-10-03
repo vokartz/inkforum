@@ -23,11 +23,6 @@ import { AuditService } from '../audit/audit.service.js';
 const EMPTY_HTML = () =>
   Object.fromEntries(THEME_HTML_SLOTS.map((k) => [k, ''])) as Record<ThemeHtmlSlot, string>;
 
-/**
- * Tema stüdyosu. "Modern" ve "Topluluk" sistem temalarıdır (silinmez, varsayılana döndürülebilir);
- * yönetici hazır temalardan, kopyalayarak ya da içe aktararak yenilerini oluşturur. Etkin tema derlenip
- * `appearance.theme` ayarına yazılır; ziyaretçi sayfaları yalnızca bu derlenmiş hâli okur.
- */
 @Injectable()
 export class ThemesService implements OnModuleInit {
   constructor(
@@ -42,11 +37,9 @@ export class ThemesService implements OnModuleInit {
       await this.ensureSystem();
       await this.refreshActive();
     } catch {
-      /* kurulum öncesi (tablo yok) — kurulumdan sonra ilk istekte yeniden denenir */
     }
   }
 
-  /** Derleyici güncellenince (yeni sürüm) etkin temanın kayıtlı CSS'i yeniden üretilir */
   private async refreshActive(): Promise<void> {
     const active = this.settings.get('appearance.theme') as ActiveTheme | null;
     if (!active?.id) return;
@@ -56,7 +49,6 @@ export class ThemesService implements OnModuleInit {
     if (JSON.stringify(next) !== JSON.stringify(active)) await this.settings.update({ 'appearance.theme': next }, null, { allowHidden: true });
   }
 
-  /** Sistem temaları yoksa forumun şu anki görünümünden oluşturulur; etkin tema eşleşen temaya bağlanır. */
   async ensureSystem(): Promise<void> {
     const any = await this.db.q
       .selectFrom('themes')
@@ -91,7 +83,6 @@ export class ThemesService implements OnModuleInit {
         .executeTakeFirstOrThrow();
       if (key === style) activeId = row.id;
     }
-    // Eski görünüm aynen korunur: tema yalnızca yönetici kaydedince ya da etkinleştirince derlenir
     await this.settings.update({ 'appearance.themeId': activeId }, null, { allowHidden: true });
   }
 
@@ -106,7 +97,6 @@ export class ThemesService implements OnModuleInit {
     try {
       html = { ...html, ...(JSON.parse(r.html_json) as Partial<Record<ThemeHtmlSlot, string>>) };
     } catch {
-      /* bozuk kayıt: boş */
     }
     return {
       id: r.id,
@@ -141,7 +131,6 @@ export class ThemesService implements OnModuleInit {
     return this.parse(r);
   }
 
-  /** Özel CSS / HTML yalnızca "Özel kod" yetkisiyle değiştirilebilir */
   private codeAllowed(viewer: RequestViewer): boolean {
     return viewer.isAdmin || can(viewer, 'admin.customCode');
   }
@@ -238,7 +227,6 @@ export class ThemesService implements OnModuleInit {
     });
   }
 
-  /** Etkin temayı derleyip ayarlara yazar */
   private async apply(t: ThemeDetail, actorId: number): Promise<void> {
     await this.settings.update(
       { ...themeSettingValues(t.config), 'appearance.theme': activeThemeOf(t) },
@@ -264,7 +252,6 @@ export class ThemesService implements OnModuleInit {
     });
   }
 
-  /** Sistem temasını (ya da hazır temadan oluşturulanı) ilk hâline döndürür */
   async reset(viewer: RequestViewer, id: number): Promise<ThemeDetail> {
     const r = await this.db.q.selectFrom('themes').select(['preset']).where('id', '=', id).executeTakeFirst();
     const preset = THEME_PRESETS.find((p) => p.key === r?.preset);

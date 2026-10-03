@@ -1,10 +1,3 @@
-/**
- * Yöneticinin eklediği özel HTML / JS kodunun istemci tarafı:
- *  - `{{viewer.username}}` gibi şablon değişkenlerini (HTML kaçışlı) doldurur,
- *  - <script> etiketlerini SSR çıktısında etkisiz bırakır, bileşen takıldığında sırayla ve
- *    sayfanın CSP nonce'u ile çalıştırır (dış betikler yüklenmeden sonraki başlamaz),
- *  - özel kodun kullanabileceği küçük bir `window.forum` API'si kurar.
- */
 import { t } from '$lib/i18n.svelte';
 
 const DEFERRED = 'text/forum-deferred';
@@ -13,7 +6,6 @@ const escapeHtml = (v: string) => v.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', 
 
 export type TemplateVars = Record<string, string | number | null | undefined>;
 
-/** `{{ anahtar }}` yer tutucularını doldurur; bilinmeyen anahtarlar boş kalır. */
 export function fillTemplate(html: string, vars: TemplateVars): string {
   return html.replace(/\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}/g, (_, key: string) => {
     const v = vars[key];
@@ -21,10 +13,6 @@ export function fillTemplate(html: string, vars: TemplateVars): string {
   });
 }
 
-/**
- * <script> etiketlerini çalışmayan bir türe çevirir (asıl tür `data-forum-type` içinde saklanır).
- * Böylece sunucu çıktısında betik CSP'ye takılmaz ve tam bir kez, bizim sıramızla çalışır.
- */
 export function deferScripts(html: string): string {
   return html.replace(/<script\b([^>]*)>/gi, (_, attrs: string) => {
     const rest = attrs.replace(/\stype\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/i, (_m, t: string) => ` data-forum-type=${t}`);
@@ -38,10 +26,8 @@ function pageNonce(): string {
 }
 
 let ran = false;
-/** Bu sekmede özel betik çalıştı mı? (Yönetim paneline geçerken sayfa temiz yüklenir.) */
 export const customScriptsRan = () => ran;
 
-/** Kapsayıcıdaki ertelenmiş betikleri sırayla çalıştırır. */
 export async function activateScripts(root: ParentNode): Promise<void> {
   const nonce = pageNonce();
   const scripts = [...root.querySelectorAll<HTMLScriptElement>(`script[type="${DEFERRED}"]`)];
@@ -57,7 +43,6 @@ export async function activateScripts(root: ParentNode): Promise<void> {
     el.textContent = old.textContent;
     ran = true;
     if (el.src && !old.hasAttribute('async') && !old.hasAttribute('defer') && el.type !== 'module') {
-      // Dış betik: yüklenmesini bekle (sonraki satır içi kod ona bağlı olabilir).
       el.async = false;
       await new Promise<void>((resolve) => {
         el.addEventListener('load', () => resolve(), { once: true });
@@ -70,7 +55,6 @@ export async function activateScripts(root: ParentNode): Promise<void> {
   }
 }
 
-/** Svelte eylemi: öğe takılınca içindeki betikleri çalıştırır. */
 export function runScripts(node: HTMLElement) {
   void activateScripts(node);
 }
@@ -84,26 +68,19 @@ export interface ForumApiViewer {
   avatarUrl?: string | null;
 }
 
-/** Açık özel sayfanın bilgisi (yalnızca özel sayfalarda) */
 export interface ForumPageInfo {
   id: number;
   slug: string;
   route: string | null;
   title: string;
-  /** Sayfanın sunucu kodunun `json(...)` ile döndürdüğü veri */
   data: unknown;
 }
 
 interface ForumApi {
   version: 1;
   viewer: ForumApiViewer;
-  /** UCP vb. için imzalı kimlik belirteci (JWT). Yalnızca üyeler; süresi dolana kadar önbellekte tutulur. */
-  token(): Promise<string>;
-  /** Forum içi sayfa geçişlerinde çağrılır (tek sayfa uygulaması: sayfa yeniden yüklenmez). */
   onNavigate(cb: (url: URL) => void): () => void;
-  /** Özel sayfadaysa sayfanın bilgisi ve sunucu verisi */
   page: ForumPageInfo | null;
-  /** Sayfanın sunucu koduna istek: forum.api('/visits', { method: 'POST', body: { a: 1 } }) */
   api<T = unknown>(path?: string, init?: { method?: string; body?: unknown; query?: Record<string, string> }): Promise<T>;
 }
 
@@ -113,25 +90,14 @@ declare global {
   }
 }
 
-let cached: { token: string; expiresAt: number } | null = null;
-
-/** `window.forum` nesnesini kurar ya da görüntüleyen bilgisini günceller. */
 export function installForumApi(viewer: ForumApiViewer): void {
   if (window.forum) {
-    if (window.forum.viewer.id !== viewer.id) cached = null;
     window.forum.viewer = viewer;
     return;
   }
   window.forum = {
     version: 1,
     viewer,
-    async token() {
-      if (cached && cached.expiresAt - Date.now() > 15_000) return cached.token;
-      const res = await fetch('/api/me/integration-token', { method: 'POST', credentials: 'same-origin', headers: { accept: 'application/json' } });
-      if (!res.ok) throw new Error(res.status === 401 ? t('Giriş yapılmamış.') : t('Entegrasyon belirteci alınamadı.'));
-      cached = (await res.json()) as { token: string; expiresAt: number };
-      return cached.token;
-    },
     onNavigate(cb) {
       const handler = (e: Event) => cb((e as CustomEvent<URL>).detail);
       window.addEventListener('forum:navigate', handler);
@@ -156,7 +122,6 @@ export function installForumApi(viewer: ForumApiViewer): void {
   };
 }
 
-/** Özel sayfa açılınca/kapanınca `window.forum.page` güncellenir */
 export function setForumPage(viewer: ForumApiViewer, page: ForumPageInfo | null): void {
   installForumApi(viewer);
   window.forum!.page = page;

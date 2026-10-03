@@ -29,7 +29,6 @@ describe('plugins', () => {
   it('turns plugin endpoints off and on', async () => {
     const list = (await admin.get('/api/admin/plugins')).body.items;
     expect(list.map((p: { key: string }) => p.key)).toEqual(['landing', 'wiki', 'applications', 'tickets', 'discord']);
-    // Sonradan eklenen eklentiler kapalı başlar
     expect(list.filter((p: { enabled: boolean }) => !p.enabled).map((p: { key: string }) => p.key)).toEqual(['discord']);
     expect((await user.put('/api/admin/plugins/wiki', { enabled: false })).status).toBe(403);
     expect((await admin.put('/api/admin/plugins/wiki', { enabled: false })).status).toBe(200);
@@ -43,7 +42,6 @@ describe('tickets', () => {
   it('seeds default categories and routes tickets to the handler group', async () => {
     const cats = (await user.get('/api/tickets/categories')).body;
     expect(cats.length).toBeGreaterThanOrEqual(4);
-    // Genel destek kategorisini destek ekibine bağla
     const admCats = (await admin.get('/api/admin/ticket-categories')).body.items;
     const general = admCats[0];
     await admin.put(`/api/admin/ticket-categories/${general.id}`, { ...general, handlerGroupIds: [staffGroup] });
@@ -53,14 +51,12 @@ describe('tickets', () => {
     const t = await user.post('/api/tickets', { categoryId: general.id, subject: 'Giriş yapamıyorum', body: 'Şifremi sıfırladım ama giriş olmuyor.', priority: 'urgent' });
     expect(t.status).toBe(201);
 
-    // Sorumlu grup görür, başkası göremez
     const desk = (await staff.get('/api/tickets/desk')).body;
     expect(desk.items.map((i: { id: number }) => i.id)).toContain(t.body.id);
-    expect(desk.items[0].priority).toBe('high'); // üye "acil" seçemez
+    expect(desk.items[0].priority).toBe('high');
     expect((await other.get(`/api/tickets/${t.body.id}`)).status).toBe(404);
     expect((await other.get('/api/tickets/desk')).status).toBe(403);
 
-    // Yetkili yanıtı: durum "Yanıtlandı", talep yanıtlayana atanır; iç not üyeye görünmez
     await staff.post(`/api/tickets/${t.body.id}/messages`, { body: 'Ekip içi: hesabı kontrol et', internal: true });
     await staff.post(`/api/tickets/${t.body.id}/messages`, { body: 'Hesabınızı kontrol ettik, tekrar dener misiniz?' });
     const mine = (await user.get(`/api/tickets/${t.body.id}`)).body;
@@ -73,14 +69,12 @@ describe('tickets', () => {
     await user.post(`/api/tickets/${t.body.id}/messages`, { body: 'Oldu, teşekkürler!' });
     expect((await user.get(`/api/tickets/${t.body.id}`)).body.status).toBe('customer_reply');
 
-    // Üye yalnızca kapatabilir; önceliği değiştiremez
     expect((await user.patch(`/api/tickets/${t.body.id}`, { priority: 'low' })).status).toBe(403);
     expect((await user.patch(`/api/tickets/${t.body.id}`, { status: 'closed' })).status).toBe(200);
     const closed = (await user.get(`/api/tickets/${t.body.id}`)).body;
     expect(closed).toMatchObject({ status: 'closed', canReply: false, canReopen: true });
     expect((await user.post(`/api/tickets/${t.body.id}/messages`, { body: 'ek' })).status).toBe(403);
 
-    // Kategoriden sorumlu olmayan birine atanamaz
     const otherId = (await h.db.q.selectFrom('users').select('id').where('username', '=', 'Cemre').executeTakeFirstOrThrow()).id;
     expect((await staff.patch(`/api/tickets/${t.body.id}`, { assigneeId: otherId })).status).toBe(422);
   });
@@ -88,7 +82,6 @@ describe('tickets', () => {
 
 describe('automatic assignment', () => {
   it('assigns new tickets in turn, by load or to a fixed staff member', async () => {
-    // İkinci yetkili
     const ikinci = await registerActive(h, 'Deniz');
     const ids = Object.fromEntries((await h.db.q.selectFrom('users').select(['id', 'username']).where('username', 'in', ['Burak', 'Deniz', 'Ahmet']).execute()).map((u) => [u.username, u.id])) as Record<'Burak' | 'Deniz' | 'Ahmet', number>;
     await admin.post(`/api/admin/groups/${staffGroup}/members`, { userId: ids.Deniz, asPrimary: false, expiresAt: null });
@@ -116,7 +109,6 @@ describe('automatic assignment', () => {
     expect(new Set([a, b])).toEqual(new Set([ids.Burak, ids.Deniz]));
     expect(c).toBe(a);
 
-    // En az yük: Deniz'in açık talebi yokken ona gider
     await h.db.q.updateTable('tickets').set({ status: 'open', assignee_id: ids.Burak }).where('assignee_id', '=', ids.Deniz).execute();
     await h.db.q.updateTable('tickets').set({ status: 'open' }).where('assignee_id', '=', ids.Burak).execute();
     await save({ autoAssign: 'least_open' });
@@ -132,7 +124,6 @@ describe('automatic assignment', () => {
     const listed = (await admin.get('/api/admin/ticket-categories')).body.items.find((x: { id: number }) => x.id === cat.id);
     expect(listed.autoAssignUser.id).toBe(ids.Burak);
     expect(await open('Sabit')).toBe(ids.Burak);
-    // Sorumlu yetkili bildirimi alır
     const notes = await h.db.q.selectFrom('notifications').select(['user_id', 'data_json']).where('type', '=', 'ticket.new').execute();
     const sabit = notes.filter((n) => String(n.data_json).includes('Sabit'));
     expect(sabit.map((n) => n.user_id)).toEqual([ids.Burak]);

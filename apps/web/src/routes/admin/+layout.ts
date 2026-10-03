@@ -1,6 +1,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import { request } from '$lib/api';
 import { can } from '$lib/viewer';
+import type { AdminOnboarding, ExtensionAdminMenu } from '@forum/shared';
 import type { LayoutLoad } from './$types';
 
 export const load: LayoutLoad = async ({ parent, fetch, url, depends }) => {
@@ -13,6 +14,8 @@ export const load: LayoutLoad = async ({ parent, fetch, url, depends }) => {
     elevatedUntil: number | null;
     badges: { pendingUsers: number; pendingPosts: number; groupRequests: number; failedJobs: number };
     version?: { current: string; available: string | null };
+    extensions?: ExtensionAdminMenu[];
+    onboarding?: AdminOnboarding;
   }>(fetch, '/api/admin/access');
   return { access };
 };

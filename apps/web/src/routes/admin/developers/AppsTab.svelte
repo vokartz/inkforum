@@ -107,7 +107,6 @@
       await navigator.clipboard.writeText(v);
       toast.success(t('Kopyalandı.'));
     } catch {
-      /* yok */
     }
   }
 </script>

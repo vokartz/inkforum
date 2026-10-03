@@ -16,7 +16,6 @@
     try {
       hidden = (JSON.parse(localStorage.getItem(KEY) ?? '[]') as string[]).includes(block.key);
     } catch {
-      /* depolama kapalı */
     }
   });
 
@@ -26,7 +25,6 @@
       const list = (JSON.parse(localStorage.getItem(KEY) ?? '[]') as string[]).filter((k) => !k.startsWith(`${block.id}:`));
       localStorage.setItem(KEY, JSON.stringify([...list, block.key].slice(-50)));
     } catch {
-      /* yoksay */
     }
   }
 

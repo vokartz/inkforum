@@ -13,7 +13,6 @@ import { UsersService } from '../users/users.service.js';
 type TagRow = Row<'tags'>;
 const toTag = (r: Pick<TagRow, 'id' | 'name' | 'slug' | 'color'>): TopicTag => ({ id: r.id, name: r.name, slug: r.slug, color: r.color });
 
-/** Konu etiketleri, anketler ve konu takibi. */
 @Injectable()
 export class TopicExtrasService {
   constructor(
@@ -24,8 +23,6 @@ export class TopicExtrasService {
     private readonly users: UsersService,
   ) {}
 
-  // ---------- Etiketler ----------
-
   tagging(): TaggingOptions {
     return { enabled: this.settings.get('forum.tagsEnabled'), max: this.settings.get('forum.tagsMax'), allowNew: this.settings.get('forum.tagsAllowNew') };
   }
@@ -35,7 +32,6 @@ export class TopicExtrasService {
     return rows.map(toTag);
   }
 
-  /** Yazarken öneri: ada göre önek araması, yoksa en popülerler. */
   async suggest(q: string, limit = 10): Promise<TagSummary[]> {
     const slug = tagSlug(q);
     let query = this.db.q.selectFrom('tags').selectAll();
@@ -48,10 +44,6 @@ export class TopicExtrasService {
     return this.db.q.selectFrom('tags').selectAll().where('slug', '=', slug).executeTakeFirst();
   }
 
-  /**
-   * Gönderilen etiket adlarını doğrular; var olanları bulur, izin varsa yenilerini oluşturur.
-   * Aynı adresli (ör. "Oyun" ve "oyun") etiketler tek sayılır.
-   */
   async resolveTags(viewer: RequestViewer, access: BoardAccess, names: string[]): Promise<number[]> {
     if (!names.length) return [];
     const opts = this.tagging();
@@ -82,7 +74,6 @@ export class TopicExtrasService {
     return ids;
   }
 
-  /** Konunun etiketlerini verilen listeyle eşitler (sayaçlar güncellenir). */
   async setTopicTags(topicId: number, tagIds: number[]): Promise<void> {
     const current = (await this.db.q.selectFrom('topic_tags').select('tag_id').where('topic_id', '=', topicId).execute()).map((r) => r.tag_id);
     const add = tagIds.filter((id) => !current.includes(id));
@@ -116,8 +107,6 @@ export class TopicExtrasService {
     return out;
   }
 
-  // ---------- Yönetim: etiketler ----------
-
   async adminTags(q: string, page: number): Promise<{ items: TagSummary[]; total: number; page: number; perPage: number }> {
     const perPage = 50;
     let base = this.db.q.selectFrom('tags');
@@ -143,7 +132,6 @@ export class TopicExtrasService {
     let rowId = id;
     if (id) {
       if (clash && clash.id !== id) {
-        // Aynı adrese yeniden adlandırma = birleştirme
         await this.mergeTags(id, clash.id);
         rowId = clash.id;
         await this.db.q.updateTable('tags').set({ name: input.name, color: input.color, is_official: input.isOfficial ? 1 : 0 }).where('id', '=', clash.id).execute();
@@ -159,7 +147,6 @@ export class TopicExtrasService {
     return { ...toTag(r), topicCount: r.topic_count, isOfficial: r.is_official === 1 };
   }
 
-  /** `from` etiketinin konularını `into` etiketine taşır ve `from`u siler. */
   private async mergeTags(from: number, into: number): Promise<void> {
     await this.db.tx(async () => {
       const topics = (await this.db.q.selectFrom('topic_tags').select('topic_id').where('tag_id', '=', from).execute()).map((r) => r.topic_id);
@@ -181,8 +168,6 @@ export class TopicExtrasService {
     });
     await this.audit.log({ type: 'admin', action: 'tag.delete', actorId: viewer.user!.id, ip: viewer.ip, data: { id, name: r.name } });
   }
-
-  // ---------- Anketler ----------
 
   async createPoll(topicId: number, input: PollInput): Promise<void> {
     const max = this.settings.get('forum.pollMaxOptions');
@@ -216,7 +201,6 @@ export class TopicExtrasService {
     return !!p.closed_at || (p.closes_at !== null && p.closes_at <= this.clock.now());
   }
 
-  /** Anketi yönetebilen: konu sahibi (ilk oy verilene kadar) ya da konu düzenleme yetkili moderatör. */
   private canManage(viewer: RequestViewer, access: BoardAccess, topic: Pick<Row<'topics'>, 'user_id'>): boolean {
     if (!viewer.user) return false;
     return access.can.editTopic || topic.user_id === viewer.user.id;
@@ -231,7 +215,6 @@ export class TopicExtrasService {
       : [];
     const closed = this.isClosed(p);
     const manage = this.canManage(viewer, access, topic);
-    // Sonuçları erken yalnızca moderatörler görür; konu sahibi de diğer üyeler gibi ayara tabidir
     const seeResults = access.can.editTopic || p.show_results === 'always' || (p.show_results === 'after_vote' && (mine.length > 0 || closed)) || (p.show_results === 'after_close' && closed);
     const canVote = !!viewer.user && access.can.vote && !closed && !topic.is_locked && (mine.length === 0 || p.allow_change === 1);
     return {
@@ -324,7 +307,6 @@ export class TopicExtrasService {
 
   async voters(topicId: number, viewer: RequestViewer, access: BoardAccess, _topic: Row<'topics'>): Promise<PollVoter[]> {
     const p = await this.requirePoll(topicId);
-    // Gizli oylamada kimin neye oy verdiğini yalnızca konu düzenleme yetkili moderatörler görür (konu sahibi göremez)
     if (!p.public_votes && !access.can.editTopic) throw Errors.forbidden('Bu ankette oylar gizli.');
     const rows = await this.db.q.selectFrom('poll_votes').select(['option_id', 'user_id', 'created_at']).where('poll_id', '=', p.id).orderBy('created_at', 'desc').limit(500).execute();
     const users = await this.users.summaries(rows.map((r) => r.user_id));
@@ -333,8 +315,6 @@ export class TopicExtrasService {
       return user ? [{ optionId: r.option_id, user, at: r.created_at }] : [];
     });
   }
-
-  // ---------- Takip ----------
 
   async isSubscribed(userId: number | undefined, topicId: number): Promise<boolean> {
     if (!userId) return false;

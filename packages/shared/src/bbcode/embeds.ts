@@ -1,28 +1,15 @@
-/**
- * Gömülü içerik (embed) sağlayıcıları. `[media]adres[/media]` etiketi ve tek başına satırda duran
- * bağlantılar bu kayıt defterine göre oynatıcıya/karta dönüştürülür.
- *
- * Güvenlik: iframe adresleri yalnızca burada üretilir; kullanıcı girdisi yalnızca doğrulanmış
- * kimlik parçaları (ID, kullanıcı adı…) olarak ya da URL-kodlanmış biçimde şablona girer.
- */
-
 export type EmbedKind = 'video' | 'audio' | 'post' | 'code' | 'map' | 'card';
 
 export interface EmbedResult {
   provider: string;
   name: string;
   kind: EmbedKind;
-  /** iframe adresi (kart türünde yok) */
   src: string | null;
-  /** Oran (ör. "16/9"); verilmezse `height` kullanılır. */
   ratio?: string;
   height?: number;
   maxWidth?: number;
-  /** iframe `allow` niteliği */
   allow?: string;
-  /** Kart türü için veriler */
   card?: { title: string; subtitle: string; href: string; action: string };
-  /** Orijinal bağlantı */
   url: string;
 }
 
@@ -30,7 +17,6 @@ export interface EmbedProviderInfo {
   key: string;
   name: string;
   kind: EmbedKind;
-  /** Hazır sağlayıcıların örnek bağlantıları (yönetim panelinde gösterilir). */
   examples: string[];
   color: string;
 }
@@ -38,9 +24,7 @@ export interface EmbedProviderInfo {
 export interface CustomEmbedProvider {
   key: string;
   name: string;
-  /** URL ile eşleşen düzenli ifade (kaynak metni). Yakalanan gruplar $1…$9 olarak şablonda kullanılır. */
   pattern: string;
-  /** iframe adresi şablonu: $1…$9, {url} (kodlanmış tam adres) */
   template: string;
   ratio?: string | null;
   height?: number | null;
@@ -49,9 +33,7 @@ export interface CustomEmbedProvider {
 }
 
 export interface EmbedOptions {
-  /** Twitch gibi sağlayıcıların istediği site alan adı */
   host?: string;
-  /** Kapatılmış hazır sağlayıcılar */
   disabled?: string[];
   custom?: CustomEmbedProvider[];
 }
@@ -458,7 +440,6 @@ function applyTemplate(template: string, m: RegExpExecArray, url: string): strin
   return /^https:\/\/[^\s"'<>`]+$/.test(out) ? out : null;
 }
 
-/** Özel sağlayıcı tanımını doğrular; sorun varsa açıklama döner. */
 export function customProviderIssue(p: CustomEmbedProvider): string | null {
   try {
     new RegExp(p.pattern, 'i');
@@ -472,7 +453,6 @@ export function customProviderIssue(p: CustomEmbedProvider): string | null {
   return null;
 }
 
-/** Bağlantıyı gömülü içeriğe çözer. Desteklenmiyorsa null. */
 export function resolveEmbed(input: string, opts: EmbedOptions = {}): EmbedResult | null {
   const raw = (input ?? '').trim();
   if (!raw || raw.length > 2000 || /\s/.test(raw)) return null;
@@ -484,7 +464,6 @@ export function resolveEmbed(input: string, opts: EmbedOptions = {}): EmbedResul
   }
   if (u.protocol !== 'https:' && u.protocol !== 'http:') return null;
 
-  // Önce yöneticinin tanımladığı özel sağlayıcılar (hazır olanları da ezebilir).
   for (const c of opts.custom ?? []) {
     if (c.enabled === false || customProviderIssue(c)) continue;
     const m = new RegExp(c.pattern, 'i').exec(u.href);

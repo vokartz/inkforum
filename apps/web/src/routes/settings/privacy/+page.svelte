@@ -11,7 +11,6 @@
   import type { Privacy } from '$lib/settings-types';
 
   let { data } = $props();
-  // Eski kayıtlarda alan olmayabilir
   let privacy = $state<Privacy>({ ...data.profile.privacy, allowMessages: data.profile.privacy.allowMessages ?? 'everyone' });
   const form = createForm();
 

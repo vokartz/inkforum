@@ -16,7 +16,6 @@ describe('config', () => {
     expect(c.appUrlPending).toBe(true);
     expect(c.secret.length).toBeGreaterThanOrEqual(32);
     expect(c.updates.updaterToken).toBe(readFileSync(join(storage, '.updater-token'), 'utf8'));
-    // İkinci açılışta aynı anahtarlar
     const again = prod({ INKFORUM_DEPLOY: 'docker' });
     expect(again.secret).toBe(c.secret);
     expect(again.updates.updaterToken).toBe(c.updates.updaterToken);

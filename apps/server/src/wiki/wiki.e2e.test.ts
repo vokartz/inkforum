@@ -28,7 +28,6 @@ describe('wiki', () => {
     const dup = await admin.post('/api/wiki/pages', { title: 'Tekrar', slug: 'karakter', parentId: root.body.id });
     expect(dup.status).toBe(422);
     expect(dup.body.error.fields.slug).toBeTruthy();
-    // Aynı adres farklı üst sayfada serbest
     expect((await admin.post('/api/wiki/pages', { title: 'Karakter (kök)', slug: 'karakter' })).status).toBe(201);
 
     const page = (await member.get('/api/wiki/page?path=baslangic/karakter/isim')).body;
@@ -45,7 +44,6 @@ describe('wiki', () => {
     const index = (await h.agent().get('/api/wiki')).body;
     expect(index.tree[0].children[0].children[0].path).toBe('baslangic/karakter/isim');
 
-    // Kendi altına taşıma engellenir
     const cycle = await admin.put(`/api/wiki/pages/${root.body.id}`, { title: 'Başlangıç Rehberi', slug: 'baslangic', parentId: grand.body.id });
     expect(cycle.status).toBe(422);
   });
@@ -79,7 +77,7 @@ describe('wiki', () => {
     const bad = await admin.put('/api/wiki/order', { items: [{ id: root.id, parentId: child.id, sortOrder: 0 }] });
     expect(bad.status).toBe(400);
     const ok = await admin.put('/api/wiki/order', { items: [{ id: child.id, parentId: null, sortOrder: 0 }] });
-    expect(ok.status).toBe(400); // kökte "karakter" adresi zaten var
+    expect(ok.status).toBe(400);
     const idx2 = (await admin.get('/api/wiki')).body;
     expect(idx2.tree.find((n: { slug: string }) => n.slug === 'baslangic').children).toHaveLength(1);
   });
@@ -96,7 +94,6 @@ describe('page builder', () => {
         { id: 'e', type: 'cta', title: 'Üyelere özel', visibility: 'members' },
       ],
     };
-    // Görsel düzenleyici kaldırıldı: yeni blok sayfası oluşturulamaz, eski sayfalar görünmeye devam eder
     const blocked = await admin.post('/api/admin/pages', { slug: 'giris', title: 'Giriş', format: 'builder', body: JSON.stringify(doc) });
     expect(blocked.status).toBe(422);
     const now = Date.now();
@@ -120,7 +117,6 @@ describe('page builder', () => {
     expect((await member.put('/api/admin/pages/landing', { id: created.body.id })).status).toBe(403);
     expect((await admin.put('/api/admin/pages/landing', { id: created.body.id })).status).toBe(200);
     expect((await admin.get('/api/admin/pages')).body.landingSlug).toBe('giris');
-    // Sayfa silinince forum dizini yeniden ana sayfa olur
     await admin.delete(`/api/admin/pages/${created.body.id}`);
     expect((await admin.get('/api/admin/pages')).body.landingSlug).toBeNull();
   });

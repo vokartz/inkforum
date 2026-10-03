@@ -1,7 +1,6 @@
 import type { Kysely } from 'kysely';
 import { notNull, textDefault } from './_helpers.js';
 
-/** Bölüm kapak fotoğrafı ve ayrıntılı açıklama; yönetimden düzenlenebilir e-posta şablonları. */
 export async function up(db: Kysely<any>): Promise<void> {
   await db.schema.alterTable('boards').addColumn('cover_file_id', 'integer').execute();
   await db.schema.alterTable('boards').addColumn('about', 'text', textDefault('')).execute();

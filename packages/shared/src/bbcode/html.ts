@@ -8,37 +8,23 @@ export function escapeHtml(s: string): string {
 }
 
 export interface BBRenderOptions {
-  /** Görseller (yoksa bağlantıya dönüşür). İmzalarda kapatılabilir. */
   images?: boolean;
-  /** Gömülü içerik (video, müzik, gönderi). Kapalıysa bağlantı olarak gösterilir. */
   media?: boolean;
-  /** Tek başına satırdaki desteklenen bağlantılar otomatik gömülsün. */
   autoEmbed?: boolean;
-  /** Gömülü içerik ziyaretçi tıklayınca yüklensin (gizlilik). */
   clickToLoad?: boolean;
-  /** Sağlayıcı ayarları (site alan adı, kapalı sağlayıcılar, özel sağlayıcılar). */
   embeds?: EmbedOptions;
-  /** Tablo, alıntı, spoiler gibi bloklar (kısa metinlerde kapatılabilir). */
   blocks?: boolean;
-  /** İç içe alıntı derinliği sınırı; aşan alıntılar "[…]" olur. */
   maxQuoteDepth?: number;
-  /** Profil bağlantısı üretici. */
   profileHref?: (id: number, name: string) => string;
-  /** Mesaj bağlantısı üretici. */
   postHref?: (id: number) => string;
-  /** Unicode emojileri görsele çevir (Twemoji). */
   emoji?: EmojiRenderOptions;
 }
 
 export interface BBRenderResult {
   html: string;
-  /** `[mention=id]` ile bahsedilen üyeler. */
   mentions: number[];
-  /** `[quote post=id]` ile alıntılanan mesajlar. */
   quotedPosts: number[];
-  /** Metindeki görsel sayısı. */
   imageCount: number;
-  /** Gömülü içerik sayısı. */
   embedCount: number;
 }
 
@@ -57,7 +43,6 @@ interface Ctx {
   headingIds: Set<string>;
 }
 
-/** Başlık metninden bağlantı kimliği (Türkçe harfler sadeleştirilir, tekrarlar numaralanır). */
 export function headingSlug(text: string): string {
   const map: Record<string, string> = { ç: 'c', ğ: 'g', ı: 'i', ö: 'o', ş: 's', ü: 'u', â: 'a', î: 'i', û: 'u' };
   return text
@@ -70,7 +55,6 @@ export function headingSlug(text: string): string {
     .slice(0, 60);
 }
 
-/** Oluşturulmuş HTML'deki başlıklar (içindekiler tablosu). */
 export function extractHeadings(html: string): Array<{ id: string; text: string; level: 2 | 3 | 4 }> {
   const out: Array<{ id: string; text: string; level: 2 | 3 | 4 }> = [];
   for (const m of html.matchAll(/<h([234]) class="bb-h" id="([^"]+)">([\s\S]*?)<\/h\1>/g)) {
@@ -84,7 +68,6 @@ const MAX_EMBEDS = 30;
 const RATIO = /^\d{1,2}\/\d{1,2}$/;
 const SANDBOX = 'allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-presentation allow-forms';
 
-/** Metin parçası: HTML kaçırma + emoji görselleri. */
 function esc(text: string, ctx: Ctx): string {
   return emojify(escapeHtml(text), ctx.opts.emoji);
 }
@@ -101,7 +84,6 @@ function linkifyLine(text: string, ctx: Ctx): string {
   return out + esc(text.slice(last), ctx);
 }
 
-/** Satırda tek başına duran ve desteklenen bir bağlantıysa gömülü içerik HTML'i. */
 function standaloneEmbed(line: string, ctx: Ctx): string | null {
   if (!ctx.opts.autoEmbed || !ctx.opts.media || ctx.quoteDepth > 0) return null;
   const t = line.trim();
@@ -128,7 +110,6 @@ function textHtml(text: string, ctx: Ctx): string {
   return out;
 }
 
-/** Gömülü içerik bloğu. */
 function embedHtml(e: EmbedResult, ctx: Ctx): string {
   if (ctx.embedCount >= MAX_EMBEDS) return linkHtml(e.url, escapeHtml(e.url));
   ctx.embedCount++;
@@ -181,7 +162,6 @@ function nodesHtml(nodes: BBNode[], ctx: Ctx): string {
   return out;
 }
 
-/** Etiket geçersizse kaynağını metin olarak yazar ve içeriğini işler. */
 function fallback(tag: BBTag, ctx: Ctx): string {
   const open = tag.value !== null ? `[${tag.name}=${tag.value}]` : `[${tag.name}]`;
   return escapeHtml(open) + children(tag, ctx) + escapeHtml(`[/${tag.name}]`);
@@ -270,7 +250,6 @@ function tagHtml(tag: BBTag, ctx: Ctx): string {
       if (validPost) ctx.quotedPosts.add(postId);
       let head = '';
       if (author || validPost) {
-        // "yazdı:" / "Alıntı:" metni kayıtlı HTML'e yazılmaz; CSS ile ziyaretçinin dilinde gösterilir (app.css, +layout.svelte)
         const who = author ? `<span class="bb-quote-author">${escapeHtml(author)}</span><span class="bb-quote-says"></span>` : '<span class="bb-quote-label"></span>';
         const link = validPost ? ` <a class="bb-quote-link" href="${escapeHtml(ctx.opts.postHref?.(postId) ?? `/p/${postId}`)}">↑</a>` : '';
         head = `<div class="bb-quote-head">${who}${link}</div>`;
@@ -327,7 +306,6 @@ function rawText(nodes: BBNode[]): string {
   return nodes.map((n) => (n.type === 'text' ? n.text : rawText(n.children))).join('');
 }
 
-/** BBCode → güvenli HTML. Tüm metin kaçışlanır; nitelikler yalnızca doğrulanmış değerlerden üretilir. */
 export function renderBBCode(input: string, options: BBRenderOptions = {}): BBRenderResult {
   const ctx: Ctx = {
     opts: {

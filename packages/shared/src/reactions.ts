@@ -2,30 +2,24 @@ import { z } from 'zod';
 import type { UserSummary } from './dto.js';
 import { EMOJI_RE } from './bbcode/emoji.js';
 
-/** Tepki tanımı (yönetimden düzenlenir). */
 export interface ReactionDef {
   id: number;
   key: string;
   label: string;
-  /** Unicode emoji; görseli `/emoji/<emojiCode(emoji)>.svg` */
   emoji: string;
-  /** Mesaj sahibine kazandırdığı itibar (eksi olabilir) */
   points: number;
 }
 
 export interface AdminReaction extends ReactionDef {
   isEnabled: boolean;
-  /** Bu tepkiyle verilmiş toplam tepki */
   uses: number;
 }
 
-/** Mesajdaki tepki özeti */
 export interface PostReactionCount {
   reactionId: number;
   count: number;
 }
 
-/** Tepki verenler listesi */
 export interface ReactionUserItem {
   user: UserSummary;
   reactionId: number;

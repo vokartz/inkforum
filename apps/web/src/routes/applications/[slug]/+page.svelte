@@ -26,7 +26,6 @@
   const canApply = $derived(!!el?.ok);
 
   type Value = string | string[] | number | boolean | null;
-  // Bağlanan alanlar tanımsız başlamasın (Svelte bind: varsayılanlı prop kuralı)
   let answers = $state<Record<string, Value>>(untrack(() => Object.fromEntries(data.form.questions.map((q) => [q.id, null]))));
   let errors = $state<Record<string, string>>({});
   let sending = $state(false);

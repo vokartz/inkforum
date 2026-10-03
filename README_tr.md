@@ -16,7 +16,7 @@ tek komutla kurulur, ucuz bir sunucuda rahatça çalışır, yönetim panelinden
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-ffdd00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/vokartz)
 
-[English](README.md) · **Türkçe** · [Deutsch](README_de.md) · [简体中文](README_zh.md) · [Español](README_es.md) · [Français](README_fr.md) · [Русский](README_ru.md) · [Português](README_pt.md)
+[English](README.md) · **Türkçe**
 
 [Hızlı kurulum](#-hızlı-kurulum) · [Özellikler](#-özellikler) · [Güncellemeler](#-güncellemeler) · [Yedekleme](#-yedekleme-ve-geri-yükleme) · [Taşıma](#-başka-forumdan-taşıma) · [SSS](#-sık-sorulan-sorular) · [Destek ol](#-projeye-destek-olun)
 
@@ -33,7 +33,7 @@ tek komutla kurulur, ucuz bir sunucuda rahatça çalışır, yönetim panelinden
 | **Kod yazmadan tam kontrol** | Tema, renkler, menüler, ana sayfa, izinler, e-posta şablonları, eklentiler… her şey yönetim panelinden. |
 | **Tek tıkla güncelleme** | Yeni sürümler panelde sürüm notlarıyla görünür; kurulumdan önce yedek alınır, sorun olursa otomatik olarak geri dönülür. |
 | **Güvenlik varsayılan olarak açık** | Yerleşik güvenlik duvarı (WAF), iki adımlı doğrulama, yönetimde yeniden doğrulama, sıkı içerik güvenliği politikası. |
-| **Çok dilli** | Türkçe, İngilizce, Almanca, Çince, İspanyolca, Fransızca, Rusça ve Portekizce; her üye kendi dilini seçer. Türkçe arama ve isim karşılaştırmaları özel olarak desteklenir. |
+| **Çok dilli** | Türkçe ve İngilizce; her üye kendi dilini seçer. Türkçe arama ve isim karşılaştırmaları özel olarak desteklenir. |
 
 ## 🚀 Hızlı kurulum
 
@@ -161,8 +161,8 @@ Docker kullanamayan ortamlar (cPanel/Passenger, Plesk, doğrudan Node.js) için 
 <summary><b>Entegrasyon</b></summary>
 
 - OAuth 2.0 sağlayıcı ("Forum hesabıyla giriş", PKCE), kapsamlı REST API, API anahtarları
-- İmzalı webhook'lar (yeni konu, kayıt, grup değişimi…), UCP ve oyun paneli entegrasyonu için imzalı üye belirteci
-- Özel HTML/CSS/JS parçacıkları (CSP nonce ile güvenli), `window.forum` JavaScript API'si
+- İmzalı webhook'lar (yeni konu, kayıt, grup değişimi…)
+- Kurulabilir eklentiler (.zip/.tgz yükleme ya da npm paketi): sayfa, yönetim sayfası, API yolu, veritabanı tablosu, menü bağlantısı, sayfa yuvası ve olay/iş işleyicisi ekler; yönetim panelinden indirilen başlangıç paketi (örnek eklenti, tür tanımları, paketleme aracı) ve hazır eklentiler
 </details>
 
 ## 🔄 Güncellemeler

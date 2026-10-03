@@ -76,10 +76,10 @@ describe('groups and permissions', () => {
     await admin.put(`/api/admin/permissions/${vip}`, { values: { 'profile.customTitle': 1, 'profile.signature': -1 } });
     const r1 = await perms.resolve([member.id, vip]);
     expect(r1.permissions.has('profile.customTitle')).toBe(true);
-    expect(r1.permissions.has('profile.signature')).toBe(false); // yasak kazanır
+    expect(r1.permissions.has('profile.signature')).toBe(false);
 
     const r2 = await perms.resolve([member.id, child]);
-    expect(r2.permissions.has('profile.customTitle')).toBe(true); // ebeveynden miras
+    expect(r2.permissions.has('profile.customTitle')).toBe(true);
 
     const inheritEdit = await admin.put(`/api/admin/permissions/${child}`, { values: { 'profile.view': 1 } });
     expect(inheritEdit.status).toBe(400);
@@ -117,7 +117,6 @@ describe('groups and permissions', () => {
     expect(detail.body.isMember).toBe(true);
     expect(detail.body.memberCount).toBe(1);
 
-    // Ek grubu ana grup yap → rengi isme yansır.
     await applicant.post('/api/me/groups/primary', { groupId });
     expect((await applicant.get('/api/auth/me')).body.user.color).toBe('#0ea5e9');
 
@@ -193,7 +192,7 @@ describe('profiles', () => {
     const guest = await h.agent().get(`/api/users/${uid}`);
     expect(guest.body.bioHtml).toContain('<strong>Merhaba</strong>');
     expect(guest.body.bioHtml).not.toContain('<script>');
-    expect(guest.body.customFields).toEqual([]); // yalnız üyelere açık
+    expect(guest.body.customFields).toEqual([]);
     expect(guest.body.birthdate).toBe('--05-20');
 
     const member = await loginAgent(h, 'Uye1', 'Password123');
@@ -211,7 +210,6 @@ describe('profiles', () => {
     const bad = await agent.upload('/api/me/avatar', 'file', svg, 'a.svg');
     expect(bad.status).toBe(422);
 
-    // 1x1 PNG
     const png = Buffer.from(
       'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
       'base64',
@@ -235,7 +233,7 @@ describe('profiles', () => {
 
   it('lists members and filters by search', async () => {
     const res = await h.agent().get('/api/members?q=profil');
-    expect(res.status).toBe(401); // misafirler üye listesini göremez (varsayılan)
+    expect(res.status).toBe(401);
     const member = await loginAgent(h, 'Uye1', 'Password123');
     const list = await member.get('/api/members?q=profil');
     expect(list.body.items.map((i: { user: { username: string } }) => i.user.username)).toEqual(['Profilci']);
@@ -258,7 +256,6 @@ describe('two-factor authentication', () => {
     expect(login.body.status).toBe('two_factor_required');
     expect(fresh.hasSession()).toBe(false);
 
-    // Aynı kod iki kez kabul edilmez (confirm sırasında kullanıldı).
     const replay = await fresh.post('/api/auth/login/2fa', { challenge: login.body.challenge, code: totpCode(setup.body.secret, h.clock.now()) });
     expect(replay.status).toBe(422);
 
@@ -320,7 +317,7 @@ describe('warnings', () => {
   it('issues warnings, applies thresholds and expires them', async () => {
     await registerActive(h, 'Kuralsiz');
     const uid = await userId('Kuralsiz');
-    let mod = await loginAgent(h, 'Uye1', 'Password123'); // global moderatör
+    let mod = await loginAgent(h, 'Uye1', 'Password123');
 
     const first = await mod.post(`/api/mod/users/${uid}/warnings`, { points: 30, reason: 'Hakaret', expiryDays: 10 });
     expect(first.status).toBe(201);
@@ -333,7 +330,6 @@ describe('warnings', () => {
     status = (await mod.get(`/api/mod/users/${uid}/warnings`)).body.status;
     expect(status.points).toBe(85);
     expect(status.mutedUntil).not.toBeNull();
-    // 80 puan eşiği: 7 günlük geçici yasak
     const blocked = await h.agent().post('/api/auth/login', { identifier: 'Kuralsiz', password: 'Password123' });
     expect(blocked.body.error.code).toBe('BANNED');
 
@@ -346,7 +342,7 @@ describe('warnings', () => {
     mod = await loginAgent(h, 'Uye1', 'Password123');
     status = (await mod.get(`/api/mod/users/${uid}/warnings`)).body.status;
     expect(status.points).toBe(55);
-    expect(status.moderatedUntil).not.toBeNull(); // 30 eşiği hâlâ aşılmış
+    expect(status.moderatedUntil).not.toBeNull();
     const items = (await mod.get(`/api/mod/users/${uid}/warnings`)).body.items;
     await mod.post(`/api/mod/warnings/${items[0].id}/revoke`, { reason: 'Hatalı' });
     status = (await mod.get(`/api/mod/users/${uid}/warnings`)).body.status;
@@ -396,7 +392,7 @@ describe('achievements', () => {
 
     await agent.put('/api/me/achievements/featured', { achievementIds: [founder.id] });
     const profile = await h.agent().get(`/api/users/${uid}`);
-    expect(profile.status).toBe(401); // profil yalnız üyelere açık (önceki test)
+    expect(profile.status).toBe(401);
     const viewer = await loginAgent(h, 'Uye1', 'Password123');
     const seen = await viewer.get(`/api/users/${uid}`);
     expect(seen.body.achievements.featured.map((a: { key: string }) => a.key)).toEqual(['founder']);
@@ -426,7 +422,6 @@ describe('admin user management', () => {
 
     const rejectId = await userId('Reddedilen');
     expect((await admin.post(`/api/admin/users/${rejectId}/reject`, { reason: 'Uygun değil' })).status).toBe(200);
-    // İsim ve e-posta serbest kaldı
     await h.settings.set('registration.mode', 'open');
     const again = await h.agent().post('/api/auth/register', { username: 'Reddedilen', email: 'red@forum.test', password: 'Password123', acceptedPolicyVersionIds: policies });
     expect(again.status).toBe(201);

@@ -1,5 +1,3 @@
-// See https://svelte.dev/docs/kit/types#app.d.ts
-
 interface ForumInjectOptions {
   method: string;
   url: string;
@@ -23,23 +21,16 @@ declare global {
     }
     interface Locals {
       theme: 'system' | 'light' | 'dark';
-      /** Yönetimin seçtiği tema (html data-style) */
       style: 'modern' | 'community';
-      /** Köşe yuvarlaklığı (html data-radius) */
       radius: string;
       lang: string;
-      /** Site simgesi (Yönetim → Görünüm → Görseller); yoksa varsayılan */
       favicon: string;
-      /** Güvenli mod: özel kod parçacıkları yüklenmez (?safemode=1) */
       safeMode: boolean;
-      /** Yönetimden izin verilen ek CSP kaynakları (özel kod için) */
-      customCsp: { script: string[]; connect: string[]; style: string[]; font: string[] } | null;
-      /** Etkin temanın <html> öznitelikleri (data-custom-theme, data-sidebar…) */
+      extraCsp: import('@forum/shared').CspSources | null;
       attrs: string;
     }
   }
 
-  // Üretimde NestJS sunucusu tarafından tanımlanır (SSR'ın API'yi ağ kullanmadan çağırması için).
   var __FORUM_API_INJECT__: ((opts: ForumInjectOptions) => Promise<ForumInjectResponse>) | undefined;
 }
 

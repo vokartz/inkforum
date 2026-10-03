@@ -1,0 +1,94 @@
+[data-ext-page='demo-ucp'] h2 {
+  margin: 1.5rem 0 0.6rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+.demo-ucp-list {
+  display: grid;
+  gap: 0.4rem;
+}
+.demo-ucp-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.demo-ucp-empty {
+  color: var(--muted-foreground);
+}
+.demo-ucp-badge {
+  border-radius: 999px;
+  padding: 0.05rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: color-mix(in oklch, var(--muted-foreground) 18%, transparent);
+}
+.demo-ucp-badge[data-status='approved'] {
+  background: color-mix(in oklch, var(--success) 20%, transparent);
+  color: var(--success);
+}
+.demo-ucp-badge[data-status='rejected'] {
+  background: color-mix(in oklch, var(--destructive) 18%, transparent);
+  color: var(--destructive);
+}
+.demo-ucp-form {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 32rem;
+}
+.demo-ucp-form label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.demo-ucp-form input,
+.demo-ucp-form textarea {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--background);
+  padding: 0.5rem 0.7rem;
+  font-weight: 400;
+}
+.demo-ucp-form button,
+.demo-ucp-admin button {
+  justify-self: start;
+  border-radius: var(--radius);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  padding: 0.45rem 1rem;
+  font-weight: 600;
+}
+.demo-ucp-admin button[data-act='reject'] {
+  background: var(--muted);
+  color: var(--foreground);
+}
+.demo-ucp-form output {
+  color: var(--destructive);
+  font-size: 0.875rem;
+}
+.demo-ucp-admin {
+  display: grid;
+  gap: 0.75rem;
+}
+.demo-ucp-admin article {
+  display: grid;
+  gap: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) * 1.5);
+  background: var(--card);
+  padding: 1rem;
+}
+.demo-ucp-admin header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.demo-ucp-admin header span:not(.demo-ucp-badge) {
+  color: var(--muted-foreground);
+  font-size: 0.85rem;
+}
+.demo-ucp-server a {
+  color: var(--primary);
+  font-weight: 600;
+}

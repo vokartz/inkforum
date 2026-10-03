@@ -1,6 +1,5 @@
 import type { Db } from '../database/db.service.js';
 
-/** Üyenin okunmamış özel mesaj konuşması sayısı (çekirdek modül de kullanır). */
 export async function unreadConversationCount(db: Db, userId: number): Promise<number> {
   const row = await db.q
     .selectFrom('conversation_participants as p')

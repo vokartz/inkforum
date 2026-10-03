@@ -1,6 +1,5 @@
 import { isIPv4, isIPv6 } from 'node:net';
 
-/** IP adreslerini 16 baytlık (IPv4 → IPv4-mapped IPv6) 32 karakterlik hex'e çevirir; metin olarak sıralanabilir. */
 export function ipToHex(ip: string): string | null {
   let s = ip.trim();
   if (s.startsWith('::ffff:') && isIPv4(s.slice(7))) s = s.slice(7);
@@ -42,10 +41,6 @@ export interface IpRange {
   high: string;
 }
 
-/**
- * Desteklenen biçimler: tek IP, CIDR (10.0.0.0/8, 2001:db8::/32),
- * aralık (1.2.3.4-1.2.3.99), joker (192.168.*.*).
- */
 export function parseIpPattern(input: string): IpRange | null {
   const v = input.trim();
   if (v.includes('*')) {

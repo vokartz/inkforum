@@ -54,7 +54,6 @@ import { PostsService } from './posts.service.js';
 import { TopicViewsService } from './topic-views.service.js';
 import { TopicExtrasService } from './topic-extras.service.js';
 
-/** Bu süreden eski içerik okunmuş sayılır (okunmamış hesaplaması sınırlı kalsın). */
 const UNREAD_HORIZON_MS = 90 * DAY;
 const MAX_REDIRECT_HOPS = 5;
 
@@ -86,13 +85,10 @@ export class ForumService {
     };
   }
 
-  // ---------- Okunmamış hesaplama ----------
-
   private readFloor(user: Row<'users'>): number {
     return Math.max(user.mark_read_at ?? user.registered_at, this.clock.now() - UNREAD_HORIZON_MS);
   }
 
-  /** Konu başına okunmamış bilgisi. */
   private async readState(viewer: RequestViewer, topics: Array<Pick<TopicRow, 'id' | 'board_id' | 'last_post_at'>>) {
     const out = new Map<number, { unread: boolean; lastReadPostId: number | null }>();
     const user = viewer.user;
@@ -122,7 +118,6 @@ export class ForumService {
     return out;
   }
 
-  /** Okunmamış içeriği olan bölümler. */
   private async unreadBoards(viewer: RequestViewer, boardIds: number[]): Promise<Set<number>> {
     const user = viewer.user;
     if (!user || !boardIds.length) return new Set();
@@ -145,9 +140,6 @@ export class ForumService {
     return new Set(rows.map((r) => r.board_id));
   }
 
-  // ---------- Ortak parçalar ----------
-
-  /** Forum dizininin adresi: açılış sayfası seçiliyse /forum */
   forumRoot(): string {
     return this.settings.landing() ? '/forum' : '/';
   }
@@ -188,8 +180,6 @@ export class ForumService {
     return out;
   }
 
-  /** Bölüm özetleri (sayaçlar, son mesaj, alt bölümler, okunmamış). */
-  /** Bölümlerin moderatörleri (üyeler + gruplar), tek sorguda. */
   private async moderatorsOf(boards: CachedBoard[]): Promise<Map<number, BoardModerators>> {
     const [people, groups] = await Promise.all([this.users.summaries([...new Set(boards.flatMap((b) => b.moderatorUserIds))]), this.groups.map()]);
     return new Map(
@@ -263,8 +253,6 @@ export class ForumService {
     });
   }
 
-  // ---------- Ana sayfa ----------
-
   async index(viewer: RequestViewer): Promise<ForumIndex> {
     const { categories } = await this.forum.structure();
     const visible = await this.access.visibleBoards(viewer);
@@ -320,7 +308,6 @@ export class ForumService {
     };
   }
 
-  /** Son mesajlar (ana sayfa widget'ı). */
   async recent(viewer: RequestViewer, limit: number): Promise<RecentTopicItem[]> {
     if (limit <= 0) return [];
     const visible = await this.access.visibleBoards(viewer);
@@ -360,8 +347,6 @@ export class ForumService {
     }));
   }
 
-  // ---------- Bölüm sayfası ----------
-
   private async boardDetail(access: BoardAccess): Promise<BoardDetail> {
     const b = access.board;
     const counters = await this.db.q.selectFrom('boards').select(['topic_count', 'post_count']).where('id', '=', b.id).executeTakeFirst();
@@ -395,7 +380,6 @@ export class ForumService {
         eb.or([
           eb('topics.is_hidden', '=', 0),
           eb('topics.user_id', '=', uid),
-          // Yetkililerin gizli konuya eklediği üyeler
           eb.exists(eb.selectFrom('topic_members').select('topic_members.topic_id').whereRef('topic_members.topic_id', '=', 'topics.id').where('topic_members.user_id', '=', uid)),
         ]),
       );
@@ -517,7 +501,6 @@ export class ForumService {
     };
   }
 
-  /** Yönlendirme bölümü: tıklamayı sayar ve adresi döner. */
   async follow(viewer: RequestViewer, boardId: number): Promise<{ url: string }> {
     const { board } = await this.access.require(viewer, boardId);
     if (board.type !== 'redirect' || !board.redirect_url) throw Errors.notFound('Bağlantı bulunamadı.');
@@ -529,9 +512,6 @@ export class ForumService {
     return { url: board.redirect_url };
   }
 
-  // ---------- Konu sayfası ----------
-
-  /** Mesaj yazarlarının konu içinde gösterilen bilgileri. */
   async postAuthors(viewer: RequestViewer, userIds: number[]): Promise<Map<number, PostAuthor>> {
     const ids = [...new Set(userIds.filter((id) => id > 0))];
     const out = new Map<number, PostAuthor>();
@@ -605,7 +585,6 @@ export class ForumService {
     return topic;
   }
 
-  /** `page`: sayfa numarası ya da "last" / "unread". */
   async topicPage(viewer: RequestViewer, topicId: number, pageInput: number | 'last' | 'unread'): Promise<TopicPage> {
     const topic = await this.resolveTopic(topicId);
     const access = await this.access.require(viewer, topic.board_id);
@@ -662,7 +641,6 @@ export class ForumService {
       myReaction: reacted.mine.get(r.id) ?? null,
     }));
 
-    // Okundu işaretle + görüntülenme say.
     if (viewer.user && rows.length) {
       const last = rows[rows.length - 1]!;
       const readAt = Math.max(...rows.map((r) => r.created_at));
@@ -722,7 +700,6 @@ export class ForumService {
     };
   }
 
-  /** Mesajın bulunduğu konu ve sayfa. */
   async locate(viewer: RequestViewer, postId: number): Promise<PostLocation> {
     const post = await this.db.q.selectFrom('posts').select(['id', 'topic_id', 'user_id', 'is_approved', 'deleted_at']).where('id', '=', postId).executeTakeFirst();
     if (!post) throw Errors.notFound('Mesaj bulunamadı.');
@@ -740,8 +717,6 @@ export class ForumService {
     const perPage = this.settings.get('forum.postsPerPage');
     return { topicId: topic.id, topicSlug: topic.slug, page: Math.floor(Number(before?.n ?? 0) / perPage) + 1, postId };
   }
-
-  // ---------- Okunmamış içerik ----------
 
   async unread(viewer: RequestViewer, page: number): Promise<Paginated<UnreadTopicItem>> {
     const user = viewer.user;
@@ -777,7 +752,6 @@ export class ForumService {
         .executeTakeFirst(),
     ]);
     const items = await this.topicItems(viewer, rows);
-    // İlk okunmamış mesaj: son okunandan sonraki ilk mesaj.
     const firsts = new Map<number, number>();
     const withRead = rows.filter((r) => r.last_read);
     if (withRead.length) {
@@ -807,15 +781,12 @@ export class ForumService {
     };
   }
 
-  // ---------- Profil sekmeleri ve arama ----------
-
   private async visibleForumBoardIds(viewer: RequestViewer): Promise<Map<number, BoardAccess>> {
     const visible = await this.access.visibleBoards(viewer, { includeHidden: true });
     for (const [id, a] of visible) if (a.board.type !== 'forum') visible.delete(id);
     return visible;
   }
 
-  /** Üyenin açtığı konular (görülebilen bölümlerde). */
   async userTopics(viewer: RequestViewer, userId: number, page: number): Promise<Paginated<UnreadTopicItem>> {
     const visible = await this.visibleForumBoardIds(viewer);
     const perPage = this.settings.get('forum.topicsPerPage');
@@ -845,7 +816,6 @@ export class ForumService {
     };
   }
 
-  /** Etiket sayfası: etiketi taşıyan, görülebilen konular (son yanıta göre). */
   async tagPage(viewer: RequestViewer, slug: string, page: number): Promise<TagPage> {
     if (!this.settings.get('forum.tagsEnabled')) throw Errors.notFound('Etiketler kapalı.');
     const tag = await this.extras.bySlug(slug);
@@ -869,7 +839,6 @@ export class ForumService {
       base().select((eb) => eb.fn.countAll<number>().as('n')).executeTakeFirst(),
     ]);
     const items = await this.topicItems(viewer, rows);
-    // Aynı konularda sık geçen diğer etiketler
     const related = rows.length
       ? await this.db.q
           .selectFrom('topic_tags as tt')
@@ -897,7 +866,6 @@ export class ForumService {
     };
   }
 
-  /** Konu sayfasının altı: ortak etiketli benzer konular ve bölümdeki sonraki okunmamış konu. */
   async related(viewer: RequestViewer, topicId: number): Promise<TopicRelated> {
     const topic = await this.posts.requireTopic(topicId);
     const access = await this.access.require(viewer, topic.board_id);
@@ -959,7 +927,6 @@ export class ForumService {
     };
   }
 
-  /** Konuyu görüntüleyen üyeler (moderatörler için görüntülenme kaydı). */
   async topicViewers(viewer: RequestViewer, topicId: number, page: number): Promise<Paginated<TopicViewerItem>> {
     const topic = await this.posts.requireTopic(topicId);
     const access = await this.access.require(viewer, topic.board_id);
@@ -982,7 +949,6 @@ export class ForumService {
     };
   }
 
-  /** Üyenin mesajları (görülebilen bölümlerde). */
   async userPosts(viewer: RequestViewer, userId: number, page: number) {
     const visible = await this.visibleForumBoardIds(viewer);
     const perPage = 10;
@@ -1025,11 +991,6 @@ export class ForumService {
     };
   }
 
-  /**
-   * Gelişmiş arama: konular (başlık ve ilk mesaj) ya da tüm mesajlar; bölüm, etiket, yazar, tarih
-   * ve sıralama filtreleri. Yalnızca görüntüleyenin görebildiği bölümler aranır. Türkçe büyük/küçük
-   * harf farkı için birkaç yazım varyantıyla eşleştirilir (LIKE yalnızca ASCII'de harf duyarsızdır).
-   */
   async search(viewer: RequestViewer, input: SearchQuery): Promise<SearchResults> {
     const query = input.q.replace(/[%_\\]/g, ' ').trim().replace(/\s+/g, ' ').slice(0, 100);
     const perPage = 20;
@@ -1041,7 +1002,6 @@ export class ForumService {
     const visible = await this.visibleForumBoardIds(viewer);
     let boardIds = [...visible.keys()];
     if (input.board) {
-      // Seçilen bölüm ve görülebilen alt bölümleri
       const ids = new Set([input.board]);
       for (let grew = true; grew; ) {
         grew = false;
@@ -1072,7 +1032,6 @@ export class ForumService {
       tagId = t.id;
     }
     const cutoff = input.since ? this.clock.now() - { day: 1, week: 7, month: 30, year: 365 }[input.since] * DAY : null;
-    // Türkçe ünsüz yumuşaması: "etkinlik" → "etkinliği", "kitap" → "kitabı" da bulunsun (son ünsüz olmadan ara).
     const stem = query.length >= 5 && /[kpçt]$/i.test(query) && !query.includes(' ') ? query.slice(0, -1) : query;
     const cased = (s: string) => [s, s.toLocaleLowerCase('tr-TR'), s.toLocaleUpperCase('tr-TR'), s.toLocaleLowerCase('tr-TR').replace(/^./, (c) => c.toLocaleUpperCase('tr-TR'))];
     const variants = query ? [...new Set(cased(stem))] : [];
@@ -1179,7 +1138,6 @@ export class ForumService {
         listQ = listQ.orderBy('t.view_count', 'desc');
         break;
       default:
-        // Alaka: başlıkta geçenler önce, sonra son etkinlik
         if (patterns.length) listQ = listQ.orderBy((eb) => eb.case().when(titleMatch(eb)).then(0).else(1).end());
         listQ = listQ.orderBy('t.last_post_at', 'desc');
     }
@@ -1239,7 +1197,6 @@ export class ForumService {
   }
 }
 
-/** Aranan kelimenin geçtiği yerin çevresinden kısa özet. */
 function excerptAround(text: string, needle: string, len = 220): string {
   const t = text.replace(/\s+/g, ' ').trim();
   const i = needle ? t.toLocaleLowerCase('tr-TR').indexOf(needle.toLocaleLowerCase('tr-TR')) : -1;

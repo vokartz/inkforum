@@ -21,7 +21,6 @@
   import FileTextIcon from 'phosphor-svelte/lib/FileText';
   import { t } from '$lib/i18n.svelte';
 
-  /** İç içe sürükle-bırak: bir sayfayı başka bir sayfanın altına bırakınca alt sayfası olur. */
   let { items = $bindable(), depth = 0, drag, onchange }: { items: OrderNode[]; depth?: number; drag: { active: boolean }; onchange: () => void } = $props();
 
   function consider(e: CustomEvent<DndEvent<OrderNode>>) {

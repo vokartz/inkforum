@@ -7,10 +7,12 @@
   import { afterNavigate, beforeNavigate, invalidate, onNavigate } from '$app/navigation';
   import { tick, untrack } from 'svelte';
   import { browser } from '$app/environment';
-  import type { SnippetPlacement, SnippetView } from '@forum/shared';
+  import type { ExtensionSlot } from '@forum/shared';
   import ShieldWarningIcon from 'phosphor-svelte/lib/ShieldWarning';
   import CustomHtml from '$lib/components/CustomHtml.svelte';
-  import { activateScripts, customScriptsRan, deferScripts, emitNavigate, fillTemplate, installForumApi } from '$lib/custom-code';
+  import ExtensionSlotView from '$lib/components/ExtensionSlotView.svelte';
+  import { customScriptsRan, emitNavigate, installForumApi } from '$lib/custom-code';
+  import { extensionScriptsRan, installForumClient, runGlobalScripts } from '$lib/extensions';
   import { setCustomVars } from '$lib/custom-vars';
   import WrenchIcon from 'phosphor-svelte/lib/Wrench';
   import TriangleAlertIcon from 'phosphor-svelte/lib/Warning';
@@ -33,20 +35,14 @@
 
   let { data, children } = $props();
   const viewer = $derived(data.viewer);
-  // Dil: sunucunun belirlediği değer (çizimden önce, eşzamanlı)
   setLocale(untrack(() => data.viewer.locale));
   $effect.pre(() => setLocale(data.viewer.locale));
   const s = $derived(viewer.settings);
 
   onMount(() => installEmbedRuntime());
 
-  // ---------- Özel kod (yönetimden eklenen HTML / CSS / JS) ----------
-  const custom = $derived(data.custom);
-  const byPlacement = $derived.by(() => {
-    const out: Partial<Record<SnippetPlacement, SnippetView[]>> = {};
-    for (const sn of custom?.snippets ?? []) (out[sn.placement] ??= []).push(sn);
-    return out;
-  });
+  const ext = $derived(data.ext);
+  const slot = (k: ExtensionSlot) => ext?.slots[k] ?? [];
   const templateVars = $derived({
     'forum.name': String(s['general.forumName'] ?? ''),
     'forum.url': page.url.origin,
@@ -56,33 +52,32 @@
     'viewer.group': viewer.user?.primaryGroup?.name ?? '',
   });
   setCustomVars(() => templateVars);
-  const headHtml = $derived((byPlacement.head ?? []).map((sn) => fillTemplate(sn.html, templateVars)).join('\n'));
-  const customCss = $derived(custom?.css ? `<style data-forum-custom>${custom.css.replace(/<\/style/gi, '<\\/style')}</style>` : '');
-  $effect(() => {
-    if (!headHtml) return;
-    void tick().then(() => activateScripts(document.head));
-  });
-  function forumApiViewer() {
+  function clientViewer() {
     const u = viewer.user;
     return { id: u?.id ?? 0, username: u?.username ?? '', displayName: u?.displayName ?? '', group: u?.primaryGroup?.name ?? null, isGuest: !u, avatarUrl: u?.avatarUrl ?? null };
   }
-  // window.forum, sayfadaki parçacıklar çalışmadan önce hazır olmalı (alt bileşenler layout efektinden önce takılır).
-  if (browser && untrack(() => data.custom)) installForumApi(untrack(forumApiViewer));
+  if (browser) {
+    untrack(() => installForumApi(clientViewer()));
+    untrack(() => installForumClient(clientViewer(), data.ext?.settings ?? {}));
+  }
   $effect(() => {
-    if (custom) installForumApi(forumApiViewer());
+    const v = clientViewer();
+    installForumApi(v);
+    installForumClient(v, ext?.settings ?? {});
+  });
+  $effect(() => {
+    if (ext?.scripts.length) void runGlobalScripts(ext);
   });
   afterNavigate((nav) => {
     if (nav.type !== 'enter' && nav.to) emitNavigate(nav.to.url);
   });
-  // Özel betik çalışmış bir sekmede yönetim paneli her zaman temiz (tam) yüklenir.
   beforeNavigate((nav) => {
     if (nav.type === 'leave' || !nav.to || !nav.to.url.pathname.startsWith('/admin') || page.url.pathname.startsWith('/admin')) return;
-    if (!customScriptsRan()) return;
+    if (!customScriptsRan() && !extensionScriptsRan()) return;
     nav.cancel();
     location.href = nav.to.url.href;
   });
 
-  // Okunmamış bildirim / mesaj sayaçları: sayfa verisiyle eşitlenir, üyelerde düzenli tazelenir.
   $effect.pre(() => {
     counters.set({ notifications: viewer.user?.unreadNotifications ?? 0, messages: viewer.user?.unreadMessages ?? 0 });
   });
@@ -93,7 +88,6 @@
     return () => (stopPolling(), stopStream());
   });
 
-  // Okunmamışlar sekme başlığında: "(3) Konu başlığı"
   $effect(() => {
     const n = viewer.user ? counters.notifications + counters.messages : 0;
     void page.url.pathname;
@@ -103,8 +97,6 @@
     });
   });
 
-  // Tema tercihi ve forumun varsayılan modu istemci durumuyla eşitlenir.
-  // init, tercih durumunu okur; untrack olmazsa her geçişte etki yeniden çalışıp tercihi sunucudaki eski değere döndürür.
   function syncTheme() {
     const pref = data.theme;
     const forumDefault = data.themeDefault;
@@ -113,7 +105,6 @@
   syncTheme();
   $effect.pre(syncTheme);
 
-  // Sayfa geçişlerinde yumuşak çapraz geçiş (destekleyen tarayıcılarda, hareket azaltma kapalıyken).
   onNavigate((nav) => {
     const doc = document as Document & { startViewTransition?: (cb: () => Promise<void>) => unknown };
     if (!doc.startViewTransition || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -126,7 +117,6 @@
     });
   });
 
-  // Uzun süren geçişlerde içerik hafifçe soluklaşır (ilerleme çubuğuyla birlikte).
   let slow = $state(false);
   let slowTimer: ReturnType<typeof setTimeout> | undefined;
   $effect(() => {
@@ -137,11 +127,8 @@
 
   const accent = $derived(String(s['appearance.accentColor'] ?? '#7b61ff'));
   const fontFamily = $derived(FONT_OPTIONS.find((f) => f.key === s['appearance.fontFamily'])?.family ?? FONT_OPTIONS[0].family);
-  // Renk yayılımı: vurgu renginin yüzeylere karışma oranı (theme-tokens.css → --tint)
   const TINT: Record<string, number> = { none: 0, soft: 3, medium: 6, strong: 11 };
   const tint = $derived(TINT[String(s['appearance.colorSpread'] ?? 'none')] ?? 0);
-  // `html` önekiyle tema dosyasındaki varsayılanlardan her zaman baskın gelir (yükleme sırasından bağımsız).
-  // BBCode alıntı başlığındaki "yazdı:" / "Alıntı:" kayıtlı HTML'de yer almaz; ziyaretçinin dilinde buradan gelir (app.css)
   const cssString = (v: string) => `"${v.replace(/[\\"]/g, '\\$&').replace(/</g, '\\3c ').replace(/\n/g, ' ')}"`;
   const accentCss = $derived(
     `html:root{--app-font:${fontFamily};--tint:${tint};--bb-quote-says:${cssString(t('yazdı:'))};--bb-quote-label:${cssString(t('Alıntı:'))}}` +
@@ -149,19 +136,16 @@
   );
   const embedColor = $derived(String((s['seo.ogCard'] as { embedColor?: string } | undefined)?.embedColor ?? ''));
   const favicon = $derived(s['appearance.faviconUrl'] as string | null | undefined);
-  // Site simgesi app.html'de sunucuda yazılır; yönetimden değişince sayfa yenilenmeden güncellenir.
   $effect(() => {
     const href = favicon || '/brand/inkforum-icon-192.png';
     const link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
     if (link && link.getAttribute('href') !== href) link.href = href;
   });
-  // Tema ve köşe ayarı sunucuda <html> üzerine yazılır; yönetimden değişince istemcide de güncellenir.
   const themeStyle = $derived(String(s['appearance.themeStyle'] ?? 'modern'));
   $effect(() => {
     document.documentElement.dataset.style = themeStyle;
     document.documentElement.dataset.radius = String(s['appearance.radius'] ?? 'auto');
   });
-  // Tema stüdyosunda oluşturulan etkin tema: derlenmiş CSS, <html> öznitelikleri ve HTML bölmeleri
   const activeTheme = $derived(s['appearance.theme'] as ActiveTheme | null | undefined);
   const themed = $derived(!!activeTheme && !page.url.pathname.startsWith('/admin'));
   $effect(() => {
@@ -169,7 +153,6 @@
     for (const k of ['data-custom-theme', 'data-sidebar', 'data-forum-list', 'data-header']) el.removeAttribute(k);
     if (themed && activeTheme) for (const [k, v] of Object.entries(themeHtmlAttrs(activeTheme))) el.setAttribute(k, v);
   });
-  // Stüdyo önizlemesi: düzenleyici taslağı güncelleyince çerçeve yeniden çizilir
   onMount(() => {
     if (window.self === window.top) return;
     const onMessage = (e: MessageEvent) => {
@@ -185,11 +168,8 @@
 
   const maintenance = $derived(s['general.maintenanceMode'] === true && !viewer.isAdmin && !page.url.pathname.startsWith('/login'));
   const isAdminArea = $derived(page.url.pathname.startsWith('/admin'));
-  // Giriş, kayıt ve şifre sayfaları kendi tam ekran düzenini çizer (üst çubuk / alt bilgi yok).
   const isAuthArea = $derived(/^\/(login|register|forgot-password|reset-password)(\/|$)/.test(page.url.pathname));
-  // Özel sayfaların "boş" düzeni: üst çubuk ve alt bilgi olmadan (UCP, açılış sayfası…).
   const isBare = $derived(page.data.bare === true);
-  // Başka sitelere gömülen kartlarda özel kod çalışmaz
   const isEmbed = $derived(page.url.pathname.startsWith('/embed/'));
 </script>
 
@@ -202,19 +182,18 @@
   {#if accentCss}{@html `<style>${accentCss}</style>`}{/if}
   {#if themed && activeTheme?.css}{@html `<style data-forum-theme>${activeTheme.css.replace(/<\/style/gi, '<\\/style')}</style>`}{/if}
   {#if !isAdminArea && !isEmbed}
-    {#if customCss}{@html customCss}{/if}
-    {#if headHtml}{@html deferScripts(headHtml)}{/if}
+    {#each ext?.styles ?? [] as href (href)}<link rel="stylesheet" {href} data-forum-ext />{/each}
   {/if}
 </svelte:head>
 
-{#snippet placement(key: SnippetPlacement)}
-  {#each byPlacement[key] ?? [] as sn (sn.id)}<CustomHtml html={sn.html} part="custom-{key}" />{/each}
+{#snippet placement(key: ExtensionSlot)}
+  {#if !isEmbed}<ExtensionSlotView items={slot(key)} {key} />{/if}
 {/snippet}
 
 {#if data.safeMode && !isAdminArea}
   <div class="border-b border-warning/40 bg-warning/15 text-sm" data-part="safe-mode">
     <div class="mx-auto flex max-w-7xl items-center gap-2 px-4 py-2 sm:px-6">
-      <ShieldWarningIcon class="size-4 shrink-0" weight="fill" /> {t('Güvenli mod açık — özel HTML / CSS / JavaScript kodları çalışmıyor.')}
+      <ShieldWarningIcon class="size-4 shrink-0" weight="fill" /> {t('Güvenli mod açık — eklentiler, tema HTML kodu ve sayfa kodları çalışmıyor.')}
       <a href="?safemode=0" data-sveltekit-reload class="ml-auto font-semibold underline">{t('Kapat')}</a>
     </div>
   </div>
@@ -233,7 +212,7 @@
   {@render children()}
 {:else if isAuthArea || isBare}
   {@render children()}
-  {#if !isEmbed}{@render placement('bodyEnd')}{/if}
+  {@render placement('bodyEnd')}
 {:else}
   {#if pageBg}
     <!-- Forumun genel arka planı: görsel + okunurluk için tema renginde örtü -->
@@ -273,9 +252,9 @@
       class="mx-auto w-full max-w-[var(--page-width,80rem)] flex-1 px-4 py-6 transition-opacity duration-300 sm:px-6 sm:py-8 {slow ? 'opacity-60' : ''}"
       style="view-transition-name: page"
     >
-      {#if byPlacement.afterHeader}<div class="mb-6 grid gap-4" data-part="custom-after-header">{@render placement('afterHeader')}</div>{/if}
+      {#if slot('afterHeader').length}<div class="mb-6 grid gap-4" data-part="ext-after-header">{@render placement('afterHeader')}</div>{/if}
       {@render children()}
-      {#if byPlacement.beforeFooter}<div class="mt-6 grid gap-4" data-part="custom-before-footer">{@render placement('beforeFooter')}</div>{/if}
+      {#if slot('beforeFooter').length}<div class="mt-6 grid gap-4" data-part="ext-before-footer">{@render placement('beforeFooter')}</div>{/if}
     </main>
     </div>
     {#if themeSlot('beforeFooter')}<CustomHtml html={themeSlot('beforeFooter')} part="theme-before-footer" />{/if}

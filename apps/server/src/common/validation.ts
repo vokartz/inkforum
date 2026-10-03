@@ -17,7 +17,6 @@ export function parse<S extends z.ZodType>(schema: S, input: unknown): z.output<
   return result.data;
 }
 
-/** `@Body(new ZodPipe(schema))` */
 @Injectable()
 export class ZodPipe<S extends z.ZodType> implements PipeTransform<unknown, z.output<S>> {
   constructor(private readonly schema: S) {}

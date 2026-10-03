@@ -65,7 +65,6 @@ export class MessagesController {
     return { ok: true };
   }
 
-  /** Üst çubuktaki sayaçlar (düzenli aralıkla sorgulanır). */
   @Get('me/counters')
   async counters(@CurrentViewer() v: RequestViewer): Promise<MeCounters> {
     return { notifications: v.user!.unread_notifications, messages: await this.messages.unreadCount(v.user!.id), modQueue: await this.queue.count(v) };

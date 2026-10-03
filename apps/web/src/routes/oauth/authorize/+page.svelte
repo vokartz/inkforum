@@ -46,7 +46,6 @@
       busy = null;
     }
   }
-  // Daha önce aynı izinler verildiyse (ya da birinci taraf uygulamaysa) doğrudan devam edilir.
   onMount(() => {
     if (info?.alreadyApproved) void decide(true);
   });

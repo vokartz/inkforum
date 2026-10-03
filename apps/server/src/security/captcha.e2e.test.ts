@@ -14,7 +14,6 @@ afterAll(async () => {
   await h.close();
 });
 
-/** Yerleşik soruyu çözer: "7 + 5 = ?" → "token|12" */
 async function solve(agent: Agent): Promise<string> {
   const { token, question } = (await agent.get('/api/auth/captcha')).body as { token: string; question: string };
   const [a, op, b] = question.split(' ');
@@ -37,16 +36,12 @@ describe('captcha', () => {
     expect(saved.status).toBe(200);
     const guest = h.agent();
     expect((await guest.post('/api/auth/login', { identifier: 'x', password: 'y' })).body.error.fields.captcha).toBeTruthy();
-    // yanlış cevap
     const wrong = (await solve(guest)).replace(/\|.*/, '|999');
     expect((await guest.post('/api/auth/login', { identifier: 'x', password: 'y', captcha: wrong })).body.error.fields?.captcha).toBeTruthy();
-    // doğru cevap: captcha geçer, şifre hatası gelir
     const ok = await solve(guest);
     const res = await guest.post('/api/auth/login', { identifier: 'x', password: 'y', captcha: ok });
     expect(res.body.error.fields?.captcha).toBeUndefined();
-    // aynı yanıt ikinci kez geçmez
     expect((await guest.post('/api/auth/login', { identifier: 'x', password: 'y', captcha: ok })).body.error.fields?.captcha).toBeTruthy();
-    // kayıt da korunur; şifre sıfırlama korunmaz
     const reg = await guest.post('/api/auth/register', { username: 'Robot', email: 'r@example.com', password: 'Password123', acceptedPolicyVersionIds: await registrationPolicyIds(guest) });
     expect(reg.body.error.fields.captcha).toBeTruthy();
     const human = await guest.post('/api/auth/register', {
@@ -58,7 +53,6 @@ describe('captcha', () => {
     });
     expect(human.status).toBe(201);
     expect((await guest.post('/api/auth/password/forgot', { email: 'i@example.com' })).status).toBe(200);
-    // ziyaretçiye giden ayar gizli anahtarı içermez
     const me = await h.agent().get('/api/auth/me');
     expect(me.body.settings['captcha.config'].provider).toBe('builtin');
     expect(me.body.settings['captcha.secretEnc']).toBeUndefined();

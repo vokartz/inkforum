@@ -1,18 +1,10 @@
-/**
- * Arama motoru ve paylaşım meta verileri. Sayfa yükleyicileri `seo` alanı döndürür; kök düzen
- * bunu tek yerde <head> etiketlerine (Open Graph, X kartı, kanonik adres, JSON-LD) çevirir.
- */
-
 export interface SeoMeta {
   title?: string;
   description?: string;
-  /** Mutlak ya da site içi (/…) görsel adresi */
   image?: string | null;
   imageAlt?: string;
-  /** Büyük görsel kartı (paylaşım görseli üretilen sayfalar) */
   largeImage?: boolean;
   type?: 'website' | 'article' | 'profile';
-  /** Site içi kanonik yol (varsayılan: mevcut yol) */
   canonical?: string;
   noindex?: boolean;
   publishedTime?: number;
@@ -20,11 +12,9 @@ export interface SeoMeta {
   author?: string;
   section?: string;
   jsonLd?: Record<string, unknown> | Array<Record<string, unknown>>;
-  /** oEmbed keşif bağlantısı eklensin mi (konular) */
   oembed?: boolean;
 }
 
-/** BBCode / HTML'den düz metin özet */
 export function plainExcerpt(input: string, max = 200): string {
   const text = input
     .replace(/<[^>]*>/g, ' ')
@@ -43,7 +33,6 @@ export function plainExcerpt(input: string, max = 200): string {
   return `${(space > max * 0.6 ? cut.slice(0, space) : cut).replace(/[\s,.;:!?-]+$/, '')}…`;
 }
 
-/** Gömülü konu kartı verisi (/embed/t/:id ve oEmbed) */
 export interface TopicEmbed {
   id: number;
   title: string;

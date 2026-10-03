@@ -55,7 +55,6 @@ describe('theme studio', () => {
     expect(me['appearance.theme'].css).toContain('--primary:#ff0055');
     expect(me['appearance.theme'].css).toContain('.x{color:red}');
 
-    // Etkin tema silinemez; sistem temaları silinemez
     expect((await admin.delete(`/api/admin/themes/${id}`)).status).toBe(400);
     const modern = (await admin.get('/api/admin/themes')).body.items[0].id;
     expect((await admin.delete(`/api/admin/themes/${modern}`)).status).toBe(400);

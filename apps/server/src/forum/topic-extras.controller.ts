@@ -19,7 +19,6 @@ const subscriptionSchema = z.object({ on: z.boolean() });
 const closeSchema = z.object({ closed: z.boolean() });
 const topicTagsSchema = z.object({ tags: tagsInputSchema });
 
-/** Etiketler, anketler, konu takibi ve görüntülenme kayıtları. */
 @Controller()
 export class TopicExtrasController {
   constructor(
@@ -35,8 +34,6 @@ export class TopicExtrasController {
     await this.posts.assertTopicVisible(v, access, topic);
     return { topic, access };
   }
-
-  // ---------- Etiketler ----------
 
   @Get('tags')
   suggest(@Query() q: unknown) {
@@ -75,7 +72,6 @@ export class TopicExtrasController {
     return { ok: true };
   }
 
-  /** Konu etiketlerini düzenle (konu sahibi ya da konu düzenleme yetkili moderatör). */
   @Put('topics/:id/tags')
   @RequireAuth()
   async setTags(@Param('id', new ZodPipe(idParam)) id: number, @Body(new ZodPipe(topicTagsSchema)) body: z.output<typeof topicTagsSchema>, @CurrentViewer() v: RequestViewer) {
@@ -87,8 +83,6 @@ export class TopicExtrasController {
     return (await this.extras.tagsFor([id])).get(id) ?? [];
   }
 
-  // ---------- Takip ----------
-
   @Put('topics/:id/subscription')
   @RequireAuth()
   async subscribe(@Param('id', new ZodPipe(idParam)) id: number, @Body(new ZodPipe(subscriptionSchema)) body: z.output<typeof subscriptionSchema>, @CurrentViewer() v: RequestViewer) {
@@ -96,8 +90,6 @@ export class TopicExtrasController {
     await this.extras.setSubscribed(v.user!.id, id, body.on);
     return { subscribed: body.on };
   }
-
-  // ---------- Anket ----------
 
   @Post('topics/:id/poll')
   @HttpCode(201)
@@ -155,7 +147,6 @@ export class TopicExtrasController {
   related(@Param('id', new ZodPipe(idParam)) id: number, @CurrentViewer() v: RequestViewer) {
     return this.forum.related(v, id);
   }
-  // ---------- Görüntülenme kaydı ----------
 
   @Get('topics/:id/viewers')
   @RequireAuth()

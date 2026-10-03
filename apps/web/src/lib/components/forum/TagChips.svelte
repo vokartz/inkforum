@@ -2,7 +2,6 @@
   import type { TopicTag } from '@forum/shared';
   import { cn } from '$lib/utils';
 
-  /** Konu etiketleri: etiket sayfasına bağlanan küçük çipler. */
   let { tags, size = 'sm', class: className }: { tags: TopicTag[]; size?: 'xs' | 'sm'; class?: string } = $props();
 </script>
 

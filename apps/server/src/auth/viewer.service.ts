@@ -45,13 +45,11 @@ export class ViewerService {
     private readonly i18n: I18nService,
   ) {}
 
-  /** İstekten kimlik bağlamını çıkarır (her istekte bir kez). */
   async fromRequest(req: Request): Promise<RequestViewer> {
     await this.cache.sync();
     const ip = clientIp(req);
     const ua = userAgent(req);
 
-    // API istemcileri: Bearer belirteci varsa çerez oturumuna hiç bakılmaz.
     const bearer = TokenAuthService.parse(req.headers.authorization);
     if (bearer || req.headers.authorization?.toLowerCase().startsWith('bearer')) {
       const resolved = bearer ? await this.tokens.resolve(bearer, ip) : null;
@@ -79,7 +77,6 @@ export class ViewerService {
     };
   }
 
-  /** Oturum değişikliğinden sonra (giriş vb.) bağlamı yeniden kurmak için. */
   async forUser(user: Row<'users'> | null, session: Row<'sessions'> | null, ip: string | null, ua: string | null): Promise<RequestViewer> {
     const perms = await this.permissions.forUser(user);
     return { user, session, groupIds: perms.groupIds, permissions: perms.permissions, isAdmin: perms.isAdmin, ip, userAgent: ua, locale: this.i18n.resolve({ preference: user?.locale }) };
@@ -154,7 +151,6 @@ export class ViewerService {
         twoFactorSetupRequired: compliance.twoFactorSetupRequired,
         ban,
       },
-      // i18n.defaultLocale: kurulumdan önce DEFAULT_LOCALE ortam değişkeni de hesaba katılır (örnek içerik bu dilde)
       settings: { ...this.i18n.localizeSettings(this.settings.publicSettings(), viewer.locale ?? this.i18n.defaultLocale()), 'i18n.defaultLocale': this.i18n.defaultLocale() },
       locale: viewer.locale ?? this.i18n.defaultLocale(),
       now,

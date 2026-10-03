@@ -4,7 +4,6 @@ import { load as apiLoad } from '$lib/api';
 import type { GroupDto } from '$lib/types';
 import type { PageLoad } from './$types';
 
-/** Özel sayfa düzenleyici (yeni sayfa: /admin/pages/new) */
 export const load: PageLoad = async ({ fetch, url, params, parent, depends }) => {
   depends('app:admin-page');
   const { access } = await parent();

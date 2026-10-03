@@ -1,12 +1,6 @@
 import { z } from 'zod';
 import { FONT_OPTIONS, THEME_STYLES, type FontKey } from './settings.js';
 
-/**
- * Tema stüdyosu: yöneticinin kod yazmadan oluşturduğu temalar. Bir tema; temel düzen (Modern / Topluluk),
- * açık ve koyu renk paletleri, yazı, şekil, üst alan, sayfa düzeni, forum listesi, arka plan ve efekt ayarlarından
- * oluşur. İsteyen özel CSS ve HTML bölmeleri de ekleyebilir. Derlenen tema sayfa başında tek bir <style> olarak yazılır.
- */
-
 const hex = z.union([z.literal(''), z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Renk #RRGGBB biçiminde olmalı.')]);
 const assetUrl = z.union([
   z.literal(''),
@@ -33,7 +27,6 @@ export const PALETTE_KEYS = [
 ] as const;
 export type PaletteKey = (typeof PALETTE_KEYS)[number];
 
-/** Boş renk = temel temanın varsayılanı */
 export const themePaletteSchema = z.object(
   Object.fromEntries(PALETTE_KEYS.map((k) => [k, hex.default('')])) as Record<
     PaletteKey,
@@ -65,7 +58,6 @@ export const themeConfigSchema = z.object({
   mode: z
     .object({
       default: z.enum(['dark', 'light', 'system']).default('dark'),
-      /** Üyeler açık / koyu arasında geçiş yapabilsin */
       toggle: z.boolean().default(true),
     })
     .prefault({}),
@@ -131,7 +123,6 @@ export const themeConfigSchema = z.object({
     .object({
       animations: z.boolean().default(true),
       hoverLift: z.boolean().default(false),
-      /** Vurgu renginin yüzeylere yansıması (0 = yalnızca düğmeler) */
       tint: z.number().int().min(0).max(12).default(0),
     })
     .prefault({}),
@@ -177,20 +168,16 @@ export interface ThemeDetail extends ThemeSummary {
   html: Record<ThemeHtmlSlot, string>;
 }
 
-/** Ziyaretçiye giden etkin tema (ayar: appearance.theme) */
 export interface ActiveTheme {
   id: number;
   name: string;
-  /** Bileşenlerin okuduğu düzen seçenekleri */
   options: Pick<ThemeConfig, 'header' | 'layout' | 'forumList' | 'mode'>;
-  /** Derlenmiş CSS (renkler, yazı, şekil, arka plan, efektler + özel CSS) */
   css: string;
   html: Record<ThemeHtmlSlot, string>;
 }
 
 export const defaultThemeConfig = (): ThemeConfig => themeConfigSchema.parse({});
 
-/** Hazır başlangıç temaları (yeni tema oluştururken seçilir) */
 export const THEME_PRESETS: Array<{
   key: string;
   name: string;
@@ -365,8 +352,6 @@ export const THEME_PRESETS: Array<{
   },
 ];
 
-// ---------- Derleme ----------
-
 const RADIUS: Record<ThemeConfig['shape']['radius'], string> = {
   none: '0rem',
   sm: '0.3rem',
@@ -380,10 +365,15 @@ const SHADOW: Record<ThemeConfig['shape']['shadow'], [string, string]> = {
   medium: ['0 2px 8px -2px rgb(0 0 0 / 0.14)', '0 16px 34px -16px rgb(0 0 0 / 0.45)'],
   strong: ['0 8px 24px -8px rgb(0 0 0 / 0.35)', '0 24px 48px -18px rgb(0 0 0 / 0.6)'],
 };
+export const THEME_PAGE_WIDTH_REM: Record<Exclude<ThemeConfig['layout']['width'], 'full'>, number> = {
+  narrow: 68,
+  normal: 80,
+  wide: 92,
+};
 const WIDTH: Record<ThemeConfig['layout']['width'], string> = {
-  narrow: '68rem',
-  normal: '80rem',
-  wide: '92rem',
+  narrow: `${THEME_PAGE_WIDTH_REM.narrow}rem`,
+  normal: `${THEME_PAGE_WIDTH_REM.normal}rem`,
+  wide: `${THEME_PAGE_WIDTH_REM.wide}rem`,
   full: '100%',
 };
 const SPACING: Record<ThemeConfig['typography']['letterSpacing'], string> = {
@@ -394,7 +384,6 @@ const SPACING: Record<ThemeConfig['typography']['letterSpacing'], string> = {
 const CARDS =
   "[data-part='category'],[data-part='widget'],[data-part='post'],[data-part='board-header'],[data-part='topic-list'],[data-part='profile-header'],[data-part='messenger']";
 
-/** CSS değeri olarak güvenli (yalnızca doğrulanmış biçimler kullanılır; yine de kaçış uygulanır) */
 const safe = (v: string) => v.replace(/[;{}<>\\]/g, '');
 
 function paletteVars(p: ThemePalette): string[] {
@@ -432,7 +421,7 @@ function paletteVars(p: ThemePalette): string[] {
 function backgroundCss(b: ThemeConfig['background'], accent: string): string {
   const fixed = b.fixed ? 'fixed' : 'scroll';
   if (b.kind === 'gradient' && b.from && b.to)
-    return `background:linear-gradient(${b.angle}deg, ${b.from}, ${b.to}) ${fixed} ${b.to};`; // renk: kaydırma ve tam sayfa görüntüde boşluk kalmasın
+    return `background:linear-gradient(${b.angle}deg, ${b.from}, ${b.to}) ${fixed} ${b.to};`;
   if (b.kind === 'pattern') {
     const c = `color-mix(in oklab, ${b.from || accent} 22%, transparent)`;
     const img = {
@@ -450,7 +439,6 @@ function backgroundCss(b: ThemeConfig['background'], accent: string): string {
   return '';
 }
 
-/** Temayı tek bir CSS metnine çevirir. Seçiciler <html data-custom-theme> ile başlar, temel temaların önüne geçer. */
 export function compileThemeCss(c: ThemeConfig, customCss = ''): string {
   const r = 'html[data-custom-theme]';
   const font = FONT_OPTIONS.find((f) => f.key === c.typography.font)?.family ?? FONT_OPTIONS[0].family;
@@ -481,17 +469,14 @@ export function compileThemeCss(c: ThemeConfig, customCss = ''): string {
     css.push(`${r}[data-theme='dark']{${dark.join(';')}}`);
     css.push(`@media (prefers-color-scheme: dark){${r}[data-theme='system']{${dark.join(';')}}}`);
   }
-  // Yalnızca tek mod kullanılıyorsa diğer paletin boş alanları seçilen paletten doldurulur
   if (!c.mode.toggle && c.mode.default !== 'system') {
     const only = paletteVars(c.mode.default === 'dark' ? c.dark : c.light);
     if (only.length) css.push(`${r}[data-theme]{${only.join(';')}}`);
   }
-  // Yazı
   const headSel = `${r} :is(h1,h2,h3,[data-part='page-title'])`;
   css.push(
     `${headSel}{font-weight:${c.typography.headingWeight}${heading ? `;font-family:${heading}` : ''}${c.typography.headingCase === 'uppercase' ? ';text-transform:uppercase;letter-spacing:0.03em' : ''}}`,
   );
-  // Kartlar
   if (c.shape.border === 0) css.push(`${r} :is(${CARDS}){border-color:transparent}`);
   if (c.shape.border === 2) css.push(`${r} :is(${CARDS}){border-width:2px}`);
   if (c.shape.cards === 'elevated')
@@ -502,7 +487,6 @@ export function compileThemeCss(c: ThemeConfig, customCss = ''): string {
     css.push(
       `${r} :is(${CARDS}){background:color-mix(in oklab, var(--card) 72%, transparent);backdrop-filter:blur(14px) saturate(1.2);border-color:color-mix(in oklab, var(--border) 60%, transparent)}`,
     );
-  // Kategori başlıkları
   const cat = `${r} [data-part='category-header']:not([data-has-bg])`;
   if (c.forumList.categoryHeader === 'tinted')
     css.push(`${cat}{background:color-mix(in oklab, var(--primary) 9%, var(--card))}`);
@@ -512,15 +496,12 @@ export function compileThemeCss(c: ThemeConfig, customCss = ''): string {
     );
   if (c.forumList.categoryHeader === 'underline')
     css.push(`${cat}{box-shadow:inset 0 -2px 0 var(--primary)}`);
-  // Yoğunluk
   if (c.layout.density === 'compact')
     css.push(`${r} :is([data-part='board-row'],[data-part='topic-row']){padding-block:0.55rem}`);
   if (c.layout.density === 'spacious')
     css.push(`${r} :is([data-part='board-row'],[data-part='topic-row']){padding-block:1.35rem}`);
-  // Arka plan
   const bg = backgroundCss(c.background, c.accent);
   if (bg) css.push(`${r} body{${bg}}`);
-  // Efektler
   if (!c.effects.animations)
     css.push(`${r} *,${r} *::before,${r} *::after{animation:none !important;transition:none !important}`);
   if (c.effects.hoverLift)
@@ -533,7 +514,6 @@ export function compileThemeCss(c: ThemeConfig, customCss = ''): string {
   );
 }
 
-/** Etkin tema seçiminde genel ayarlara da yazılan değerler (e-posta, paylaşım görseli ve eski bileşenler bunları okur) */
 export function themeSettingValues(c: ThemeConfig): Record<string, unknown> {
   return {
     'appearance.themeStyle': c.base,
@@ -567,7 +547,6 @@ export function activeThemeOf(t: {
   };
 }
 
-/** <html> üzerine yazılan tema öznitelikleri (CSS bunlara göre düzeni değiştirir) */
 export function themeHtmlAttrs(t: ActiveTheme): Record<string, string> {
   return {
     'data-custom-theme': '',
@@ -577,7 +556,6 @@ export function themeHtmlAttrs(t: ActiveTheme): Record<string, string> {
   };
 }
 
-/** Temel temaların varsayılan renkleri (boş bırakılan palet alanlarının gerçek değeri; stüdyoda gösterilir) */
 const BASE_PALETTES: Record<
   ThemeConfig['base'],
   Record<'light' | 'dark', Record<Exclude<PaletteKey, 'link'>, string>>
@@ -636,7 +614,6 @@ const BASE_PALETTES: Record<
   },
 };
 
-/** Paletin etkin renkleri: boş alanlar temel temadan, bağlantı vurgu renginden */
 export function effectivePalette(c: ThemeConfig, mode: 'light' | 'dark'): Record<PaletteKey, string> {
   const base = BASE_PALETTES[c.base][mode];
   const p = c[mode];

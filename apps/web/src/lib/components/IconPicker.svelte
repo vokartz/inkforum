@@ -10,16 +10,12 @@
   import { t } from '$lib/i18n.svelte';
 
   interface Props {
-    /** Phosphor ikon adı (kebab-case) */
     name?: string | null;
     color?: string | null;
-    /** Seçili ikonun SVG düğümleri (önizleme için) */
     nodes?: IconNode | null;
-    /** Renk seçimini göster (menü ikonlarında gerekmez) */
     withColor?: boolean;
     onchange?: (v: { name: string; color: string | null; nodes: IconNode }) => void;
     class?: string;
-    /** Arama uç noktası (yönetici dışı ekranlar için değiştirilebilir) */
     searchUrl?: string;
   }
   let {
@@ -76,7 +72,6 @@
 
   const tint = $derived(color ?? 'var(--primary)');
 
-  // Kayıtlı bir ad var ama önizleme düğümleri yoksa (düzenleme açılışı) sunucudan çözülür.
   $effect(() => {
     const n = name;
     if (!n || nodes) return;

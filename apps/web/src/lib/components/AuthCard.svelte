@@ -10,12 +10,7 @@
   interface Props {
     title: string;
     description?: string;
-    /** Geniş form (kayıt gibi) */
     wide?: boolean;
-    /**
-     * Tam ekran giriş düzeni: üst çubuk ve alt bilgi olmadan, solda büyük görsel.
-     * (Giriş, kayıt ve şifre sayfaları; kök yerleşim bu sayfalarda üst çubuğu çizmez.)
-     */
     showcase?: boolean;
     children: Snippet;
     footer?: Snippet;
@@ -29,7 +24,6 @@
   const side = $derived(s['appearance.authImageSide'] === 'right' ? 'right' : 'left');
   const headline = $derived(String(s['appearance.authHeadline'] ?? '').trim() || t('{name} topluluğuna hoş geldin', { name: forumName }));
   const blurb = $derived(String(s['appearance.authText'] ?? '').trim() || String(s['general.forumDescription'] ?? '').trim());
-  // Görsel yoksa: koyu, vurgu rengiyle hafifçe ısınan düz zemin (hareket yok)
   const plainBg =
     'background: radial-gradient(70% 60% at 90% 0%, color-mix(in oklab, var(--primary) 30%, transparent), transparent 70%), radial-gradient(60% 50% at 0% 100%, color-mix(in oklab, var(--primary) 16%, transparent), transparent 70%), color-mix(in oklab, var(--primary) 10%, #0d0f13)';
 </script>

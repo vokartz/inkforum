@@ -30,13 +30,6 @@ export interface BackupFile {
 const NAME_RE = /^inkforum-\d{8}-\d{6}-[a-z0-9-]{1,40}\.(db|sql\.gz|tar\.gz)$/;
 const kindOf = (name: string): BackupKind => (name.endsWith('.tar.gz') ? 'full' : name.endsWith('.sql.gz') ? 'sql' : 'db');
 
-/**
- * Yedekler (storage/backups):
- *  - db   : SQLite anlık kopyası (VACUUM INTO) / PostgreSQL pg_dump (sıkıştırılmış SQL)
- *  - sql  : SQL dökümü (SQLite için taşınabilir metin; PostgreSQL'de pg_dump)
- *  - full : veritabanı + yüklenen dosyalar + bilgi dosyası (.tar.gz)
- * Geri yükleme uygulama yeniden başlarken, veritabanı açılmadan önce yapılır (bkz. restore.ts).
- */
 @Injectable()
 export class BackupService implements OnModuleInit {
   private readonly logger = new Logger('Yedek');
@@ -51,7 +44,6 @@ export class BackupService implements OnModuleInit {
   ) {}
 
   onModuleInit(): void {
-    // Her saat bakılır: otomatik yedek açıksa, seçilen saatte ve o gün henüz alınmadıysa yedek alınır
     this.jobs.schedule('backups.tick', HOUR, async () => {
       if (!this.settings.get('maintenance.autoBackup') || !this.supported().ok) return;
       const now = new Date(this.clock.now());
@@ -85,7 +77,6 @@ export class BackupService implements OnModuleInit {
       .sort((a, b) => b.createdAt - a.createdAt);
   }
 
-  /** İndirme / silme için güvenli yol (yalnızca yedek adı kalıbına uyan dosyalar) */
   resolve(name: string): string {
     if (!NAME_RE.test(name)) throw Errors.notFound();
     const file = join(this.dir, name);
@@ -97,7 +88,6 @@ export class BackupService implements OnModuleInit {
     unlinkSync(this.resolve(name));
   }
 
-  /** Eski yedekleri temizler: etiket başına en yeni `keep` tanesi kalır (yüklenen yedekler hariç) */
   prune(keep: number): number {
     const byLabel = new Map<string, BackupFile[]>();
     for (const b of this.list()) if (b.label !== 'uploaded') byLabel.set(b.label, [...(byLabel.get(b.label) ?? []), b]);
@@ -108,7 +98,6 @@ export class BackupService implements OnModuleInit {
           unlinkSync(join(this.dir, f.name));
           removed++;
         } catch {
-          /* yok say */
         }
       }
     }
@@ -124,7 +113,6 @@ export class BackupService implements OnModuleInit {
   private fileName(label: string, ext: string): string {
     const safe = label.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'manual';
     let name = `inkforum-${this.stamp(this.clock.now())}-${safe}.${ext}`;
-    // Aynı saniyede ikinci yedek: bir saniye ileri kaydır
     for (let i = 1; existsSync(join(this.dir, name)); i++) name = `inkforum-${this.stamp(this.clock.now() + i * 1000)}-${safe}.${ext}`;
     return name;
   }
@@ -158,7 +146,6 @@ export class BackupService implements OnModuleInit {
     }
   }
 
-  /** Veritabanı + yüklenen dosyalar */
   private async createFull(target: string): Promise<void> {
     const tmp = join(this.dir, `.work-${Date.now()}`);
     mkdirSync(tmp, { recursive: true });
@@ -204,7 +191,6 @@ export class BackupService implements OnModuleInit {
     }
   }
 
-  /** SQLite için taşınabilir SQL dökümü (şema + veriler), satır satır sıkıştırılarak yazılır */
   private async sqliteDump(target: string): Promise<void> {
     const q = this.db.q;
     const objects = await sql<{ type: string; name: string; tbl_name: string; sql: string | null }>`
@@ -267,9 +253,6 @@ export class BackupService implements OnModuleInit {
     return createReadStream(this.resolve(name));
   }
 
-  // ---------- Yükleme ve geri yükleme ----------
-
-  /** Yüklenen yedeği doğrular ve listeye ekler */
   async adoptUpload(tmpPath: string, originalName: string): Promise<BackupFile> {
     try {
       const head = Buffer.alloc(16);
@@ -298,9 +281,7 @@ export class BackupService implements OnModuleInit {
     }
   }
 
-  /** SQLite yedeğinin InkForum veritabanı olduğunu ve bu sürümden yeni olmadığını denetler */
   private validateSqlite(file: string): void {
-    // node:sqlite dinamik; sürücü olarak zaten kullanılıyor
     const { DatabaseSync } = (process as unknown as { getBuiltinModule(n: string): { DatabaseSync: new (p: string, o?: object) => { prepare(s: string): { all(): Array<Record<string, unknown>> }; close(): void } } }).getBuiltinModule('node:sqlite');
     let db: { prepare(s: string): { all(): Array<Record<string, unknown>> }; close(): void } | null = null;
     try {
@@ -319,10 +300,6 @@ export class BackupService implements OnModuleInit {
     }
   }
 
-  /**
-   * Geri yüklemeyi planlar: önce mevcut durumun yedeği alınır, ardından uygulama yeniden başlar ve
-   * açılışta (veritabanı bağlanmadan önce) yedek uygulanır.
-   */
   async scheduleRestore(name: string, actorId: number): Promise<{ safety: string }> {
     const file = this.resolve(name);
     const kind = kindOf(name);

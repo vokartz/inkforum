@@ -4,7 +4,6 @@ import { flag, helpers, intDefault, notNull, ref, textDefault } from './_helpers
 export async function up(db: Kysely<any>): Promise<void> {
   const h = helpers(db);
 
-  // Üst menü öğeleri (yönetim panelinden düzenlenir).
   await h
     .table('nav_items')
     .addColumn('parent_id', 'integer', ref('nav_items.id', 'cascade', false))
@@ -22,7 +21,6 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addColumn('updated_at', 'bigint', notNull)
     .execute();
 
-  // Profil kapak fotoğrafı
   await db.schema.alterTable('users').addColumn('cover_file_id', 'integer').execute();
   await db.schema.alterTable('users').addColumn('cover_offset', 'integer', intDefault(50)).execute();
 }

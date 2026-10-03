@@ -13,7 +13,6 @@
 
   let { class: className }: { class?: string } = $props();
 
-  /** Bölüm içindeysek yeni konu o bölüme açılır. */
   const newTopicHref = $derived.by(() => {
     const m = /^\/f\/(\d+)/.exec(page.url.pathname);
     return m ? `/f/${m[1]}/new` : '/new';

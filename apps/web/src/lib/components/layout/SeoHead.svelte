@@ -3,10 +3,6 @@
   import { page } from '$app/state';
   import { localeTag } from '$lib/i18n.svelte';
 
-  /**
-   * Arama motoru ve paylaşım etiketleri. Sayfa yükleyicilerinin döndürdüğü `seo` alanı ile
-   * forum varsayılanları birleştirilir: açıklama, kanonik adres, Open Graph, X kartı, JSON-LD, oEmbed.
-   */
   let { settings }: { settings: Record<string, unknown> } = $props();
 
   const seo = $derived((page.data.seo ?? {}) as SeoMeta);
@@ -17,11 +13,9 @@
   const description = $derived((seo.description ?? String(settings['general.forumDescription'] ?? '')).slice(0, 300));
   const title = $derived(seo.title ?? siteName);
   const path = $derived(seo.canonical ?? page.url.pathname);
-  // Sayfalanmış listelerde sayfa numarası kanonik adreste kalır; diğer parametreler atılır
   const pageNo = $derived(page.url.searchParams.get('page'));
   const canonical = $derived(`${origin}${path}${!seo.canonical && pageNo && /^\d+$/.test(pageNo) && pageNo !== '1' ? `?page=${pageNo}` : ''}`);
   const ogImagesOn = $derived(settings['seo.ogImages'] !== false);
-  // Her sayfanın kendi paylaşım kartı (Discord, X, WhatsApp…): sunucu adresten başlığı çözer
   const generated = $derived(!seo.image && ogImagesOn);
   const image = $derived(
     seo.image
@@ -37,9 +31,7 @@
   const noindex = $derived(indexingOff || seo.noindex === true || page.status >= 400);
   const twitter = $derived(String(settings['seo.twitterHandle'] ?? '').replace(/^@?/, '@'));
 
-  /** Betik kapanış etiketini ve HTML'i etkisizleştiren güvenli JSON */
   const safeJson = (v: unknown) => JSON.stringify(v).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026');
-  // Kapanış etiketi parçalı yazılır (Svelte ayrıştırıcısı bileşen betiğinin bittiğini sanmasın)
   const ldTag = (item: unknown) => `<script type="application/ld+json">${safeJson(item)}<` + '/script>';
   const website = $derived({
     '@context': 'https://schema.org',

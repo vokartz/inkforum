@@ -25,7 +25,6 @@
 
   interface Props {
     viewer: Viewer;
-    /** avatar: yalnız avatar; named: avatar + ad + ok */
     variant?: 'avatar' | 'named';
     class?: string;
   }
@@ -41,7 +40,6 @@
     await api.post('/api/forum/mark-read');
     await invalidateAll();
   }
-  // Etkin tema tek renk moduna kilitliyse geçiş gösterilmez
   const modeLocked = $derived(themeOptions(viewer.settings)?.mode.toggle === false);
   async function toggleTheme() {
     const next = theme.resolved === 'dark' ? 'light' : 'dark';

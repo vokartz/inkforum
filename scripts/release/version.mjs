@@ -1,10 +1,4 @@
 #!/usr/bin/env node
-/**
- * Yeni sürüm hazırlar: package.json sürümünü artırır, CHANGELOG.md'de "Yayımlanmamış" bölümünü
- * yeni sürüm başlığına taşır ve yapılacak git komutlarını yazdırır.
- *
- *   pnpm release:version patch|minor|major|1.4.0|1.4.0-beta.1
- */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -30,7 +24,6 @@ pkg.version = next;
 writeFileSync(pkgFile, `${JSON.stringify(pkg, null, 2)}\n`);
 
 const today = new Date().toISOString().slice(0, 10);
-// İngilizce (CHANGELOG.md, "Unreleased") ve Türkçe (CHANGELOG_tr.md, "Yayımlanmamış") günlükler birlikte ilerler
 for (const [name, unreleased] of [
   ['CHANGELOG.md', 'Unreleased'],
   ['CHANGELOG_tr.md', 'Yayımlanmamış'],

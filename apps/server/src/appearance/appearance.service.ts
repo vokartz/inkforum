@@ -3,7 +3,7 @@ import {
   APPEARANCE_RESET_PARTS,
   BRANDING_ASSETS,
   NAV_BUILTINS,
-  PERMISSION_MAP,
+  isPermissionKey,
   SETTING_KEYS,
   SETTINGS,
   pluginEnabled,
@@ -31,7 +31,6 @@ const NS = 'nav';
 type NavRow = Row<'nav_items'>;
 type NavInput = Omit<NavTreeInput['items'][number], 'children'>;
 
-/** Varsayılan menü (ilk açılışta bir kez). */
 const DEFAULT_NAV: Array<{ builtin?: NavBuiltinKey; label?: string; url?: string; icon?: string }> = [
   { builtin: 'forum' },
   { builtin: 'unread' },
@@ -55,13 +54,10 @@ export class AppearanceService {
     private readonly i18n: I18nService,
   ) {}
 
-  // ---------- Menü ----------
-
   private rows(): Promise<NavRow[]> {
     return this.cache.wrap(NS, 'rows', () => this.db.q.selectFrom('nav_items').selectAll().orderBy('sort_order').orderBy('id').execute());
   }
 
-  /** Eklenti açılınca sistem menü öğesi yoksa üst menünün sonuna eklenir */
   async ensureBuiltin(key: NavBuiltinKey): Promise<void> {
     const exists = await this.db.q.selectFrom('nav_items').select('id').where('builtin_key', '=', key).executeTakeFirst();
     if (exists) return;
@@ -109,10 +105,8 @@ export class AppearanceService {
     if (perm && !can(viewer, perm)) return false;
     if (row.builtin_key === 'achievements' && !this.settings.get('achievements.enabled')) return false;
     if (row.builtin_key === 'wiki' && !this.settings.get('wiki.enabled') && !can(viewer, 'wiki.edit')) return false;
-    // Kapalı eklentilerin menü öğeleri gizlenir
     const plugin = ({ wiki: 'wiki', applications: 'applications', tickets: 'tickets', home: 'landing' } as const)[row.builtin_key as 'wiki'];
     if (plugin && !this.settings.plugin(plugin)) return false;
-    // "Ana sayfa" yalnızca ayrı bir açılış sayfası varken anlamlı
     if (row.builtin_key === 'home' && !this.settings.landing()) return false;
     return true;
   }
@@ -124,10 +118,8 @@ export class AppearanceService {
     return row.url;
   }
 
-  /** Ziyaretçiye göre filtrelenmiş menü. */
   async nav(viewer: RequestViewer): Promise<NavEntry[]> {
     const rows = await this.rows();
-    // Varsayılan (Türkçe) menü adları ziyaretçinin diline çevrilir; yöneticinin yazdığı özel adlar olduğu gibi kalır
     const locale = viewer.locale ?? this.i18n.defaultLocale();
     const toEntry = (r: NavRow): NavEntry => ({
       id: r.id,
@@ -162,13 +154,12 @@ export class AppearanceService {
     }));
   }
 
-  /** Menüyü tamamen yeniden yazar (sıra gönderilen diziye göre). */
   async saveNav(viewer: RequestViewer, input: NavTreeInput): Promise<void> {
     const fields: Record<string, string> = {};
     const check = (it: NavInput, path: string) => {
       if (it.kind === 'builtin' && !(it.builtinKey && it.builtinKey in NAV_BUILTINS)) fields[path] = 'Bilinmeyen sistem öğesi.';
       if (it.kind === 'link' && !(it.url && /^(https?:\/\/|\/|mailto:)/i.test(it.url))) fields[path] = `"${it.label}": adres http(s)://, / ya da mailto: ile başlamalı.`;
-      if (it.permission && !PERMISSION_MAP.has(it.permission)) fields[path] = `"${it.label}": bilinmeyen yetki.`;
+      if (it.permission && !isPermissionKey(it.permission)) fields[path] = `"${it.label}": bilinmeyen yetki.`;
       if (it.icon && !iconExists(it.icon)) fields[path] = `"${it.label}": ikon bulunamadı.`;
     };
     input.items.forEach((it, i) => {
@@ -216,8 +207,6 @@ export class AppearanceService {
     await this.audit.log({ type: 'admin', action: 'appearance.nav', actorId: viewer.user!.id, ip: viewer.ip });
   }
 
-  // ---------- Marka görselleri ----------
-
   private async deleteByUrl(url: string | null): Promise<void> {
     if (!url?.startsWith('/uploads/')) return;
     const file = await this.db.q.selectFrom('files').select('id').where('path', '=', url.slice('/uploads/'.length)).executeTakeFirst();
@@ -243,7 +232,6 @@ export class AppearanceService {
     return { url };
   }
 
-  /** Görünümü (seçilen bölümleri) varsayılana döndürür. */
   async reset(viewer: RequestViewer, parts: AppearanceResetPart[]): Promise<void> {
     const want = new Set(parts.length ? parts : APPEARANCE_RESET_PARTS);
     const assetKeys = new Set<string>(Object.values(BRANDING_ASSETS).map((d) => d.setting));
@@ -253,11 +241,9 @@ export class AppearanceService {
       const k = key as string;
       if (want.has('theme') && k.startsWith('appearance.') && !assetKeys.has(k) && !linkKeys.has(k)) defaults[k] = SETTINGS[key].default;
       if (want.has('footer') && linkKeys.has(k)) defaults[k] = SETTINGS[key].default;
-      if (want.has('css') && k === 'custom.css') defaults[k] = SETTINGS[key].default;
     }
     if (Object.keys(defaults).length) await this.settings.update(defaults, viewer.user!.id, { allowHidden: true });
     if (want.has('branding')) {
-      // Yüklenen dosyalar silinir, ayarlar varsayılana (InkForum logosu / simgesi ya da boş) döner
       for (const kind of Object.keys(BRANDING_ASSETS) as BrandingAsset[]) {
         const key = BRANDING_ASSETS[kind].setting as SettingKey;
         const current = this.settings.get(key) as string | null;

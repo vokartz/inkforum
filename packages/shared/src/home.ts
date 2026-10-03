@@ -2,22 +2,17 @@ import { z } from 'zod';
 import type { IconNode } from './forum.js';
 import { ICON_NAME } from './forum.js';
 
-/**
- * Ana sayfa blokları: yönetim panelinden eklenen duyurular, görsel kartlar, serbest içerik ve
- * yan sütun bileşenleri. Kategoriler listesi sabittir; bloklar onun üstüne, yanına ve altına yerleşir.
- */
 export const HOME_POSITIONS = ['top', 'sidebar', 'bottom'] as const;
 export type HomePosition = (typeof HOME_POSITIONS)[number];
 
 export const HOME_BLOCK_KINDS = ['announcement', 'tiles', 'text', 'html', 'recent', 'stats', 'online', 'birthdays', 'discord'] as const;
 export type HomeBlockKind = (typeof HOME_BLOCK_KINDS)[number];
 
-/** Yönetim panelindeki blok türü açıklamaları */
 export const HOME_BLOCK_INFO: Record<HomeBlockKind, { label: string; description: string; icon: string }> = {
   announcement: { label: 'Duyuru şeridi', description: 'Renkli, ikonlu kısa duyuru; kapatılabilir ve tarih aralığına bağlanabilir.', icon: 'megaphone' },
   tiles: { label: 'Görsel kartlar', description: 'Fotoğraflı, yan yana kareler (sunucu, etkinlik, bağlantı vitrinleri).', icon: 'squares-four' },
   text: { label: 'Serbest içerik', description: 'BBCode ile başlık, metin, görsel ve gömülü video.', icon: 'text-align-left' },
-  html: { label: 'Özel HTML', description: 'Kendi HTML / CSS / JavaScript kodun (sunucu durumu, UCP kutusu, sayaç…). "Özel kod" yetkisi gerekir.', icon: 'code' },
+  html: { label: 'Özel HTML', description: 'Kendi HTML / CSS / JavaScript kodun (sunucu durumu, UCP kutusu, sayaç…). "Kod düzenleme" yetkisi gerekir.', icon: 'code' },
   recent: { label: 'Son hareketler', description: 'En son yanıt alan konular.', icon: 'lightning' },
   stats: { label: 'İstatistikler', description: 'Konu, mesaj ve üye sayıları.', icon: 'chart-line-up' },
   online: { label: 'Çevrimiçi üyeler', description: 'Şu an forumda olanlar.', icon: 'broadcast' },
@@ -25,7 +20,6 @@ export const HOME_BLOCK_INFO: Record<HomeBlockKind, { label: string; description
   discord: { label: 'Discord sunucusu', description: 'Discord sunucunuzun çevrimiçi sayısı ve katıl düğmesi ("Discord entegrasyonu" eklentisi).', icon: 'discord-logo' },
 };
 
-/** Eklentiye bağlı bloklar: eklenti kapalıyken eklenemez ve gösterilmez */
 export const HOME_BLOCK_PLUGIN: Partial<Record<HomeBlockKind, 'discord'>> = { discord: 'discord' };
 
 export const ANNOUNCEMENT_STYLES = ['accent', 'info', 'success', 'warning', 'danger', 'neutral'] as const;
@@ -67,7 +61,6 @@ export const tilesConfig = z.object({
 
 export const textConfig = z.object({
   body: z.string().max(20000).default(''),
-  /** Kart içinde göster (kapalıysa arka plansız) */
   boxed: z.boolean().default(true),
 });
 
@@ -110,15 +103,12 @@ export type AnnouncementConfig = z.output<typeof announcementConfig>;
 export type TilesConfig = z.output<typeof tilesConfig>;
 export type TextConfig = z.output<typeof textConfig>;
 
-/** Yönetim paneli: kayıtlı blok */
 export type AdminHomeBlock = HomeBlockInput & { id: number; updatedAt: number };
 
-/** Ziyaretçiye gönderilen blok (metinler sunucuda HTML'e çevrilmiş). */
 export type HomeBlock =
   | { id: number; kind: 'announcement'; title: string | null; key: string; html: string; style: AnnouncementStyle; icon: IconNode | null; linkUrl: string | null; linkLabel: string | null; dismissible: boolean }
   | { id: number; kind: 'tiles'; title: string | null; columns: number; height: 'sm' | 'md' | 'lg'; items: Array<z.output<typeof tileItem>> }
   | { id: number; kind: 'text'; title: string | null; html: string; boxed: boolean }
-  /** `html` yöneticinin ham kodudur; istemcide özel kod çalıştırıcısıyla işlenir. */
   | { id: number; kind: 'html'; title: string | null; html: string; boxed: boolean }
   | { id: number; kind: 'recent'; title: string | null; limit: number }
   | { id: number; kind: 'stats' | 'online' | 'birthdays' | 'discord'; title: string | null };

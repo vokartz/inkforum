@@ -14,6 +14,7 @@
   import FileTextIcon from 'phosphor-svelte/lib/FileText';
   import PlugsIcon from 'phosphor-svelte/lib/PlugsConnected';
   import { can } from '$lib/viewer';
+  import NodeIcon from '$lib/components/NodeIcon.svelte';
   import { t } from '$lib/i18n.svelte';
 
   let { data, children } = $props();
@@ -68,6 +69,22 @@
           {/each}
         </div>
       {/each}
+      {#if data.extPages.length}
+        <div class="contents md:grid md:gap-0.5" data-part="settings-ext">
+          <p class="hidden px-3 pb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase md:block">{t('Eklentiler')}</p>
+          {#each data.extPages as item (`${item.ext}/${item.key}`)}
+            {@const href = `/settings/ext/${item.ext}/${item.key}`}
+            <a
+              {href}
+              class="flex shrink-0 items-center gap-2 rounded-md px-3 py-1.5 text-sm whitespace-nowrap {page.url.pathname === href
+                ? 'bg-accent font-medium text-accent-foreground'
+                : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground'}"
+            >
+              <NodeIcon nodes={item.iconNode} size={16} />{item.title}
+            </a>
+          {/each}
+        </div>
+      {/if}
     </nav>
   </aside>
   <div class="min-w-0">{@render children()}</div>

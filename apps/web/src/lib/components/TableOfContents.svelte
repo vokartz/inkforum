@@ -10,7 +10,6 @@
   }
   let { items, title = t('Bu sayfada'), class: className }: Props = $props();
 
-  // Kaydırırken görünen başlık vurgulanır.
   let activeId = $state<string | null>(null);
   $effect(() => {
     const els = items.map((i) => document.getElementById(i.id)).filter((e): e is HTMLElement => !!e);

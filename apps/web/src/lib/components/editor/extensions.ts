@@ -14,7 +14,6 @@ import { t } from '$lib/i18n.svelte';
 import { mentionSuggestion } from './mention';
 import { customEmoji } from '$lib/custom-emoji';
 
-/** Alıntı: yazar ve mesaj bilgisini taşır ([quote author=… post=…]). */
 const Quote = Blockquote.extend({
   addAttributes() {
     return {
@@ -28,7 +27,6 @@ const Quote = Blockquote.extend({
   },
 });
 
-/** [spoiler=Başlık] — editörde açık bir kutu olarak gösterilir. */
 export const Spoiler = Node.create({
   name: 'spoiler',
   group: 'block',
@@ -45,7 +43,6 @@ export const Spoiler = Node.create({
   },
 });
 
-/** [media]adres[/media] — editörde video kartı. */
 export const Media = Node.create({
   name: 'media',
   group: 'block',
@@ -61,7 +58,6 @@ export const Media = Node.create({
   renderHTML({ node }) {
     const embed = resolveEmbed(node.attrs.src, { host: typeof location === 'undefined' ? 'localhost' : location.hostname });
     const color = EMBED_PROVIDERS.find((p) => p.key === embed?.provider)?.color ?? 'var(--primary)';
-    // Oynatıcısı olan bağlantılar editörde de doğrudan görünür; yalnızca kart türleri ve tanınmayanlar kart kalır
     if (embed?.src) {
       const size = embed.ratio ? `aspect-ratio:${embed.ratio}` : `height:${embed.height ?? 380}px`;
       return [
@@ -81,7 +77,6 @@ export const Media = Node.create({
   },
 });
 
-/** Özel emoji (`:kisaad:`) — editörde görsel olarak, BBCode'da kısa adıyla. */
 export const CustomEmoji = Node.create({
   name: 'customEmoji',
   group: 'inline',
@@ -110,7 +105,6 @@ export const CustomEmoji = Node.create({
   },
   addInputRules() {
     return [
-      // Kısa adı bilinen emoji yazılınca (":logo:") görsele dönüşür; bilinmeyen metin olarak kalır
       new InputRule({
         find: /:([a-z0-9_-]{2,32}):$/,
         handler: ({ state, range, match }) => {

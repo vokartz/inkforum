@@ -123,8 +123,6 @@ export class AdminAchievementsController {
     return { ok: true };
   }
 
-  // ----- Kategoriler -----
-
   @Post('categories')
   @HttpCode(201)
   @AdminEndpoint('admin.achievements.manage')

@@ -15,7 +15,6 @@ export class ApiExceptionFilter implements ExceptionFilter {
     const req = host.switchToHttp().getRequest<Request>();
     const [status, body] = this.toBody(exception);
     this.localize(req, body);
-    // Bilinçli 503'ler (bakım modu, kurulum bekleniyor) hata değildir
     const expected = body.error.code === 'MAINTENANCE' || body.error.code === 'INSTALL_REQUIRED';
     if (status >= 500 && !expected) this.logger.error(exception instanceof Error ? (exception.stack ?? exception.message) : exception);
     if (res.headersSent) return;
@@ -25,7 +24,6 @@ export class ApiExceptionFilter implements ExceptionFilter {
     res.status(status).json(body);
   }
 
-  /** Hata metinlerini isteğin diline çevirir (kaynak metinler Türkçe) */
   private localize(req: Request, body: ApiErrorBody): void {
     if (!this.i18n) return;
     const locale = req.viewer?.locale ?? this.i18n.resolve({ cookie: req.headers?.cookie, acceptLanguage: req.headers?.['accept-language'] });

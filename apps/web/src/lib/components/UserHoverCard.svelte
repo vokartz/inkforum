@@ -1,7 +1,6 @@
 <script lang="ts" module>
   import type { PublicProfile } from '$lib/types';
 
-  // Aynı üye için kart verisi sayfa boyunca bir kez alınır.
   const cache = new Map<number, Promise<PublicProfile | null>>();
   function fetchCard(id: number): Promise<PublicProfile | null> {
     let p = cache.get(id);

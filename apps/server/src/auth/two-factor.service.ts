@@ -25,7 +25,6 @@ export class TwoFactorService {
     return !!row?.enabled_at;
   }
 
-  /** Yeni (henüz etkin olmayan) gizli anahtar üretir. */
   async beginSetup(userId: number, account: string): Promise<{ secret: string; otpauthUrl: string }> {
     if (await this.isEnabled(userId)) throw Errors.badRequest('İki adımlı doğrulama zaten etkin.');
     const secret = generateTotpSecret();
@@ -38,7 +37,6 @@ export class TwoFactorService {
     return { secret, otpauthUrl: otpauthUrl(secret, account, this.settings.get('general.forumName')) };
   }
 
-  /** Kurulumu doğrular, etkinleştirir ve kurtarma kodlarını döner (yalnızca bir kez gösterilir). */
   async confirmSetup(userId: number, code: string): Promise<string[]> {
     const row = await this.db.q.selectFrom('user_totp').selectAll().where('user_id', '=', userId).executeTakeFirst();
     if (!row) throw Errors.badRequest('Önce kurulumu başlatın.');
@@ -91,7 +89,6 @@ export class TwoFactorService {
     return Number(r?.n ?? 0);
   }
 
-  /** TOTP kodu veya kurtarma kodu doğrular. Aynı TOTP kodu iki kez kabul edilmez. */
   async verify(userId: number, code: string): Promise<boolean> {
     const row = await this.db.q.selectFrom('user_totp').selectAll().where('user_id', '=', userId).executeTakeFirst();
     if (!row?.enabled_at) return false;

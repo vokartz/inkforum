@@ -26,12 +26,6 @@ const TASK_LOCK_MS = 10 * MINUTE;
 const IDLE_POLL_MS = 5000;
 const SCHEDULER_TICK_MS = 30_000;
 
-/**
- * Veritabanı tabanlı iş kuyruğu + zamanlayıcı (Redis gerektirmez).
- * - İşler transaction içinde eklenirse yalnızca commit edilince görünür olur (outbox).
- * - Kilitler lease ile alınır; birden fazla process güvenle çalışabilir.
- * - Zamanlanmış görevler açılışta kaçırılanları yakalar.
- */
 @Injectable()
 export class JobsService implements OnApplicationBootstrap, OnApplicationShutdown {
   private readonly logger = new Logger('Jobs');
@@ -58,6 +52,14 @@ export class JobsService implements OnApplicationBootstrap, OnApplicationShutdow
     this.tasks.set(name, { intervalMs, handler });
   }
 
+  unregister(type: string): void {
+    this.handlers.delete(type);
+  }
+
+  unschedule(name: string): void {
+    this.tasks.delete(name);
+  }
+
   async enqueue(type: string, payload: unknown, opts: EnqueueOptions = {}): Promise<void> {
     const now = this.clock.now();
     await this.db.q
@@ -82,7 +84,6 @@ export class JobsService implements OnApplicationBootstrap, OnApplicationShutdow
     this.loop(1000);
     this.schedulerTimer = setInterval(() => void this.runDueTasks(), SCHEDULER_TICK_MS);
     this.schedulerTimer.unref();
-    // Açılışta kaçırılmış görevleri yakala.
     setTimeout(() => void this.runDueTasks(), 3000).unref();
   }
 
@@ -121,11 +122,9 @@ export class JobsService implements OnApplicationBootstrap, OnApplicationShutdow
     this.timer.unref();
   }
 
-  /** Bir işi talep edip çalıştırır. İş yoksa false döner. */
   async processNext(): Promise<boolean> {
     const now = this.clock.now();
 
-    // Süresi dolmuş kilitleri geri al.
     await this.db.q
       .updateTable('jobs')
       .set({ status: 'pending', locked_by: null, locked_until: null })
@@ -188,7 +187,6 @@ export class JobsService implements OnApplicationBootstrap, OnApplicationShutdow
     return true;
   }
 
-  /** Bekleyen tüm işleri sırayla çalıştırır (testler ve CLI için). */
   async drain(max = 1000): Promise<number> {
     let count = 0;
     while (count < max && (await this.processNext())) count++;
@@ -206,7 +204,6 @@ export class JobsService implements OnApplicationBootstrap, OnApplicationShutdow
     }
   }
 
-  /** Zamanı gelmiş görevleri çalıştırır. Dış cron tetikleyicisi de bunu çağırır. */
   async runDueTasks(force = false): Promise<string[]> {
     await this.syncTasks();
     const now = this.clock.now();

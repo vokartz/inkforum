@@ -38,15 +38,9 @@ import { storageWarning } from '../storage/persistence.js';
 
 const INSTALLED_KEY = 'installed:at';
 const SEEDED_FORUM_KEY = 'seeded:forum:v1';
-/** Otomatik algılanan site adresi (APP_URL verilmediyse) */
 const SITE_URL_KEY = 'site:url';
 const MIN_NODE = [22, 13] as const;
 
-/**
- * İlk kurulum. Yönetici hesabı yokken site kurulum sihirbazına yönlendirilir. APP_URL verilmediyse
- * site adresi sihirbazın açıldığı adresten alınır ve kaydedilir.
- * ADMIN_PASSWORD ortam değişkeni verilmişse kurulum otomatik yapılır (CI, otomasyon).
- */
 @Injectable()
 export class InstallService {
   private readonly logger = new Logger('Kurulum');
@@ -79,7 +73,6 @@ export class InstallService {
     return { installed: this.done, version: this.config.version };
   }
 
-  /** Açılışta (BootstrapService): kayıtlı site adresini uygula; kurulu değilse sihirbaz adresini günlüğe yaz */
   async init(hasAdmin: boolean): Promise<void> {
     if (this.config.appUrlMode === 'auto') {
       const saved = await this.db.q.selectFrom('system_state').select('value').where('key', '=', SITE_URL_KEY).executeTakeFirst();
@@ -104,7 +97,6 @@ export class InstallService {
     this.logger.warn(line);
   }
 
-  /** Sistem grupları, politikalar, başarılar, uyarı şablonları ve destek kategorilerinin varsayılan metinleri */
   private async localizeSeeded(locale: Locale): Promise<void> {
     const dict = this.i18n.catalog(locale);
     if (locale === 'tr' || !dict) return;
@@ -147,12 +139,10 @@ export class InstallService {
     this.done = true;
   }
 
-  /** Sihirbaz uç noktaları yalnızca kurulumdan önce kullanılabilir */
   assertOpen(): void {
     if (this.done) throw Errors.conflict('Kurulum zaten tamamlanmış.');
   }
 
-  /** Kurulumdan sonra geçerli olacak site adresi: APP_URL ya da (otomatik modda) sihirbazın açıldığı adres */
   private siteUrl(origin: string | null): string {
     return this.config.appUrlPending && origin ? origin : this.config.appUrl;
   }
@@ -199,7 +189,6 @@ export class InstallService {
         free = ` · ${(bytes / 1024 ** 3).toFixed(1)} GB boş`;
         if (bytes < 1024 ** 3) status = 'warn';
       } catch {
-        /* statfs desteklenmiyor */
       }
       out.push({ key: 'storage', label: 'Dosya depolama', status, detail: `Yazılabilir${free}` });
     } catch {
@@ -208,7 +197,6 @@ export class InstallService {
 
     const ephemeral = storageWarning(this.config);
     if (ephemeral) {
-      // Coolify yeniden dağıtımda kapsayıcıyı yeni (boş) bir birimle oluşturur: kurulum her seferinde silinir
       out.push({
         key: 'persistence',
         label: 'Kalıcı depolama',
@@ -292,7 +280,6 @@ export class InstallService {
 
     if (input.mail && input.mail.driver !== 'env') await this.mail.saveTransport(input.mail, userId);
 
-    // Örnek içerik: kategori ve bölümler (seçilmezse boş forum)
     const seeded = await this.db.q.selectFrom('system_state').select('key').where('key', '=', SEEDED_FORUM_KEY).executeTakeFirst();
     if (!seeded) {
       if (input.community.sampleContent) await this.forumSeed.seed((text) => this.i18n.t(locale, text));
@@ -300,13 +287,11 @@ export class InstallService {
       await this.db.q.insertInto('system_state').values({ key: SEEDED_FORUM_KEY, value: String(now), updated_at: now }).execute();
     }
     if (plugins.tickets) await this.tickets.ensureDefaults(userId);
-    // Önceden (Türkçe) oluşturulmuş varsayılan içerik kurulum diline çevrilir
     await this.localizeSeeded(locale);
     for (const key of ['applications', 'tickets'] as const) if (plugins[key]) await this.appearance.ensureBuiltin(key);
 
     await this.markInstalled();
     if (this.config.appUrlPending && client.origin) {
-      // Sihirbazın açıldığı adres sitenin adresi olur (yeniden başlatmada da geçerli); çerez ayarları da buna göre
       const origin = client.origin;
       const now = this.clock.now();
       await this.db.q
@@ -320,7 +305,6 @@ export class InstallService {
 
     const session = await this.sessions.create(userId, true, client.ip, client.userAgent);
     this.sessions.setCookie(res, session.token, true);
-    // Şifre az önce belirlendi: yönetim paneli ilk açılışta yeniden doğrulama istemesin
     await this.sessions.elevate(session.session.id);
     await this.audit.log({ type: 'admin', action: 'install.complete', actorId: userId, ip: client.ip, data: { version: this.config.version, theme: input.site.theme, plugins: input.community.plugins } });
     this.logger.log(`Kurulum tamamlandı; yönetici: ${input.admin.username}`);

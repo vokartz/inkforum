@@ -15,7 +15,6 @@ import type { RequestViewer } from '../common/request-context.js';
 import { bool } from '../database/json.js';
 import type { IssueWarningInput, WarningActionInput, WarningTemplateInput } from './warnings.schemas.js';
 
-/** "Eşiğin üzerinde kaldıkça" kısıtlamaları için bitiş zamanı yerine kullanılan değer (9999 yılı). */
 export const WHILE_ABOVE_UNTIL = 253_402_300_799_000;
 
 export const ACTION_LABELS: Record<WarningActionType, string> = {
@@ -43,8 +42,6 @@ export class WarningsService implements OnModuleInit {
   onModuleInit(): void {
     this.jobs.schedule('warnings.expire', HOUR, () => this.expireWarnings().then(() => undefined));
   }
-
-  // ---------- Şablonlar ----------
 
   async templates(activeOnly = false) {
     let q = this.db.q.selectFrom('warning_templates').selectAll().orderBy('sort_order').orderBy('id');
@@ -88,8 +85,6 @@ export class WarningsService implements OnModuleInit {
     await this.db.q.deleteFrom('warning_templates').where('id', '=', id).execute();
   }
 
-  // ---------- Eşik eylemleri ----------
-
   async actions(activeOnly = false) {
     let q = this.db.q.selectFrom('warning_actions').selectAll().orderBy('threshold_points').orderBy('sort_order');
     if (activeOnly) q = q.where('is_active', '=', 1);
@@ -131,8 +126,6 @@ export class WarningsService implements OnModuleInit {
       await this.db.q.deleteFrom('warning_actions').where('id', '=', id).execute();
     });
   }
-
-  // ---------- Uyarı verme / geri alma ----------
 
   async issue(actor: RequestViewer, userId: number, input: IssueWarningInput): Promise<number> {
     if (!this.settings.get('warnings.enabled')) throw Errors.badRequest('Uyarı sistemi kapalı.');
@@ -205,7 +198,6 @@ export class WarningsService implements OnModuleInit {
     });
   }
 
-  /** Aktif uyarı puanlarını toplar ve eşik eylemlerini uygular. */
   async recompute(userId: number, triggeringWarningId: number | null): Promise<number> {
     const now = this.clock.now();
     const user = await this.db.q.selectFrom('users').selectAll().where('id', '=', userId).executeTakeFirstOrThrow();
@@ -291,7 +283,6 @@ export class WarningsService implements OnModuleInit {
     if (Object.keys(patch).length) await this.db.q.updateTable('users').set(patch).where('id', '=', user.id).execute();
   }
 
-  /** Süresi dolan uyarıları işaretler ve puanları yeniden hesaplar. */
   async expireWarnings(): Promise<number> {
     const now = this.clock.now();
     const rows = await this.db.q
@@ -308,8 +299,6 @@ export class WarningsService implements OnModuleInit {
     });
     return rows.length;
   }
-
-  // ---------- Listeleme ----------
 
   async forUser(userId: number, includeStaffFields: boolean) {
     const now = this.clock.now();
@@ -343,7 +332,6 @@ export class WarningsService implements OnModuleInit {
     };
   }
 
-  /** Son uyarılar (moderasyon merkezi). */
   async recent(page: number, perPage: number) {
     const rows = await this.db.q
       .selectFrom('user_warnings')

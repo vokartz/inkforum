@@ -5,9 +5,7 @@ let h: Harness;
 let admin: Agent;
 let member: Agent;
 
-/** 1×1 PNG */
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGD4DwABBAEAwS2OUAAAAABJRU5ErkJggg==', 'base64');
-/** 24 baytlık başlık kontrolünü geçmesi için büyütülmüş PNG (boyut okunur) */
 const IMG = Buffer.concat([PNG, Buffer.alloc(64)]);
 
 beforeAll(async () => {
@@ -26,7 +24,7 @@ describe('navigation menu', () => {
     const guest = await h.agent().get('/api/nav');
     const labels = guest.body.map((e: { label: string }) => e.label);
     expect(labels).toContain('Forum');
-    expect(labels).not.toContain('Okunmamış'); // yalnız üyeler
+    expect(labels).not.toContain('Okunmamış');
     expect(guest.body[0].icon).toBeTruthy();
     const mine = await member.get('/api/nav');
     expect(mine.body.map((e: { label: string }) => e.label)).toContain('Okunmamış');
@@ -143,7 +141,6 @@ describe('backgrounds and icons', () => {
     expect(res.body.length).toBeGreaterThan(3);
     expect(res.body[0].nodes.length).toBeGreaterThan(0);
     expect((await member.get('/api/admin/icons?q=chat')).status).toBe(403);
-    // Eski (lucide) adıyla kaydedilen menü ikonu Phosphor karşılığına çözülür.
     const saved = await admin.put('/api/admin/appearance/nav', { items: [{ kind: 'builtin', builtinKey: 'forum', label: 'Forum', icon: 'messages-square' }] });
     expect(saved.status).toBe(200);
     expect((await h.agent().get('/api/nav')).body[0].icon.length).toBeGreaterThan(0);

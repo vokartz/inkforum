@@ -190,7 +190,6 @@ const WRITE_KEYS = new Set(['topic.create', 'post.reply', 'post.images', 'topic.
 
 type Defaults = Partial<Record<'guest' | 'member' | 'global_moderator' | 'moderator', 1 | -1>>;
 
-/** Yetki profiline göre bölüm yetkisi varsayılanları. */
 export function boardProfileDefaults(profileKey: string, permKey: string, defaults: Defaults): Defaults {
   const d: Defaults = { ...defaults };
   if (profileKey === 'read_only' && WRITE_KEYS.has(permKey)) {

@@ -1,7 +1,6 @@
 import type { Kysely } from 'kysely';
 import { helpers, notNull, ref } from './_helpers.js';
 
-/** Sohbet kutusu eklentisi: kısa, anlık mesajlar. Silinen mesajlar işaretlenir (moderasyon kaydı için). */
 export async function up(db: Kysely<any>): Promise<void> {
   const h = helpers(db);
   await h

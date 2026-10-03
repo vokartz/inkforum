@@ -25,7 +25,6 @@ export interface PublishedVersion {
   bodyMd: string;
   changeNote: string | null;
   publishedAt: number;
-  /** Kullanıcının kabul etmiş olması gereken en düşük versiyon. */
   minAcceptedVersion: number;
 }
 
@@ -39,10 +38,6 @@ export class PoliciesService {
     private readonly i18n: I18nService,
   ) {}
 
-  /**
-   * Kurulumdaki varsayılan metinler (yönetici değiştirmediyse) ziyaretçinin dilinde gösterilir;
-   * yöneticinin yazdığı metin katalogda olmadığı için olduğu gibi kalır.
-   */
   private tx(locale: Locale | undefined, text: string): string {
     if (!locale || locale === 'tr' || !text) return text;
     return this.i18n.catalog(locale)?.[text] || text;
@@ -53,7 +48,6 @@ export class PoliciesService {
     return { ...p, title: this.tx(locale, p.title), ...(p.bodyMd !== undefined ? { bodyMd: this.tx(locale, p.bodyMd) } : {}) };
   }
 
-  /** Etkin politikaların yayımlanmış son versiyonları (önbellekli). */
   async published(): Promise<PublishedVersion[]> {
     return this.cache.wrap(NS, 'published', async () => {
       const policies = await this.db.q
@@ -159,7 +153,6 @@ export class PoliciesService {
     };
   }
 
-  /** Kullanıcının onaylaması gereken politikalar. Dönem güncelse sorgu yapılmaz. */
   async pendingFor(user: Row<'users'>, locale?: Locale): Promise<PendingPolicy[]> {
     const epoch = this.settings.get('policies.epoch');
     if (user.policies_epoch >= epoch) return [];
@@ -193,7 +186,6 @@ export class PoliciesService {
       }));
   }
 
-  /** Kayıt sırasında onaylanan versiyonların doğrulanması: tüm zorunlu kayıt politikaları seçilmiş olmalı. */
   async validateRegistrationAcceptance(versionIds: number[]): Promise<PublishedVersion[]> {
     const policies = await this.forRegistration();
     const chosen = new Set(versionIds);
@@ -229,7 +221,6 @@ export class PoliciesService {
     });
   }
 
-  /** Tüm zorunlu politikaları kabul etmiş sayar (ilk admin gibi). */
   async acceptAllCurrent(userId: number, ip: string | null): Promise<void> {
     const versions = (await this.published()).map((p) => p.versionId);
     if (versions.length) await this.accept(userId, versions, ip, null);
@@ -255,8 +246,6 @@ export class PoliciesService {
       .execute();
     return rows.map((r) => ({ ...r, title: r.title ? this.tx(locale, r.title) : r.title }));
   }
-
-  // ---------- Yönetim ----------
 
   async adminList() {
     const policies = await this.db.q.selectFrom('policies').selectAll().orderBy('sort_order').orderBy('id').execute();
@@ -378,7 +367,6 @@ export class PoliciesService {
         })
         .where('id', '=', id)
         .execute();
-      // Zorunlu hale getirilen politika için mevcut üyeler yeniden onaya zorlanır.
       if (patch.isRequired === true && !bool(p.is_required)) await this.bumpEpoch();
       await this.invalidate();
     });

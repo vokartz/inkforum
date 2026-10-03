@@ -70,7 +70,6 @@
     draft[groupId]![key] = next;
   }
 
-  /** Bir satırın tamamını (tüm düzenlenebilir gruplar için) ayarlar. */
   function setRow(key: string, v: number) {
     for (const g of groups) {
       if (!g.editable || g.systemKey === 'admin') continue;

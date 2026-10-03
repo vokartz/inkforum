@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { EMOJI_SHORTCODE } from './bbcode/emoji.js';
 
-/** Özel emoji (ziyaretçiye ve seçiciye gönderilen). */
 export interface CustomEmoji {
   id: number;
   shortcode: string;
@@ -30,7 +29,6 @@ export const emojiUpdateSchema = z.object({
   isEnabled: z.boolean().default(true),
 });
 
-/** Dosya adından kısa ad önerisi: "Pepe Mutlu.gif" → "pepe_mutlu". */
 export function shortcodeFromFilename(name: string): string {
   const map: Record<string, string> = { ç: 'c', ğ: 'g', ı: 'i', ö: 'o', ş: 's', ü: 'u' };
   return name

@@ -7,10 +7,6 @@
   import { cn } from '$lib/utils';
   import { t } from '$lib/i18n.svelte';
 
-  /**
-   * Etiket girişi: yazdıkça öneri, Enter / virgül ile ekleme, Backspace ile son etiketi silme.
-   * `allowNew` kapalıysa yalnızca önerilen (var olan) etiketler eklenebilir.
-   */
   let {
     value = $bindable([]),
     max = 5,

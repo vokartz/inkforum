@@ -2,10 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { Db } from '../database/db.service.js';
 import { Clock } from '../common/clock.js';
 
-/**
- * Konu ve bölüm sayaçlarını gerçek verilerden yeniden hesaplar. Yeni mesajda sayaçlar artımlı güncellenir;
- * silme, taşıma, birleştirme ve onay gibi seyrek işlemlerde bu tam hesaplama kullanılır.
- */
 @Injectable()
 export class ForumCountersService {
   constructor(
@@ -70,7 +66,6 @@ export class ForumCountersService {
         .where('board_id', '=', boardId)
         .where('deleted_at', 'is', null)
         .where('is_approved', '=', 1)
-        // Gizli konular bölümün "son mesaj" bilgisinde görünmez
         .where('is_hidden', '=', 0)
         .where('moved_to_topic_id', 'is', null)
         .orderBy('last_post_at', 'desc')
@@ -89,7 +84,6 @@ export class ForumCountersService {
       .execute();
   }
 
-  /** Kullanıcının mesaj sayısını (sayılan bölümlerdeki onaylı, silinmemiş mesajlar) yeniden hesaplar. */
   async recountUserPosts(userId: number): Promise<number> {
     const row = await this.db.q
       .selectFrom('posts')

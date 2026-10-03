@@ -4,11 +4,6 @@ import { DEFAULT_OG_CARD, ogCardSchema, type OgCard } from './og-card.js';
 import { DEFAULT_CAPTCHA_CONFIG, captchaConfigSchema, type CaptchaConfig } from './captcha.js';
 import { DEFAULT_MAINTENANCE_PAGE, maintenancePageSchema, type MaintenancePage } from './maintenance-page.js';
 
-/**
- * Ayar kayıt defteri. Veritabanında (`settings` tablosu) yalnızca varsayılandan farklı değerler tutulur.
- * Admin paneli bu tanımlardan form üretir; `public: true` olanlar istemciye de gönderilir.
- */
-
 export type SettingInput = 'text' | 'textarea' | 'number' | 'boolean' | 'select' | 'list';
 
 export interface SettingDefinition<S extends z.ZodType = z.ZodType> {
@@ -19,9 +14,7 @@ export interface SettingDefinition<S extends z.ZodType = z.ZodType> {
   description?: string;
   input: SettingInput;
   options?: { value: string; label: string }[];
-  /** İstemciye (herkese) açık mı? */
   public?: boolean;
-  /** Admin formunda gösterilmez (iç durum). */
   hidden?: boolean;
 }
 
@@ -45,8 +38,6 @@ export const SETTING_SECTIONS = {
   language: 'Dil',
 } as const;
 
-/** Yönetim panelinden seçilebilen yazı tipleri (hepsi Türkçe karakter destekli, değişken ağırlıklı). */
-/** Forum temaları (Yönetim → Görünüm → Tema) */
 export const THEME_STYLES = ['modern', 'community'] as const;
 export type ThemeStyle = (typeof THEME_STYLES)[number];
 
@@ -63,7 +54,6 @@ export const FONT_OPTIONS = [
 ] as const;
 export type FontKey = (typeof FONT_OPTIONS)[number]['key'];
 
-/** Alt bilgi bağlantısı adresi: site içi yol, http(s) ya da mailto. */
 const footerLinkUrl = z
   .string()
   .trim()
@@ -101,7 +91,6 @@ export const REGISTRATION_MODES = ['open', 'email', 'approval', 'email_approval'
 export type RegistrationMode = (typeof REGISTRATION_MODES)[number];
 
 export const SETTINGS = {
-  // Genel
   'general.forumName': def({
     section: 'general',
     schema: z.string().trim().min(1).max(80),
@@ -126,7 +115,6 @@ export const SETTINGS = {
     input: 'list',
     hidden: true,
   }),
-  /** Coolify Deploy Webhook ile güncelleme: { webhookUrl, tokenEnc } */
   'updates.coolify': def({
     section: 'general',
     schema: z.record(z.string(), z.unknown()),
@@ -135,7 +123,6 @@ export const SETTINGS = {
     input: 'list',
     hidden: true,
   }),
-  /** Alt bilgideki "InkForum ile çalışır" bağlantısı */
   'appearance.poweredBy': def({
     section: 'appearance',
     schema: z.boolean(),
@@ -273,7 +260,6 @@ export const SETTINGS = {
   'i18n.enabledLocales': def({
     section: 'language',
     schema: z.array(z.enum(LOCALES)).min(1),
-    // Çevirisi tamamlanan diller (diğer kataloglar yarım; tamamlanınca bu listeye eklenir)
     default: ['tr', 'en'] as Locale[],
     label: 'Kullanılabilir diller',
     description: 'Üyelerin seçebileceği diller.',
@@ -445,7 +431,6 @@ export const SETTINGS = {
     hidden: true,
   }),
 
-  // Kayıt
   'registration.mode': def({
     section: 'registration',
     schema: z.enum(REGISTRATION_MODES),
@@ -518,7 +503,6 @@ export const SETTINGS = {
     input: 'number',
   }),
 
-  // Güvenlik
   'security.passwordMinLength': def({
     section: 'security',
     schema: z.number().int().min(6).max(128),
@@ -571,7 +555,6 @@ export const SETTINGS = {
     input: 'number',
   }),
 
-  // E-posta
   'email.fromName': def({
     section: 'email',
     schema: z.string().trim().min(1).max(80),
@@ -641,7 +624,6 @@ export const SETTINGS = {
     input: 'boolean',
   }),
 
-  // Profil
   'profile.usernameChangeCooldownDays': def({
     section: 'profile',
     schema: z.number().int().min(0).max(3650),
@@ -683,7 +665,6 @@ export const SETTINGS = {
     public: true,
   }),
 
-  // Avatarlar
   'avatars.enabled': def({
     section: 'avatars',
     schema: z.boolean(),
@@ -710,7 +691,6 @@ export const SETTINGS = {
     public: true,
   }),
 
-  // İmzalar
   'signatures.enabled': def({
     section: 'signatures',
     schema: z.boolean(),
@@ -736,7 +716,6 @@ export const SETTINGS = {
     public: true,
   }),
 
-  // Uyarılar
   'warnings.enabled': def({
     section: 'warnings',
     schema: z.boolean(),
@@ -763,7 +742,6 @@ export const SETTINGS = {
     public: true,
   }),
 
-  // Başarılar
   'achievements.enabled': def({
     section: 'achievements',
     schema: z.boolean(),
@@ -781,7 +759,6 @@ export const SETTINGS = {
     public: true,
   }),
 
-  // Forum
   'forum.topicsPerPage': def({
     section: 'forum',
     schema: z.number().int().min(5).max(100),
@@ -896,7 +873,6 @@ export const SETTINGS = {
     input: 'number',
     public: true,
   }),
-  // Görünüm
   'appearance.themeStyle': def({
     section: 'appearance',
     schema: z.enum(THEME_STYLES),
@@ -1154,7 +1130,6 @@ export const SETTINGS = {
     hidden: true,
   }),
 
-  // Özel mesajlar
   'messages.enabled': def({
     section: 'messages',
     schema: z.boolean(),
@@ -1197,7 +1172,6 @@ export const SETTINGS = {
     input: 'number',
   }),
 
-  // Çerezler
   'cookies.bannerEnabled': def({
     section: 'cookies',
     schema: z.boolean(),
@@ -1215,7 +1189,6 @@ export const SETTINGS = {
     public: true,
   }),
 
-  // Gömülü içerik: "Yönetim → Gömülü içerik" ekranından yönetilir (kaydedilince mesajlar yeniden işlenir).
   'embeds.enabled': def({
     section: 'forum',
     schema: z.boolean(),
@@ -1272,7 +1245,6 @@ export const SETTINGS = {
     hidden: true,
   }),
 
-  // Geliştirici platformu (Yönetim → Geliştiriciler)
   'oauth.accessTokenMinutes': def({
     section: 'security',
     schema: z.number().int().min(5).max(1440),
@@ -1296,49 +1268,6 @@ export const SETTINGS = {
     hidden: true,
   }),
 
-  // Özel kod ve entegrasyonlar (Yönetim → Özel kod ekranından düzenlenir)
-  'custom.enabled': def({
-    section: 'appearance',
-    schema: z.boolean(),
-    default: true,
-    label: 'Özel kod parçacıkları çalışsın',
-    input: 'boolean',
-    hidden: true,
-  }),
-  'custom.css': def({
-    section: 'appearance',
-    schema: z.string().max(100_000),
-    default: '',
-    label: 'Özel CSS',
-    input: 'textarea',
-    hidden: true,
-  }),
-  'custom.csp': def({
-    section: 'appearance',
-    schema: z.object({ script: z.array(z.string()), connect: z.array(z.string()), style: z.array(z.string()), font: z.array(z.string()) }),
-    default: { script: [], connect: [], style: [], font: [] } as { script: string[]; connect: string[]; style: string[]; font: string[] },
-    label: 'İzin verilen dış kaynaklar',
-    input: 'list',
-    hidden: true,
-  }),
-  'custom.tokenTtl': def({
-    section: 'appearance',
-    schema: z.number().int().min(30).max(3600),
-    default: 300,
-    label: 'Entegrasyon belirteci süresi (sn)',
-    input: 'number',
-    hidden: true,
-  }),
-  'integration.secret': def({
-    section: 'security',
-    schema: z.string().max(200),
-    default: '',
-    label: 'Entegrasyon imza anahtarı',
-    input: 'text',
-    hidden: true,
-  }),
-
-  // İç durum
   'policies.epoch': def({
     section: 'general',
     schema: z.number().int().min(0),

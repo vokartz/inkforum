@@ -33,6 +33,7 @@
   import { Switch } from '$lib/components/ui/switch';
   import Breadcrumbs from '$lib/components/forum/Breadcrumbs.svelte';
   import PostCard from '$lib/components/forum/PostCard.svelte';
+  import ExtensionSlotView from '$lib/components/ExtensionSlotView.svelte';
   import PageJump from '$lib/components/forum/PageJump.svelte';
   import PrefixBadge from '$lib/components/forum/PrefixBadge.svelte';
   import TagChips from '$lib/components/forum/TagChips.svelte';
@@ -70,7 +71,6 @@
   let editor = $state<ReturnType<typeof Editor> | null>(null);
   let replyBox = $state<HTMLElement | null>(null);
 
-  // ----- Çoklu alıntı (oturum boyunca konu başına saklanır) -----
   const MQ_KEY = $derived(`forum:mq:${topic.id}`);
   let multi = $state<number[]>([]);
   onMount(() => {
@@ -84,7 +84,6 @@
     try {
       sessionStorage.setItem(MQ_KEY, JSON.stringify(multi));
     } catch {
-      /* yoksay */
     }
   }
   function toggleMulti(id: number) {
@@ -123,7 +122,6 @@
     }
   }
 
-  // ----- Seçili metni alıntıla -----
   let selQuote = $state<{ x: number; y: number; text: string; postId: number; author: string } | null>(null);
   function onSelection() {
     const sel = window.getSelection();
@@ -153,7 +151,6 @@
     void scrollToReply();
   }
 
-  // ----- Yanıt -----
   async function sendReply() {
     if (sending || !reply.trim()) return;
     sending = true;
@@ -199,7 +196,6 @@
     }
   });
 
-  // ----- Moderasyon -----
   async function mod(action: string, message: string) {
     try {
       await api.post(`/api/mod/topics/${topic.id}/${action}`);
@@ -274,7 +270,6 @@
     }
   }
 
-  // ----- Gizli konu üyeleri (yetkililer başka üyeleri konuya ekleyebilir) -----
   let membersOpen = $state(false);
   let members = $state<TopicMember[] | null>(null);
   async function openMembers() {
@@ -319,7 +314,6 @@
     }
   }
 
-  // ----- Düzenleme geçmişi -----
   let historyOpen = $state(false);
   let history = $state<PostRevisionItem[] | null>(null);
   async function openHistory(postId: number) {
@@ -333,7 +327,6 @@
     }
   }
 
-  // ---------- Alt gezinme (benzer konular, sonraki okunmamış) ----------
   let related = $state<TopicRelated | null>(null);
   $effect(() => {
     const id = topic.id;
@@ -354,7 +347,6 @@
     }
   }
 
-  // ---------- Takip, etiketler, görüntüleyenler ----------
   let subscribed = $derived(tv.subscribed);
   let subBusy = $state(false);
   async function toggleSubscribe() {
@@ -514,6 +506,8 @@
   <div class="mb-3 flex justify-end"><PageJump page={tv.posts.page} perPage={tv.posts.perPage} total={tv.posts.total} /></div>
 {/if}
 
+{#if data.extSlots?.topicTop.length}<div class="mb-4 grid gap-3"><ExtensionSlotView items={data.extSlots.topicTop} key="topicTop" /></div>{/if}
+
 <div class="grid gap-4">
   {#each tv.posts.items as post, i (post.id)}
     {#if tv.firstUnreadPostId === post.id && i > 0}
@@ -537,12 +531,16 @@
         reactionDefs={tv.reactions}
         loggedIn={!!data.viewer.user}
         layout={data.viewer.settings['appearance.postLayout'] === 'top' ? 'top' : 'side'}
+        extFooter={data.extSlots?.posts[post.id]?.postFooter}
+        extActions={data.extSlots?.posts[post.id]?.postActions}
       />
     </div>
   {/each}
 </div>
 
 <div class="mt-4 flex justify-end"><PageJump page={tv.posts.page} perPage={tv.posts.perPage} total={tv.posts.total} /></div>
+
+{#if data.extSlots?.topicBottom.length}<div class="mt-4 grid gap-3"><ExtensionSlotView items={data.extSlots.topicBottom} key="topicBottom" /></div>{/if}
 
 <!-- Hızlı yanıt -->
 <section bind:this={replyBox} data-part="quick-reply" class="mt-6 scroll-mt-24">

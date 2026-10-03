@@ -24,7 +24,6 @@ export {
 	GroupHeading,
 	Portal,
 	Value,
-	//
 	Root as Select,
 	Group as SelectGroup,
 	Label as SelectLabel,

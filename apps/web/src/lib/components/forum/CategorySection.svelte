@@ -12,11 +12,8 @@
     name: string;
     description?: string | null;
     collapsible?: boolean;
-    /** Başlık arka plan görseli */
     background?: string | null;
-    /** Kategorideki bölüm sayısı */
     count?: number | null;
-    /** Geniş ekranda sütun başlıklarını göster */
     columns?: boolean;
     children: Snippet;
   }
@@ -31,7 +28,6 @@
       const list = JSON.parse(localStorage.getItem(KEY) ?? '[]') as number[];
       collapsed = collapsible && list.includes(id);
     } catch {
-      /* yoksay */
     }
   });
 
@@ -43,7 +39,6 @@
       else list.delete(id);
       localStorage.setItem(KEY, JSON.stringify([...list]));
     } catch {
-      /* yoksay */
     }
   }
 </script>

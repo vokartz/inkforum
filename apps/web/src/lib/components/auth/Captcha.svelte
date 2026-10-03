@@ -8,7 +8,6 @@
   }
   const GLOBALS: Record<Provider, string> = { turnstile: 'turnstile', hcaptcha: 'hcaptcha', recaptcha: 'grecaptcha' };
 
-  /** Sağlayıcı betiği sayfada bir kez yüklenir; `render` hazır olunca çözülür. */
   const loading = new Map<Provider, Promise<Widget>>();
   function loadProvider(p: Provider): Promise<Widget> {
     let promise = loading.get(p);
@@ -48,16 +47,11 @@
   import { cn } from '$lib/utils';
   import { t } from '$lib/i18n.svelte';
 
-  /**
-   * Giriş / kayıt / şifre sıfırlama formlarındaki isteğe bağlı doğrulama.
-   * `value` forma `captcha` alanı olarak gönderilir; başarısız gönderimden sonra `reset()` çağrılmalı.
-   */
   let { form, value = $bindable(), error = undefined }: { form: CaptchaForm; value?: string; error?: string } = $props();
 
   const cfg = $derived((page.data.viewer?.settings['captcha.config'] as CaptchaConfig | undefined) ?? DEFAULT_CAPTCHA_CONFIG);
   const required = $derived(captchaRequired(cfg, form));
 
-  // Yerleşik soru
   let question = $state('');
   let token = $state('');
   let answer = $state('');
@@ -75,7 +69,6 @@
     }
   }
 
-  // Dış sağlayıcılar
   let box = $state<HTMLElement | null>(null);
   let widget: Widget | null = null;
   let widgetId: string | number | undefined;
@@ -103,7 +96,6 @@
       .catch(() => (failed = true));
   });
 
-  /** Kullanılmış yanıt tekrar geçmez: her gönderimden sonra yenilenir */
   export function reset() {
     value = '';
     if (cfg.provider === 'builtin') void fetchQuestion();

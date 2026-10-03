@@ -15,6 +15,7 @@
   import BoardIcon from '$lib/components/forum/BoardIcon.svelte';
   import BoardRow from '$lib/components/forum/BoardRow.svelte';
   import TopicRow from '$lib/components/forum/TopicRow.svelte';
+  import ExtensionSlotView from '$lib/components/ExtensionSlotView.svelte';
   import PageJump from '$lib/components/forum/PageJump.svelte';
   import Combobox from '$lib/components/Combobox.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
@@ -158,6 +159,8 @@
     </Button>
   </div>
 </div>
+
+{#if data.extTop.length}<div class="mb-6 grid gap-3"><ExtensionSlotView items={data.extTop} key="boardTop" /></div>{/if}
 
 <section data-part="topic-list" class="overflow-hidden rounded-2xl border bg-card shadow-card">
   {#if b.pinned.length}

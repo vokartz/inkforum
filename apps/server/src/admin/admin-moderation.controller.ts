@@ -44,7 +44,6 @@ export class AdminModerationController {
     private readonly permissions: PermissionsService,
   ) {}
 
-  /** Yöneticiler yalnızca yöneticilerce, yetkililer (yönetim erişimi olanlar) yalnızca yasak yöneticilerince yasaklanabilir */
   private async assertBannable(v: RequestViewer, triggers: Array<{ type: string; value: string }>): Promise<void> {
     for (const t of triggers) {
       if (t.type !== 'user') continue;
@@ -56,8 +55,6 @@ export class AdminModerationController {
       if ((perms.isAdmin || perms.permissions.has('admin.access')) && !can(v, 'admin.bans.manage')) throw Errors.forbidden('Yönetim ekibinden birini yasaklama yetkiniz yok.');
     }
   }
-
-  // ----- Yasaklar -----
 
   @Get('admin/bans')
   @AdminEndpoint('admin.bans.manage')
@@ -84,7 +81,6 @@ export class AdminModerationController {
     return this.bans.get(id);
   }
 
-  /** Yönetim paneli (admin.bans.manage) veya moderatör (mod.users.ban, yalnızca üye tetikleyicisiyle). */
   @Post('mod/bans')
   @HttpCode(201)
   @RequirePermission('mod.users.ban')
@@ -115,7 +111,6 @@ export class AdminModerationController {
   @HttpCode(200)
   @RequirePermission('mod.users.ban')
   async lift(@Param('id', new ZodPipe(idParam)) id: number, @CurrentViewer() v: RequestViewer) {
-    // Moderatörler yalnızca üye bazlı yasakları kaldırabilir (IP, e-posta yasakları yönetimin)
     if (!can(v, 'admin.bans.manage')) {
       const ban = await this.bans.get(id);
       if (ban.triggers.some((t: { type: string }) => t.type !== 'user')) throw Errors.forbidden('Bu yasağı yalnızca yasak yöneticileri kaldırabilir.');
@@ -132,8 +127,6 @@ export class AdminModerationController {
     await this.audit.log({ type: 'moderation', action: 'ban.delete', actorId: v.user!.id, targetType: 'ban', targetId: id, ip: v.ip });
     return { ok: true };
   }
-
-  // ----- Uyarı şablonları ve eşik eylemleri -----
 
   @Get('admin/warnings/config')
   @AdminEndpoint('admin.warnings.manage')

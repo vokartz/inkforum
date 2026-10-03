@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { canonicalName } from './canonical.js';
 
-/** Unicode harf/rakam ile başlayıp biten; arada boşluk, alt çizgi, nokta, tire. */
 const USERNAME_RE = /^[\p{L}\p{N}](?:[\p{L}\p{N} _.-]*[\p{L}\p{N}])?$/u;
 const REPEATED_SEPARATORS = /[ _.-]{2,}/;
 
@@ -46,7 +45,6 @@ export function passwordIssue(password: string, rules: PasswordRules, username?:
   return null;
 }
 
-/** 0-4 arası kaba şifre gücü (istemcideki gösterge için). */
 export function passwordStrength(password: string): number {
   if (!password) return 0;
   let score = 0;
@@ -58,7 +56,6 @@ export function passwordStrength(password: string): number {
   return Math.min(4, score);
 }
 
-/** 'YYYY-MM-DD' biçiminde geçerli bir takvim tarihi. */
 export const isoDate = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'Tarih YYYY-AA-GG biçiminde olmalı.')

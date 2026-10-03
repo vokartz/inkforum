@@ -55,8 +55,6 @@ export class ForumAdminService {
     return this.audit.log({ type: 'admin', action, actorId: viewer.user!.id, targetType, targetId, ip: viewer.ip, data });
   }
 
-  // ---------- Ağaç ----------
-
   async tree(): Promise<AdminCategory[]> {
     const { categories, boards } = await this.forum.structure();
     const counters = await this.db.q.selectFrom('boards').select(['id', 'topic_count', 'post_count', 'redirect_clicks']).execute();
@@ -107,8 +105,6 @@ export class ForumAdminService {
     }));
   }
 
-  // ---------- Kategoriler ----------
-
   async createCategory(viewer: RequestViewer, input: z.output<typeof categoryInputSchema>): Promise<number> {
     const now = this.clock.now();
     const max = await this.db.q.selectFrom('forum_categories').select((eb) => eb.fn.max('sort_order').as('m')).executeTakeFirst();
@@ -140,7 +136,6 @@ export class ForumAdminService {
     await this.log(viewer, 'forum.category.update', 'category', id, { name: input.name });
   }
 
-  /** Kategori başlığının arka plan görseli (null = kaldır). */
   async setCategoryBackground(viewer: RequestViewer, id: number, file: UploadedImage | null): Promise<{ url: string | null }> {
     const cat = await this.db.q.selectFrom('forum_categories').select(['id', 'bg_file_id']).where('id', '=', id).executeTakeFirst();
     if (!cat) throw Errors.notFound('Kategori bulunamadı.');
@@ -163,8 +158,6 @@ export class ForumAdminService {
     await this.forum.invalidate();
     await this.log(viewer, 'forum.category.delete', 'category', id);
   }
-
-  // ---------- Bölümler ----------
 
   private async validateBoard(input: BoardInput, id: number | null): Promise<void> {
     const cat = await this.db.q.selectFrom('forum_categories').select('id').where('id', '=', input.categoryId).executeTakeFirst();
@@ -241,7 +234,6 @@ export class ForumAdminService {
       if (topic) throw Errors.field('type', 'Konusu olan bölüm bağlantıya dönüştürülemez.');
     }
     const values = this.boardValues(input);
-    // Görsel ikon seçiliyken dosya korunur; başka türe geçilince dosya silinir.
     await this.db.tx(async () => {
       await this.db.q
         .updateTable('boards')
@@ -249,7 +241,6 @@ export class ForumAdminService {
         .where('id', '=', id)
         .execute();
       if (input.icon.kind !== 'image' && board.icon_file_id) await this.storage.delete(board.icon_file_id);
-      // Kategori değişince alt bölümler de taşınır.
       if (input.categoryId !== board.category_id) {
         const { boards } = await this.forum.structure();
         const ids: number[] = [id];
@@ -258,7 +249,6 @@ export class ForumAdminService {
       }
     });
     if (board.count_posts !== (input.countPosts ? 1 : 0)) {
-      // Mesaj sayma politikası değişti: etkilenen üyelerin sayaçlarını yeniden hesapla.
       const authors = await this.db.q.selectFrom('posts').select('user_id').distinct().where('board_id', '=', id).where('user_id', 'is not', null).execute();
       for (const a of authors) {
         await this.counters.recountUserPosts(a.user_id!);
@@ -269,7 +259,6 @@ export class ForumAdminService {
     await this.log(viewer, 'forum.board.update', 'board', id, { name: input.name });
   }
 
-  /** Bölüm sayfasının kapak fotoğrafı (geniş görsel; null = kaldır). */
   async setBoardCover(viewer: RequestViewer, id: number, file: UploadedImage | null): Promise<{ url: string | null }> {
     const board = await this.forum.board(id);
     if (!board) throw Errors.notFound('Bölüm bulunamadı.');
@@ -297,7 +286,6 @@ export class ForumAdminService {
     return { url: this.storage.publicUrl(saved) };
   }
 
-  /** Bölümü siler. Konular varsa önce hedef bölüme taşınır; alt bölümler varsa silinmez. */
   async deleteBoard(viewer: RequestViewer, id: number, moveTopicsTo: number | null): Promise<void> {
     const board = await this.forum.board(id);
     if (!board) throw Errors.notFound('Bölüm bulunamadı.');
@@ -373,8 +361,6 @@ export class ForumAdminService {
     await this.log(viewer, 'forum.board.moderators', 'board', boardId, { userIds: users.map((u) => u.id), groupIds: validGroups });
   }
 
-  // ---------- Önekler ----------
-
   async prefixes() {
     const { prefixes } = await this.forum.structure();
     return prefixes;
@@ -418,8 +404,6 @@ export class ForumAdminService {
     await this.log(viewer, 'forum.prefix.delete', 'prefix', id);
   }
 
-  // ---------- Yetki profilleri ----------
-
   async profileList(): Promise<PermissionProfileSummary[]> {
     const profiles = await this.permissions.profiles();
     const counts = await this.db.q
@@ -446,7 +430,6 @@ export class ForumAdminService {
   async profileMatrix(profileId: number) {
     const profile = (await this.profileList()).find((p) => p.id === profileId);
     if (!profile) throw Errors.notFound('Yetki profili bulunamadı.');
-    // Bölüm yetkilerinde en önemli sütunlar misafir ve üye: başa alınır.
     const rank = (k: string | null) => (k === 'guest' ? 0 : k === 'member' ? 1 : 2);
     const groups = [...(await this.groups.all())].sort((a, b) => rank(a.system_key) - rank(b.system_key));
     const values = await this.permissions.profileEntries(profileId);
@@ -478,7 +461,6 @@ export class ForumAdminService {
     };
   }
 
-  /** Bakım: tüm sayaçları yeniden hesaplar. */
   async recountAll(viewer: RequestViewer): Promise<void> {
     const topics = await this.db.q.selectFrom('topics').select('id').where('moved_to_topic_id', 'is', null).execute();
     for (const t of topics) await this.counters.recountTopic(t.id);

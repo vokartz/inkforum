@@ -121,7 +121,6 @@ describe('hidden topic members', () => {
     expect(added.status).toBe(200);
     expect(added.body.items.map((m: { user: { id: number } }) => m.user.id)).toEqual([ayseId]);
 
-    // Eklenen üye konuyu görür, listede bulur ve bildirim alır
     expect((await ayse.get(`/api/topics/${topicId}`)).status).toBe(200);
     const list = await ayse.get(`/api/boards/${boardId}`);
     expect(list.body.topics.items.map((t: { id: number }) => t.id)).toContain(topicId);

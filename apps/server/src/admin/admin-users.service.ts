@@ -189,7 +189,6 @@ export class AdminUsersService {
     };
   }
 
-  /** Yöneticilere yalnızca yöneticiler dokunabilir (düzenleme, 2FA, oturum, profil…) */
   async assertNotProtectedTarget(viewer: RequestViewer, userId: number) {
     const target = await this.users.findById(userId);
     if (!target) throw Errors.notFound('Üye bulunamadı.');
@@ -285,10 +284,6 @@ export class AdminUsersService {
     await this.groups.recountMembers();
   }
 
-  /**
-   * Hesabı siler: kişisel veriler temizlenir, isim/e-posta serbest kalır; kayıt (ileride mesajların
-   * yazarını göstermek için) "Silinmiş üye" olarak korunur.
-   */
   private async anonymize(userId: number): Promise<void> {
     const user = await this.users.findById(userId);
     if (!user) return;
@@ -328,8 +323,6 @@ export class AdminUsersService {
       deleted_at: now,
     });
   }
-
-  // ---------- Moderatör notları ----------
 
   async notes(userId: number) {
     const rows = await this.db.q.selectFrom('user_notes').selectAll().where('user_id', '=', userId).orderBy('created_at', 'desc').execute();

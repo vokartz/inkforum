@@ -1,8 +1,3 @@
-/**
- * Kaydırınca beliren öğe. Sunucuda ve ilk ekranda görünen öğelerde hiçbir şey yapmaz
- * (içerik JS olmadan da görünür kalır); aşağıdakiler görünür alana girince yumuşakça belirir.
- * Parametre: gecikme (ms), `false` (kapalı) ya da { delay, type: 'fade' | 'up' | 'zoom' | 'none' }.
- */
 export type RevealOptions = number | false | { delay?: number; type?: string };
 
 export function reveal(node: HTMLElement, opts: RevealOptions = 0) {

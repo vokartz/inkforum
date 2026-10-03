@@ -13,7 +13,6 @@ import { PostsService } from './posts.service.js';
 
 const NS = 'reactions';
 
-/** Kurulumda gelen tepki seti. */
 const DEFAULTS: Array<{ key: string; label: string; emoji: string; points: number }> = [
   { key: 'like', label: 'Beğen', emoji: '👍', points: 1 },
   { key: 'love', label: 'Bayıldım', emoji: '❤️', points: 1 },
@@ -50,12 +49,10 @@ export class ReactionsService {
     await this.cache.invalidate(NS);
   }
 
-  /** Etkin tepki seti (konu sayfasına gönderilir). */
   async enabled(): Promise<ReactionDef[]> {
     return (await this.all()).filter((r) => r.is_enabled === 1).map((r) => ({ id: r.id, key: r.key, label: r.label, emoji: r.emoji, points: r.points }));
   }
 
-  /** Mesajların tepki özetleri ve görüntüleyenin kendi tepkileri. */
   async forPosts(viewer: RequestViewer, postIds: number[]): Promise<{ counts: Map<number, PostReactionCount[]>; mine: Map<number, number> }> {
     const counts = new Map<number, PostReactionCount[]>();
     const mine = new Map<number, number>();
@@ -81,10 +78,6 @@ export class ReactionsService {
     return { counts, mine };
   }
 
-  /**
-   * Tepki ver / değiştir / geri al. Aynı tepki tekrar gönderilirse kaldırılır.
-   * Mesaj sahibinin itibarı tepkinin puanı kadar değişir.
-   */
   async react(viewer: RequestViewer, postId: number, reactionId: number | null): Promise<{ reactions: PostReactionCount[]; myReaction: number | null }> {
     const user = viewer.user;
     if (!user) throw Errors.unauthenticated();
@@ -133,7 +126,6 @@ export class ReactionsService {
     return { reactions: counts.get(postId) ?? [], myReaction: mine.get(postId) ?? null };
   }
 
-  /** Mesaja kimlerin hangi tepkiyi verdiği. */
   async who(viewer: RequestViewer, postId: number): Promise<ReactionUserItem[]> {
     await this.posts.loadVisiblePost(viewer, postId);
     const rows = await this.db.q
@@ -147,18 +139,12 @@ export class ReactionsService {
     return rows.filter((r) => people.has(r.user_id)).map((r) => ({ user: people.get(r.user_id)!, reactionId: r.reaction_id, at: r.created_at }));
   }
 
-  // ---------- Yönetim ----------
-
   async adminList(): Promise<AdminReaction[]> {
     const uses = await this.db.q.selectFrom('post_reactions').select(['reaction_id', (eb) => eb.fn.countAll<number>().as('n')]).groupBy('reaction_id').execute();
     const n = new Map(uses.map((u) => [u.reaction_id, Number(u.n)]));
     return (await this.all()).map((r) => ({ id: r.id, key: r.key, label: r.label, emoji: r.emoji, points: r.points, isEnabled: r.is_enabled === 1, uses: n.get(r.id) ?? 0 }));
   }
 
-  /**
-   * Tepki setini kaydeder. Listeden çıkarılan tepkiler, kullanılmışsa silinmez (geçmiş korunur) ama kapatılır.
-   * Puan değişikliği geçmiş tepkilerin itibarını yeniden hesaplamaz.
-   */
   async save(viewer: RequestViewer, input: ReactionsAdminInput): Promise<void> {
     const keys = new Set<string>();
     input.items.forEach((it, i) => {

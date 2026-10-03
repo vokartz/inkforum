@@ -14,7 +14,6 @@ const uploadFields = z.object({ shortcode: z.string().max(40).optional(), catego
 export class EmojisController {
   constructor(private readonly emojis: EmojisService) {}
 
-  /** Etkin özel emojiler (seçici ve istemci önizlemesi için). */
   @Get('emojis')
   list() {
     return this.emojis.enabled();

@@ -3,12 +3,6 @@ import { request as httpRequest, type IncomingMessage } from 'node:http';
 import { request as httpsRequest } from 'node:https';
 import { isIP } from 'node:net';
 
-/**
- * SSRF'e karşı güvenli giden istek: hedefin çözümlenen IP adresi bağlantı anında denetlenir
- * (DNS yeniden bağlama saldırısına karşı da; denetlenen adrese bağlanılır). Yerel ağ, döngü,
- * bulut üst veri (169.254.169.254) ve özel adresler reddedilir.
- */
-
 function v4ToInt(ip: string): number {
   return ip.split('.').reduce((n, o) => (n << 8) + Number(o), 0) >>> 0;
 }
@@ -47,9 +41,7 @@ export class BlockedAddressError extends Error {
 
 export interface SafeResponse {
   status: number;
-  /** En fazla `maxBytes` kadar gövde */
   text: string;
-  /** Ham gövde (görsel indirmeleri için) */
   body: Buffer;
   contentType: string;
 }
@@ -63,7 +55,6 @@ export async function safeFetch(
   const host = u.hostname.replace(/^\[|\]$/g, '');
   if (!opts.allowPrivate && isIP(host) && isPrivateAddress(host)) throw new BlockedAddressError(host);
 
-  // Çözümlenen her adres denetlenir; bağlantı denetlenen adrese yapılır
   const lookup = (hostname: string, options: object, cb: (err: NodeJS.ErrnoException | null, address: string | LookupAddress[], family?: number) => void) => {
     dnsLookup(hostname, { ...options, all: true }, (err, addresses) => {
       if (err) return cb(err, '', 4);

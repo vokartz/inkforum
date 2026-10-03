@@ -1,17 +1,3 @@
-/**
- * InkForum güncelleyici (Docker yardımcı kapsayıcısı).
- *
- * Uygulama kapsayıcısı Docker soketine erişmez; güncelleme isteğini iç ağdaki bu küçük servise
- * paylaşılan bir anahtarla iletir. Güncelleyici:
- *   1. ghcr.io/vokartz/inkforum:<sürüm> imajını çeker (yalnızca yapılandırılmış imaj deposundan),
- *   2. `inkforum.role=app` etiketli kapsayıcıları aynı ayarlarla yeni imajdan yeniden oluşturur,
- *   3. sağlık denetimi geçmezse eski kapsayıcıya geri döner,
- *   4. en sonda kendini de günceller.
- *
- * Ortam: UPDATER_TOKEN (yoksa uygulamanın ürettiği UPDATER_TOKEN_FILE okunur), UPDATER_IMAGE, UPDATER_PORT (9000),
- * DOCKER_SOCKET.
- * Nest'e bağımlı değildir; sürüm paketinde `updater.mjs` olarak çalışır.
- */
 import { timingSafeEqual } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { createServer, request, type IncomingMessage, type ServerResponse } from 'node:http';
@@ -30,7 +16,6 @@ interface Job {
 
 const TOKEN_FILE = process.env.UPDATER_TOKEN_FILE ?? '/app/storage/.updater-token';
 
-/** Ortamdaki anahtar ya da uygulamanın paylaşılan depolamaya yazdığı anahtar (uygulama sonra açılabilir) */
 function token(): string {
   if (process.env.UPDATER_TOKEN) return process.env.UPDATER_TOKEN;
   try {
@@ -53,8 +38,6 @@ function log(message: string, level: 'info' | 'warn' | 'error' = 'info'): void {
   if (job.log.length > 300) job.log.splice(0, job.log.length - 300);
   console[level === 'info' ? 'log' : level](`[updater] ${message}`);
 }
-
-// ---------- Docker Engine API (Unix soketi) ----------
 
 interface DockerResponse {
   status: number;
@@ -154,7 +137,6 @@ async function pull(tag: string): Promise<void> {
   if (r.status >= 300) throw new Error(`İmaj indirilemedi (${r.status}).`);
 }
 
-/** Eski imajın varsayılanlarıyla aynı olan alanlar yeni imajın varsayılanlarına bırakılır. */
 function carryConfig(c: ContainerInspect, oldImage: ImageInspect, newImageRef: string) {
   const oldEnv = new Set(oldImage.Config.Env ?? []);
   const env = (c.Config.Env ?? []).filter((e) => !oldEnv.has(e));
@@ -174,10 +156,6 @@ function carryConfig(c: ContainerInspect, oldImage: ImageInspect, newImageRef: s
   return cfg;
 }
 
-/**
- * İmajdaki VOLUME için platform kalıcı birim bağlamadıysa Docker isimsiz bir birim açar; HostConfig'te yer almadığından
- * yeni kapsayıcı boş bir birimle başlardı. Bu birimler yeni kapsayıcıya aynen bağlanır, veriler korunur.
- */
 function keepAnonymousVolumes(c: ContainerInspect): Record<string, unknown> {
   const host = { ...c.HostConfig };
   const binds = (host.Binds as string[] | null | undefined) ?? [];
@@ -204,14 +182,13 @@ async function waitHealthy(id: string): Promise<void> {
       lastStatus = status;
     }
     if (status === 'healthy') return;
-    if (status === 'none' && Date.now() > until - HEALTH_TIMEOUT_MS + 20_000) return; // sağlık denetimi tanımsız: 20 sn çalıştıysa kabul
+    if (status === 'none' && Date.now() > until - HEALTH_TIMEOUT_MS + 20_000) return;
     if (status === 'unhealthy') throw new Error('Yeni kapsayıcı sağlık denetiminden geçemedi.');
     await new Promise((r) => setTimeout(r, 2000));
   }
   throw new Error('Yeni kapsayıcı zamanında hazır olmadı.');
 }
 
-/** Tek kapsayıcıyı yeni imajla yeniden oluşturur; hata olursa eskisine döner. */
 async function recreate(summary: ContainerSummary, newRef: string, waitForHealth: boolean): Promise<void> {
   const c = await dockerJson<ContainerInspect>('GET', `/containers/${summary.Id}/json`);
   const name = c.Name.replace(/^\//, '');
@@ -273,7 +250,6 @@ async function runUpdate(version: string): Promise<void> {
     job.finishedAt = Date.now();
     log(`InkForum v${version} kuruldu.`);
 
-    // En son güncelleyicinin kendisi: yeni kopya açılınca eskisini (bu süreç) kaldırır
     const self = (await containers('updater')).find((c) => c.Id.startsWith(process.env.HOSTNAME ?? '~'));
     if (self) {
       log('Güncelleyici de yenileniyor…');
@@ -303,7 +279,6 @@ async function selfReplace(self: ContainerSummary, ref: string): Promise<void> {
   await dockerOk('POST', `/containers/${created.Id}/start`);
 }
 
-/** Açılışta: önceki güncelleyici kopyalarını ve yarım kalmış "-old-" kapsayıcılarını temizle */
 async function cleanup(): Promise<void> {
   try {
     const me = process.env.HOSTNAME ?? '';
@@ -317,8 +292,6 @@ async function cleanup(): Promise<void> {
     console.warn(`[updater] temizlik atlandı: ${(err as Error).message}`);
   }
 }
-
-// ---------- HTTP ----------
 
 function authorized(req: IncomingMessage): boolean {
   const given = Buffer.from(String(req.headers.authorization ?? '').replace(/^Bearer\s+/i, ''));

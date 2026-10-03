@@ -38,6 +38,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@inkforum/sdk": "workspace:*",
     "@electric-sql/pglite": "^0.5.8",
     "@nestjs/testing": "^11.2.6",
     "@swc/cli": "^0.8.1",

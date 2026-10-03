@@ -3,7 +3,6 @@
   import WarningIcon from 'phosphor-svelte/lib/WarningOctagon';
   import { t } from '$lib/i18n.svelte';
 
-  /** Docker'da depolama klasörüne kalıcı disk bağlı değil: yeniden dağıtımda veriler kaybolur. */
   let { warning }: { warning: StorageWarning } = $props();
 
   const copyCmd = $derived(

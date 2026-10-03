@@ -8,14 +8,11 @@ const bool = z
   .union([z.boolean(), z.string()])
   .transform((v) => (typeof v === 'boolean' ? v : ['1', 'true', 'yes', 'on'].includes(v.toLowerCase())));
 
-/** .env içinde boş bırakılan değer (ör. `APP_SECRET=`) verilmemiş sayılır */
 const blank = <T extends z.ZodType>(schema: T) => z.preprocess((v) => (v === '' ? undefined : v), schema.optional());
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  /** Sitenin adresi. Boş ya da "auto": ilk kurulumda tarayıcı adresinden algılanıp kaydedilir */
   APP_URL: blank(z.union([z.literal('auto'), z.url()])),
-  /** Coolify'ın uygulamaya verdiği adres(ler); APP_URL yoksa kullanılır */
   COOLIFY_URL: z.string().optional(),
   COOLIFY_FQDN: z.string().optional(),
   COOLIFY_RESOURCE_UUID: z.string().optional(),
@@ -43,26 +40,19 @@ const envSchema = z.object({
   SENDMAIL_PATH: z.string().default('/usr/sbin/sendmail'),
 
   IMAGE_DRIVER: z.enum(['auto', 'sharp', 'passthrough']).default('auto'),
-  /** Webhook'ların yerel / özel ağ adreslerine gitmesine izin ver (yalnızca geliştirme) */
   WEBHOOK_ALLOW_PRIVATE: z.enum(['true', 'false']).default('false'),
-  /** Acil durum: güvenlik duvarını yönetim ayarından bağımsız kapatır (kendini dışarıda bırakma durumu için) */
   WAF_DISABLED: z.enum(['true', 'false']).default('false'),
 
-  /** Güncellemelerin okunduğu GitHub deposu (sahip/ad) */
   UPDATE_REPO: z
     .string()
     .regex(/^[\w.-]+\/[\w.-]+$/)
     .default('vokartz/inkforum'),
   UPDATE_API_URL: z.url().default('https://api.github.com'),
-  /** Güncelleme denetimini tamamen kapatır (internetsiz kurulumlar) */
   UPDATES_DISABLED: bool.optional(),
-  /** Docker kurulumunda güncelleyici kapsayıcının adresi ve paylaşılan anahtarı */
   UPDATER_URL: z.url().optional(),
   UPDATER_TOKEN: blank(z.string().min(16)),
-  /** docker | release | source (boşsa otomatik algılanır) */
   INKFORUM_DEPLOY: z.enum(['docker', 'release', 'source']).optional(),
   INKFORUM_BUILD: z.string().max(80).optional(),
-  /** Kurulumdan önceki varsayılan dil (install.sh yazar); kurulumdan sonra yönetim panelindeki ayar geçerlidir */
   DEFAULT_LOCALE: blank(z.enum(LOCALES)),
 
   ADMIN_USERNAME: z.string().default('admin'),
@@ -80,9 +70,7 @@ export interface AppConfig {
   root: string;
   appUrl: string;
   appOrigin: string;
-  /** env: APP_URL (ya da platform) belirledi · auto: kurulumda algılanır ve veritabanında saklanır */
   appUrlMode: 'env' | 'auto';
-  /** auto modda adres henüz belirlenmedi (kurulumdan önce); kaynak denetimi istekteki Host'a göre yapılır */
   appUrlPending: boolean;
   secureCookies: boolean;
   sessionCookieName: string;
@@ -111,7 +99,6 @@ export interface AppConfig {
   version: string;
   build: string | null;
   deploy: 'docker' | 'release' | 'source';
-  /** Coolify üzerinde çalışıyor (platformun verdiği ortam değişkenleri) */
   coolify: boolean;
   updates: { repo: string; apiUrl: string; disabled: boolean; updaterUrl: string | null; updaterToken: string | null };
   defaultLocale: Locale | null;
@@ -130,7 +117,6 @@ function findRoot(start: string): string {
   return start;
 }
 
-/** Uygulama sürümü: kök package.json (kaynak kod ve sürüm paketinde aynı yerde) */
 function readVersion(root: string): string {
   try {
     const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as { version?: string };
@@ -155,10 +141,6 @@ function parseTrustProxy(v: string): string | boolean | number {
   return v;
 }
 
-/**
- * Docker'da UPDATER_TOKEN verilmediyse paylaşılan depolamada (storage/.updater-token) üretilir;
- * güncelleyici kapsayıcı aynı birimi salt okunur bağlayıp anahtarı oradan okur.
- */
 function resolveUpdaterToken(storageDir: string): string | null {
   const file = join(storageDir, '.updater-token');
   try {
@@ -172,11 +154,6 @@ function resolveUpdaterToken(storageDir: string): string | null {
   }
 }
 
-/** Platformun verdiği adres: COOLIFY_URL (virgülle ayrılmış olabilir) ya da COOLIFY_FQDN */
-/**
- * Coolify birden fazla alan adını virgülle verir; ilki çoğu zaman otomatik üretilen rastgele adrestir
- * (ör. m130k4o6uoru04opv3wyaojm.ornek.com, *.sslip.io). Varsa kullanıcının eklediği alan adı seçilir.
- */
 export function platformUrl(e: { COOLIFY_URL?: string; COOLIFY_FQDN?: string }): string | null {
   const generated = (u: string) => {
     const host = u.replace(/^https?:\/\//, '').split(/[/:]/)[0] ?? '';
@@ -193,7 +170,6 @@ export function platformUrl(e: { COOLIFY_URL?: string; COOLIFY_FQDN?: string }):
   return null;
 }
 
-/** Site adresini (ve ona bağlı çerez ayarlarını) uygular; otomatik algılamada çalışırken de çağrılır */
 export function applySiteUrl(config: AppConfig, raw: string): void {
   const url = new URL(raw);
   config.appUrl = url.origin + url.pathname.replace(/\/+$/, '');
@@ -203,13 +179,11 @@ export function applySiteUrl(config: AppConfig, raw: string): void {
   config.appUrlPending = false;
 }
 
-/** Geliştirmede APP_SECRET yoksa storage içinde kalıcı bir anahtar üretir. */
 function resolveSecret(given: string | undefined, storageDir: string, isProd: boolean): string {
   if (given) return given;
   const file = join(storageDir, '.app-secret');
   if (existsSync(file)) return readFileSync(file, 'utf8').trim();
   if (isProd) {
-    // Üretimde de çalışabilsin ama kalıcı olsun: ilk açılışta üret ve sakla.
     console.warn('[config] APP_SECRET ayarlanmamış; storage/.app-secret dosyasında üretiliyor.');
   }
   mkdirSync(storageDir, { recursive: true });
@@ -230,7 +204,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env, overrides: Part
 
   const isProd = e.NODE_ENV === 'production';
   const given = e.APP_URL === 'auto' ? null : (e.APP_URL ?? platformUrl(e));
-  // Üretimde adres verilmediyse ilk kurulumda algılanır; o zamana kadar yer tutucu kullanılır
   const appUrlMode = given || (!isProd && e.APP_URL !== 'auto') ? 'env' : 'auto';
   const appUrl = (given ?? (isProd ? `http://localhost:${e.PORT}` : 'http://localhost:5173')).replace(/\/+$/, '');
   const url = new URL(appUrl);

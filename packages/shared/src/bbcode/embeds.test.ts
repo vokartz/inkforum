@@ -38,7 +38,6 @@ describe('resolveEmbed', () => {
     expect(resolveEmbed('https://evil.com/watch?v=dQw4w9WgXcQ', opts)).toBeNull();
     expect(resolveEmbed('javascript:alert(1)', opts)).toBeNull();
     expect(resolveEmbed('https://www.youtube.com/watch?v=<script>', opts)).toBeNull();
-    // Twitch alan adı olmadan gömülemez.
     expect(resolveEmbed('https://www.twitch.tv/kanaladi')).toBeNull();
   });
 

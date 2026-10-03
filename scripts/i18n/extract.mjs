@@ -1,21 +1,10 @@
 #!/usr/bin/env node
-/**
- * Çeviri kataloglarını kaynak koddan günceller: `pnpm i18n:extract`
- *
- * Toplanan anahtarlar (Türkçe kaynak metin):
- *  - arayüzde t('…') çağrılarının ilk bağımsız değişkeni,
- *  - arayüz betiklerinde, paylaşılan pakette ve sunucuda insanın okuyacağı Türkçe metin gibi görünen
- *    dize değişmezleri (hata mesajları, etiketler…). Şablon dizelerindeki ${…} ifadeleri {0}, {1}… olur.
- *
- * packages/shared/i18n/<dil>.json dosyalarına eksik anahtarlar "" (çevrilmemiş) olarak eklenir, artık
- * kullanılmayanlar silinir, var olan çeviriler korunur. `--check` eksik çeviri varsa hata koduyla çıkar.
- */
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const LOCALES = ['en', 'de', 'zh', 'es', 'fr', 'ru', 'pt'];
+const LOCALES = ['en'];
 const outDir = join(root, 'packages/shared/i18n');
 
 const SOURCES = [
@@ -42,7 +31,6 @@ function unescape(body) {
   });
 }
 
-/** JS/TS kaynağındaki dize değişmezleri (yorumlar atlanır). Şablonlarda ${…} → {0}, {1}… */
 function scanJs(src) {
   const out = [];
   let i = 0;
@@ -99,7 +87,6 @@ function scanJs(src) {
       i = j + 1;
       continue;
     }
-    // Düzenli ifade değişmezi: basit sezgi (önceki anlamlı karakter operatörse)
     if (c === '/' && /[=(,:!&|?;{}[\n]\s*$/.test(src.slice(Math.max(0, i - 3), i))) {
       let j = i + 1;
       let inClass = false;
@@ -126,22 +113,21 @@ function scanJs(src) {
 const TR = /[çğıöşüÇĞİÖŞÜâîû]/;
 const TR_WORDS = /\b(ve|bir|bu|ile|için|olarak|yok|var|değil|daha|veya|gibi|tüm|yeni|kayıt|giriş|üye|konu|mesaj|bölüm|ayar|sil|kaydet|vazgeç|yönetim|forum|sayfa|seçin|girin|olmalı|bulunamadı|başarı|hata|kapalı|açık)\b/i;
 
-/** İnsanın okuyacağı Türkçe metin mi? (sınıf adları, yollar, anahtarlar hariç) */
 function human(s) {
   const t = s.trim();
   if (t.length < 2 || t.length > 2000) return false;
   if (!/\p{L}/u.test(t)) return false;
-  if (/\{\w+, plural,/.test(t)) return true; // ICU çoğul kalıbı her zaman arayüz metnidir
+  if (/\{\w+, plural,/.test(t)) return true;
   if (/^(https?:|\/|\.\/|\.\.\/|#|@|data:|mailto:|[a-z]+:\/\/)/.test(t)) return false;
   if (/^[\w.-]+\.(ts|js|svelte|json|png|svg|css|mjs|html)$/.test(t)) return false;
-  if (/^[a-z0-9_.:-]+$/.test(t)) return false; // anahtar / tek kelimelik küçük harf tanımlayıcı
-  if (/^[a-z0-9:_\-[\]/.()%#!&>*~@=,'"\s]+$/.test(t) && !TR.test(t) && !TR_WORDS.test(t)) return false; // Tailwind sınıfları vb.
+  if (/^[a-z0-9_.:-]+$/.test(t)) return false;
+  if (/^[a-z0-9:_\-[\]/.()%#!&>*~@=,'"\s]+$/.test(t) && !TR.test(t) && !TR_WORDS.test(t)) return false;
   if (/^(SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|PRAGMA|VACUUM|BEGIN|COMMIT|WHERE|ORDER BY|NOT \()\b/.test(t)) return false;
   if (/[<>]/.test(t) && /<\/?[a-z][^>]*>/i.test(t) && !TR.test(t)) return false;
-  if (/^[A-Z][A-Z0-9_]+$/.test(t)) return false; // SABİT_ADI
-  if (/^\$lib\/|\$[a-z_]+\[|=>|->|function\s*\(|;\s*\/\//i.test(t)) return false; // kod örnekleri, yollar
+  if (/^[A-Z][A-Z0-9_]+$/.test(t)) return false;
+  if (/^\$lib\/|\$[a-z_]+\[|=>|->|function\s*\(|;\s*\/\//i.test(t)) return false;
   if (/^(From|To|Subject|Content-Type|Sitemap|Disallow|Allow|User-agent|SQLite format)\b/m.test(t)) return false;
-  if (!/\s/.test(t) && /:/.test(t) && !TR.test(t)) return false; // ön ek:anahtar
+  if (!/\s/.test(t) && /:/.test(t) && !TR.test(t)) return false;
   return TR.test(t) || TR_WORDS.test(t) || (/^[A-ZÇĞİÖŞÜ]/.test(t) && /\s/.test(t) && /[aeıioöuü]/i.test(t));
 }
 
@@ -149,11 +135,10 @@ const LABEL_FIELD = /(?:\b(?:label|title|description|hint|name|placeholder|text|
 
 const T_CALL = /(?<![\w$.])t\(\s*('(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"|`(?:[^`\\$]|\\.)*`)/g;
 
-const keys = new Map(); // anahtar → ilk görüldüğü dosya
+const keys = new Map();
 function add(text, file) {
   const k = text.replace(/\r\n/g, '\n');
   if (!k.trim()) return;
-  // HTML gövdeli metinler (e-posta şablonları): bütün yerine etiketler arasındaki parçalar çevrilir
   if (/<\/?(p|a|b|strong|em|br|div|span|li|ul|h\d)\b[^>]*>/i.test(k)) {
     for (const seg of k.split(/<[^>]+>|\{\d+\}/)) {
       const t = seg.trim();
@@ -169,18 +154,13 @@ for (const src of SOURCES) {
     const code = readFileSync(file, 'utf8');
     const rel = relative(root, file).replace(/\\/g, '/');
     const web = src.dir === 'apps/web/src';
-    // Açık t('…') çağrıları (her yerde, işaretleme dahil)
     for (const m of code.matchAll(T_CALL)) add(unescape(m[1].slice(1, -1)), rel);
-    // Betik bölümlerindeki metinler (sezgisel)
     const scripts = file.endsWith('.svelte') ? [...code.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map((m) => m[1]) : [code];
-    // İşaretlemedeki sabit diziler: {#each [['active', 'Aktif'], …] as [key, label]} → t(label)
     if (file.endsWith('.svelte')) for (const m of code.matchAll(/\{#each\s+(\[[\s\S]*?\])\s+(?:as const\s+)?as\b/g)) scripts.push(m[1]);
     for (const s of scripts) {
       for (const lit of scanJs(s)) {
-        // Etiket gibi alanlardaki tek kelimelik metinler de (ör. label: 'Sistem') alınır
         const labelField = !!lit.before && LABEL_FIELD.test(lit.before) && /^\p{Lu}[\p{L}\p{N} .,'’()/&+-]*$/u.test(lit.text.trim());
         if (!human(lit.text) && !labelField) continue;
-        // Arayüzde yalnızca t() dışında kalmış ama kullanıcıya gösterilen sabitler de alınır
         if (web || !lit.text.includes('${')) add(lit.text, rel);
       }
     }
@@ -188,7 +168,6 @@ for (const src of SOURCES) {
 }
 
 const sorted = [...keys.keys()].sort((a, b) => a.localeCompare(b, 'tr'));
-// Çevirmenlere bağlam: --sources <dosya> anahtar → ilk görüldüğü dosya
 const srcArg = process.argv.indexOf('--sources');
 if (srcArg > 0 && process.argv[srcArg + 1]) writeFileSync(process.argv[srcArg + 1], JSON.stringify(Object.fromEntries(sorted.map((k) => [k, keys.get(k)])), null, 1));
 const check = process.argv.includes('--check');

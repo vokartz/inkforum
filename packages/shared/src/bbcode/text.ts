@@ -1,10 +1,6 @@
 import { parseBBCode, rawContent, type BBNode } from './parser.js';
 import { isBlockTag } from './tags.js';
 
-/**
- * BBCode → düz metin (bildirim önizlemesi, widget özeti, arama dizini).
- * Alıntılar ve spoiler içerikleri atlanır; görsel/video yer tutucuya dönüşür.
- */
 export function bbcodeToText(input: string, opts: { quotes?: boolean } = {}): string {
   const out: string[] = [];
   const walk = (nodes: BBNode[]) => {
@@ -55,7 +51,6 @@ export function bbcodeToText(input: string, opts: { quotes?: boolean } = {}): st
     .trim();
 }
 
-/** Tek satırlık kısa özet. */
 export function bbcodeExcerpt(input: string, max = 200): string {
   const text = bbcodeToText(input).replace(/\s+/g, ' ').trim();
   if (text.length <= max) return text;

@@ -42,7 +42,6 @@
   let device = $state<'desktop' | 'phone'>('desktop');
   const canCode = $derived(!!page.data.viewer && (page.data.viewer.isAdmin || can(page.data.viewer, 'admin.customCode')));
 
-  // Geri sayım alanı: yerel saat (datetime-local) ⇄ ms
   const toLocal = (ms: number | null) => {
     if (!ms) return '';
     const d = new Date(ms - new Date(ms).getTimezoneOffset() * 60_000);
@@ -225,11 +224,11 @@
 
     <Card.Root>
       <Card.Header>
-        <Card.Title class="text-base">{t('Özel kod')}</Card.Title>
+        <Card.Title class="text-base">{t('Özel HTML ve CSS')}</Card.Title>
         <Card.Description>{t('Mesajın altına HTML (betik dahil) ve sayfaya CSS ekleyin. Önizlemede gösterilmez; kaydedip gizli pencerede deneyin.')}</Card.Description>
       </Card.Header>
       <Card.Content class="grid gap-3">
-        {#if !canCode}<p class="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">{t('Bu alanlar için "Özel kod" yetkisi gerekli.')}</p>{/if}
+        {#if !canCode}<p class="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">{t('Bu alanlar için "Kod düzenleme" yetkisi gerekli.')}</p>{/if}
         <label class="grid gap-1.5 text-sm"
           ><span class="font-medium">HTML</span>
           <Textarea bind:value={form.page.html} rows={5} class="font-mono text-xs" disabled={!canCode} placeholder="&lt;iframe src=&quot;https://discord.com/widget?id=…&quot; width=&quot;350&quot; height=&quot;400&quot;&gt;&lt;/iframe&gt;" /></label

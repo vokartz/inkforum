@@ -1,7 +1,6 @@
 <script lang="ts">
   import { formatNumber } from '$lib/format';
 
-  /** Görünür olunca sıfırdan hedef sayıya sayan rakam. */
   let { value }: { value: number } = $props();
   let shown = $state<number | null>(null);
   let el: HTMLElement;
@@ -9,7 +8,6 @@
   $effect(() => {
     const target = value;
     if (matchMedia('(prefers-reduced-motion: reduce)').matches || target < 5) return;
-    // İlk ekranda görünen sayı zıplamasın: yalnızca aşağıdakiler sayılır
     if (el.getBoundingClientRect().top < window.innerHeight) return;
     shown = 0;
     const obs = new IntersectionObserver(([e]) => {

@@ -49,7 +49,6 @@
     seo: { icon: GlobeIcon, description: 'Arama motoru dizinleme, robots.txt, site haritası, doğrulama kodları ve paylaşım kartları (Discord, X, WhatsApp).' },
   };
 
-  // ---------- Düzenlenen değerler ----------
   type Value = unknown;
   let values = $state<Record<string, Value>>({});
   const toLocal = (d: SettingDef): Value => (d.input === 'list' ? ((d.value as string[]) ?? []).join('\n') : d.value);
@@ -75,7 +74,6 @@
   const changed = $derived(defs.filter((d) => !same(normalize(d, values[d.key]), d.value)));
   const sections = $derived(Object.entries(data.settings?.sections ?? {}).filter(([k]) => defs.some((d) => d.section === k)));
 
-  // ---------- Arama (tüm bölümlerde) ----------
   let query = $state('');
   const q = $derived(query.trim().toLocaleLowerCase('tr-TR'));
   const visible = $derived(
@@ -85,7 +83,6 @@
   );
   const grouped = $derived(sections.map(([k, label]) => ({ key: k, label, items: visible.filter((d) => d.section === k) })).filter((g) => g.items.length));
 
-  // ---------- Kaydet ----------
   let saving = $state(false);
   let errors = $state<Record<string, string>>({});
   let message = $state<string | null>(null);

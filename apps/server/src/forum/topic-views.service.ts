@@ -13,10 +13,6 @@ interface PendingViewer {
   last: number;
 }
 
-/**
- * Konu görüntülenmeleri bellekte toplanır ve topluca yazılır (her görüntülemede yazma yapılmaz):
- * toplam sayaç + üyeler için kim / ilk / son / kaç kez kaydı (`topic_viewers`).
- */
 @Injectable()
 export class TopicViewsService implements OnApplicationBootstrap, OnApplicationShutdown {
   private readonly logger = new Logger('TopicViews');
@@ -53,7 +49,6 @@ export class TopicViewsService implements OnApplicationBootstrap, OnApplicationS
     } else this.viewers.set(key, { topicId, userId, count: 1, first: now, last: now });
   }
 
-  /** Bekleyen (henüz yazılmamış) görüntülenmeler. */
   pendingFor(topicId: number): number {
     return this.pending.get(topicId) ?? 0;
   }

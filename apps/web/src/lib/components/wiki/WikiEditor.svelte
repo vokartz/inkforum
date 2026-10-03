@@ -20,7 +20,6 @@
 
   interface Props {
     tree: WikiTreeNode[];
-    /** Düzenlenen sayfa (yoksa yeni) */
     pageId?: number | null;
     initial: WikiPageInput;
     canManage: boolean;
@@ -46,7 +45,6 @@
       .replace(/^-+|-+$/g, '')
       .slice(0, 60);
 
-  // Üst sayfa seçenekleri (kendisi ve alt sayfaları hariç)
   const options = $derived.by(() => {
     const out: Array<{ id: number; label: string; path: string }> = [];
     const walk = (nodes: WikiTreeNode[], depth: number) => {

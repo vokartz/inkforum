@@ -1,4 +1,3 @@
-/** Yöneticinin eklediği özel emojiler: seçici ve editör aynı listeyi bir kez yükler. */
 export interface CustomEmojiItem {
   shortcode: string;
   name: string;
@@ -20,7 +19,6 @@ export function loadCustomEmojis(): Promise<CustomEmojiItem[]> {
   return promise;
 }
 
-/** Yüklenmişse kısa adın emojisi (`logo` ya da `:logo:`). */
 export function customEmoji(code: string): CustomEmojiItem | undefined {
   return byCode.get(code.replace(/^:|:$/g, ''));
 }

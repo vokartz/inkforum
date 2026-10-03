@@ -3,7 +3,6 @@
   import { cn } from '$lib/utils';
   import { t } from '$lib/i18n.svelte';
 
-  /** Etkin sosyal giriş sağlayıcıları: "Discord ile devam et" düğmeleri. */
   let { providers, next = '/', mode = 'login', class: className }: { providers: Array<{ key: string; label: string }>; next?: string; mode?: 'login' | 'link'; class?: string } = $props();
 </script>
 

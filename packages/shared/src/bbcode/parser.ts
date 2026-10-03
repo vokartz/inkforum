@@ -8,9 +8,7 @@ export interface BBText {
 export interface BBTag {
   type: 'tag';
   name: string;
-  /** `[tag=değer]` biçimindeki değer. */
   value: string | null;
-  /** `[tag anahtar=değer …]` biçimindeki nitelikler (anahtarlar küçük harf). */
   attrs: Record<string, string>;
   children: BBNode[];
 }
@@ -34,7 +32,6 @@ function unquote(s: string): string {
   return t;
 }
 
-/** `[...]` içeriğini çözer. Tanınmayan etiketler null döner (metin olarak kalır). */
 function readTag(inner: string, source: string): RawTag | null {
   const m = /^(\/?)([a-z]+[1-6]?|\*)/i.exec(inner);
   if (!m) return null;
@@ -46,7 +43,6 @@ function readTag(inner: string, source: string): RawTag | null {
   if (!rest) return { closing, name, value: null, attrs: {}, source };
 
   if (rest.startsWith('=')) {
-    // [quote="Ali Veli" post=12] ya da [url=https://…]
     const body = rest.slice(1);
     const quoted = /^("([^"]*)"|'([^']*)')(.*)$/.exec(body);
     if (quoted) {
@@ -55,7 +51,6 @@ function readTag(inner: string, source: string): RawTag | null {
       if (attrs === null) return null;
       return { closing, name, value, attrs, source };
     }
-    // Değerden sonra " anahtar=" gelmiyorsa tüm geri kalan değerdir (URL'lerde '=' olabilir).
     const split = /\s+[a-z]+=/i.exec(body);
     if (split && name !== 'url' && name !== 'img') {
       const attrs = parseAttrs(body.slice(split.index));
@@ -70,7 +65,6 @@ function readTag(inner: string, source: string): RawTag | null {
   return { closing, name, value: null, attrs, source };
 }
 
-/** ` anahtar=değer anahtar2="değer 2"` — tırnaksız değerler bir sonraki anahtara kadar sürer (SMF uyumu). */
 function parseAttrs(s: string): Record<string, string> | null {
   const out: Record<string, string> = {};
   const re = /\s*([a-z]+)=("([^"]*)"|'([^']*)'|(.*?))(?=\s+[a-z]+=|\s*$)/giy;
@@ -86,13 +80,6 @@ function parseAttrs(s: string): Record<string, string> | null {
   return out;
 }
 
-/**
- * Hoşgörülü BBCode ayrıştırıcı:
- *  - Tanınmayan veya hatalı etiketler metin olarak kalır.
- *  - Yanlış sırada kapanan etiketler aradaki açık etiketleri otomatik kapatır.
- *  - Kapanmayan etiketler metin sonunda kapatılır.
- *  - `[*]` bir önceki liste öğesini kapatır; tablo/liste çocuk kuralları uygulanır.
- */
 export function parseBBCode(input: string): BBNode[] {
   const src = (input ?? '').replace(/\r\n?/g, '\n');
   const root: BBTag = { type: 'tag', name: '#root', value: null, attrs: {}, children: [] };
@@ -145,7 +132,6 @@ export function parseBBCode(input: string): BBNode[] {
       continue;
     }
 
-    // Ham içerikli etiketler: kapanışına kadar olduğu gibi alınır.
     if (def.kind === 'raw-inline' || def.kind === 'raw-block') {
       const re = new RegExp(`\\[/${tag.name}\\]`, 'i');
       const rest = src.slice(close + 1);
@@ -174,7 +160,6 @@ export function parseBBCode(input: string): BBNode[] {
       continue;
     }
 
-    // Yeni liste öğesi öncekini kapatır.
     if (tag.name === '*') {
       const itemIdx = findOpen(stack, '*');
       const listIdx = findOpen(stack, 'list');
@@ -183,7 +168,6 @@ export function parseBBCode(input: string): BBNode[] {
         stack.length = itemIdx;
       }
     }
-    // Tablo hücresi/satırı açılırken önceki hücre/satır kapanır.
     if (tag.name === 'td' || tag.name === 'th' || tag.name === 'tr') {
       const siblings = tag.name === 'tr' ? ['tr'] : ['td', 'th'];
       const parentIdx = findOpen(stack, tag.name === 'tr' ? 'table' : 'tr');
@@ -197,7 +181,6 @@ export function parseBBCode(input: string): BBNode[] {
     }
 
     if (def.parents && !def.parents.includes(top().name)) {
-      // [*] liste dışında ya da hücre satır dışında: metin olarak bırak.
       text += source;
       i = close + 1;
       continue;
@@ -223,11 +206,6 @@ function findOpen(stack: BBTag[], name: string): number {
   return -1;
 }
 
-/**
- * Blok elemanların çevresindeki tek satır sonlarını yutar:
- * "a\n[quote]\nx\n[/quote]\nb" → "a", quote("x"), "b". Böylece HTML'de fazladan boşluk oluşmaz
- * ve editör paragraflarına kayıpsız dönüşür.
- */
 function normalize(nodes: BBNode[], parent?: BBTag): BBNode[] {
   const out: BBNode[] = [];
   for (const n of nodes) {
@@ -250,12 +228,10 @@ function normalize(nodes: BBNode[], parent?: BBTag): BBNode[] {
       n.text = n.text.replace(/\n[ \t]*$/, '');
     }
   }
-  // Liste/tablo içindeki öğeler arası boşluklar anlamsızdır.
   const structural = parent && (parent.name === 'list' || parent.name === 'table' || parent.name === 'tr');
   return out.filter((n) => n.type !== 'text' || (n.text !== '' && !(structural && !n.text.trim())));
 }
 
-/** Ağaçtaki tüm etiketleri gezer. */
 export function walkBB(nodes: BBNode[], fn: (tag: BBTag, depth: number) => void, depth = 0): void {
   for (const n of nodes) {
     if (n.type !== 'tag') continue;
@@ -264,7 +240,6 @@ export function walkBB(nodes: BBNode[], fn: (tag: BBTag, depth: number) => void,
   }
 }
 
-/** Ham etiketin (kod, görsel adresi…) içeriği. */
 export function rawContent(tag: BBTag): string {
   const first = tag.children[0];
   return first?.type === 'text' ? first.text : '';

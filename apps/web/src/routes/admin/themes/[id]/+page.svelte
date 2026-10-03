@@ -6,6 +6,7 @@
     FONT_OPTIONS,
     PALETTE_KEYS,
     PALETTE_LABELS,
+    THEME_PAGE_WIDTH_REM,
     THEME_HTML_LABELS,
     THEME_HTML_SLOTS,
     themeSettingValues,
@@ -13,7 +14,7 @@
     type ThemeDetail,
     type ThemeHtmlSlot,
   } from '@forum/shared';
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import { invalidate } from '$app/navigation';
   import { toast } from 'svelte-sonner';
   import ArrowLeftIcon from 'phosphor-svelte/lib/ArrowLeft';
@@ -21,6 +22,7 @@
   import CheckIcon from 'phosphor-svelte/lib/CheckCircle';
   import UndoIcon from 'phosphor-svelte/lib/ArrowCounterClockwise';
   import DesktopIcon from 'phosphor-svelte/lib/Desktop';
+  import MonitorIcon from 'phosphor-svelte/lib/Monitor';
   import TabletIcon from 'phosphor-svelte/lib/DeviceTablet';
   import PhoneIcon from 'phosphor-svelte/lib/DeviceMobile';
   import MoonIcon from 'phosphor-svelte/lib/Moon';
@@ -52,7 +54,6 @@
 
   let { data } = $props();
 
-  // Düzenlenen taslak (kaydedilene kadar yalnızca önizlemede)
   let name = $state('');
   let description = $state('');
   let config = $state<ThemeConfig>(null as unknown as ThemeConfig);
@@ -83,7 +84,6 @@
   const dirty = $derived(!!config && snapshot() !== saved);
   const codeAllowed = $derived(can(data.viewer, 'admin.customCode'));
 
-  // ---------- Bölümler ----------
   type Section =
     | 'general'
     | 'colors'
@@ -126,18 +126,56 @@
   let paletteMode = $state<'light' | 'dark'>('dark');
   const fonts = $derived(FONT_OPTIONS.map((f) => ({ value: f.key, label: f.label })));
 
-  // ---------- Canlı önizleme ----------
   let frame = $state<HTMLIFrameElement | null>(null);
-  let device = $state<'desktop' | 'tablet' | 'phone'>('desktop');
+  const DEVICES = {
+    wide: { width: 1920, label: 'Geniş ekran', icon: MonitorIcon },
+    desktop: { width: 1440, label: 'Masaüstü', icon: DesktopIcon },
+    tablet: { width: 820, label: 'Tablet', icon: TabletIcon },
+    phone: { width: 390, label: 'Telefon', icon: PhoneIcon },
+  } as const;
+  type Device = keyof typeof DEVICES;
+  let device = $state<Device>('desktop');
+  let boxW = $state(0);
+  let boxH = $state(0);
+  const PAD = 24;
+  const viewW = $derived(DEVICES[device].width);
+  const scale = $derived(boxW > PAD ? Math.min(1, (boxW - PAD) / viewW) : 1);
+  const frameH = $derived(Math.max(320, (boxH - PAD) / scale));
   let previewMode = $state<'light' | 'dark'>('dark');
   let previewPath = $state('/');
   const pages = $derived([
     { value: '/', label: t('Ana sayfa') },
     ...(data.boardPath ? [{ value: data.boardPath, label: t('Bölüm') }] : []),
+    ...(data.topicPath ? [{ value: data.topicPath, label: t('Konu') }] : []),
     { value: '/members', label: t('Üyeler') },
     { value: '/search', label: t('Arama') },
   ]);
   let frameSrc = $state('/');
+  function showPage(path: string) {
+    previewPath = path;
+    frameSrc = path;
+  }
+
+  const widthPx = (k: keyof typeof THEME_PAGE_WIDTH_REM) =>
+    `${Math.round(THEME_PAGE_WIDTH_REM[k] * (config?.typography.size ?? 16))} px`;
+  function portal(node: HTMLElement) {
+    document.body.appendChild(node);
+    return { destroy: () => node.remove() };
+  }
+
+  function openSection(key: Section) {
+    section = key;
+    if (key === 'layout' && (device === 'tablet' || device === 'phone')) device = 'desktop';
+  }
+  let lastWidth: string | undefined;
+  $effect(() => {
+    const w = config?.layout.width;
+    untrack(() => {
+      if (lastWidth !== undefined && w !== lastWidth && (w === 'wide' || w === 'full') && device === 'desktop')
+        device = 'wide';
+      lastWidth = w;
+    });
+  });
 
   function pushPreview() {
     if (!config || !current) return;
@@ -148,7 +186,6 @@
       css,
       html: $state.snapshot(html),
     });
-    // Önizlemede seçilen mod zorlanır (temada mod seçimi açık olsa bile)
     active.options = { ...active.options, mode: { default: previewMode, toggle: false } };
     const settings = {
       ...themeSettingValues($state.snapshot(config)),
@@ -158,7 +195,6 @@
       sessionStorage.setItem(THEME_PREVIEW_KEY, JSON.stringify({ active, settings }));
       frame?.contentWindow?.postMessage({ type: THEME_PREVIEW_MESSAGE }, location.origin);
     } catch {
-      /* depolama kapalı */
     }
   }
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -176,7 +212,6 @@
       try {
         sessionStorage.removeItem(THEME_PREVIEW_KEY);
       } catch {
-        /* yoksay */
       }
     };
   });
@@ -209,14 +244,14 @@
   }
 
   const pal = $derived(config ? effectivePalette(config, paletteMode) : null);
-  /** Arka plan zemini otomatik ise paletin rengi */
   const bgFallback = $derived(config ? effectivePalette(config, previewMode).background : '#000000');
 </script>
 
 <svelte:head><title>{name || t('Tema')} · {t('Tema stüdyosu')}</title></svelte:head>
 
 {#if config && current}
-  <div class="-mx-4 -my-6 flex h-[calc(100dvh-4rem)] flex-col sm:-mx-6 sm:-my-8" data-part="theme-studio">
+  <!-- Stüdyo tüm ekranı kaplar (yönetim menüsü ve genişlik sınırı önizlemeyi daraltmasın) -->
+  <div class="fixed inset-0 z-40 flex flex-col bg-background" data-part="theme-studio" use:portal>
     <!-- Üst çubuk -->
     <header class="flex flex-wrap items-center gap-2 border-b bg-card px-4 py-2.5">
       <Button variant="ghost" size="icon-sm" href="/admin/themes" aria-label={t('Temalar')}
@@ -252,7 +287,7 @@
         {#each SECTIONS as s (s.key)}
           <button
             type="button"
-            onclick={() => (section = s.key)}
+            onclick={() => openSection(s.key)}
             class={cn(
               'flex size-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
               section === s.key && 'bg-primary-soft text-primary',
@@ -522,15 +557,17 @@
               <a href="/admin/appearance" class="font-semibold text-link hover:underline">{t('Görünüm')}</a>
             </p>
           {:else if section === 'layout'}
-            <Field label={t('Sayfa genişliği')}
+            <Field
+              label={t('Sayfa genişliği')}
+              hint={t('İçeriğin en fazla ne kadar genişleyeceği. Ekran bundan darsa içerik ekranı doldurur.')}
               ><OptionCards
                 bind:value={config.layout.width}
-                cols={4}
+                cols={2}
                 options={[
-                  { value: 'narrow', label: t('Dar') },
-                  { value: 'normal', label: t('Normal') },
-                  { value: 'wide', label: t('Geniş') },
-                  { value: 'full', label: t('Tam') },
+                  { value: 'narrow', label: t('Dar'), hint: widthPx('narrow') },
+                  { value: 'normal', label: t('Normal'), hint: widthPx('normal') },
+                  { value: 'wide', label: t('Geniş'), hint: widthPx('wide') },
+                  { value: 'full', label: t('Tam'), hint: t('Ekranın tamamı') },
                 ]}
               /></Field
             >
@@ -564,6 +601,13 @@
                 ]}
               /></Field
             >
+            {#if data.topicPath && previewPath !== data.topicPath}
+              <button
+                type="button"
+                class="-mt-3 text-left text-xs font-semibold text-link hover:underline"
+                onclick={() => showPage(data.topicPath!)}>{t('Önizlemede bir konu aç')}</button
+              >
+            {/if}
           {:else if section === 'list'}
             <Field label={t('Forum listesi düzeni')}>
               <OptionCards
@@ -717,7 +761,7 @@
             {#if !codeAllowed}
               <p class="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs">
                 {t(
-                  'Özel CSS ve HTML yalnızca "Özel kod" yetkisi olan yöneticiler tarafından değiştirilebilir.',
+                  'Özel CSS ve HTML yalnızca "Kod düzenleme" yetkisi olan yöneticiler tarafından değiştirilebilir.',
                 )}
               </p>
             {/if}
@@ -767,19 +811,22 @@
             aria-label={t('Önizlenen sayfa')}
           />
           <div class="flex rounded-lg bg-muted p-0.5">
-            {#each [{ v: 'desktop', i: DesktopIcon, l: t('Masaüstü') }, { v: 'tablet', i: TabletIcon, l: t('Tablet') }, { v: 'phone', i: PhoneIcon, l: t('Telefon') }] as d (d.v)}
+            {#each Object.entries(DEVICES) as [key, d] (key)}
               <button
                 type="button"
                 class={cn(
                   'rounded-md p-1.5',
-                  device === d.v ? 'bg-background shadow-sm' : 'text-muted-foreground',
+                  device === key ? 'bg-background shadow-sm' : 'text-muted-foreground',
                 )}
-                onclick={() => (device = d.v as typeof device)}
-                title={d.l}
-                aria-label={d.l}><d.i class="size-4" /></button
+                onclick={() => (device = key as Device)}
+                title="{t(d.label)} · {d.width} px"
+                aria-label={t(d.label)}><d.icon class="size-4" /></button
               >
             {/each}
           </div>
+          <span class="text-xs tabular-nums text-muted-foreground" title={t('Önizleme ekran genişliği')}
+            >{viewW} px{#if scale < 0.995}&nbsp;· %{Math.round(scale * 100)}{/if}</span
+          >
           <div class="flex rounded-lg bg-muted p-0.5">
             {#each [{ v: 'dark', i: MoonIcon, l: t('Koyu') }, { v: 'light', i: SunIcon, l: t('Açık') }] as m (m.v)}
               <button
@@ -805,15 +852,21 @@
             >{t('Önizleme yalnızca sizde görünür; kaydedince yayına alınır.')}</span
           >
         </div>
-        <div class="flex min-h-0 flex-1 justify-center overflow-auto p-3">
-          <iframe
-            bind:this={frame}
-            src={frameSrc}
-            title={t('Tema önizlemesi')}
-            onload={pushPreview}
-            class="h-full rounded-lg border bg-background shadow-lift transition-[width] duration-300"
-            style="width:{device === 'desktop' ? '100%' : device === 'tablet' ? '820px' : '390px'}"
-          ></iframe>
+        <div class="relative min-h-0 flex-1 overflow-hidden" bind:clientWidth={boxW} bind:clientHeight={boxH}>
+          <!-- Gerçek genişlikte çizilir, alana sığacak kadar küçültülür -->
+          <div
+            class="absolute top-3 left-1/2 overflow-hidden rounded-lg border bg-background shadow-lift"
+            style="width:{viewW * scale + 2}px;height:{frameH * scale + 2}px;transform:translateX(-50%)"
+          >
+            <iframe
+              bind:this={frame}
+              src={frameSrc}
+              title={t('Tema önizlemesi')}
+              onload={pushPreview}
+              class="block origin-top-left border-0"
+              style="width:{viewW}px;height:{frameH}px;transform:scale({scale})"
+            ></iframe>
+          </div>
         </div>
       </section>
     </div>

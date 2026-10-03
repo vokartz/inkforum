@@ -19,7 +19,6 @@
     const w = track.clientWidth;
     if (w) index = Math.round(track.scrollLeft / w);
   }
-  // Otomatik geçiş (fare üzerindeyken durur)
   $effect(() => {
     if (!autoplay || images.length < 2 || paused) return;
     const t = setInterval(() => go(index + 1), 4500);

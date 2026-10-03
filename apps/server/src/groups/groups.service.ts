@@ -52,7 +52,6 @@ export class GroupsService implements OnModuleInit, OnModuleDestroy {
   onModuleInit(): void {
     this.jobs.schedule('groups.expire', HOUR, () => this.expireMemberships().then(() => this.recountMembers()));
     this.jobs.register(RECALC_JOB, () => this.recalcAllPostGroups());
-    // Kayıt, onay, rütbe ve grup değişikliklerinde sayılar kısa bir gecikmeyle yeniden hesaplanır
     for (const e of ['user.registered', 'user.activated', 'user.groupsChanged', 'user.postCountChanged', 'user.banned'] as const) this.events.on(e, () => this.scheduleRecount());
     this.scheduleRecount();
   }
@@ -103,9 +102,6 @@ export class GroupsService implements OnModuleInit, OnModuleDestroy {
     return g.kind === 'regular' && !NON_ASSIGNABLE.has(g.system_key ?? '');
   }
 
-  // ---------- Herkese açık ----------
-
-  /** Üyenin görebileceği gruplar. Gizli gruplar yalnızca üyelerine ve yöneticilere görünür. */
   async listVisible(viewer: RequestViewer): Promise<Array<GroupDto & { isMember: boolean; hasPendingRequest: boolean }>> {
     const all = await this.cache.all();
     const manage = can(viewer, 'admin.groups.manage');
@@ -220,8 +216,6 @@ export class GroupsService implements OnModuleInit, OnModuleDestroy {
     return !!row;
   }
 
-  // ---------- Üye işlemleri ----------
-
   async join(viewer: RequestViewer, groupId: number, reason: string): Promise<{ status: 'joined' | 'requested' }> {
     const user = viewer.user!;
     if (!can(viewer, 'groups.join')) throw Errors.forbidden('Gruplara katılma yetkiniz yok.');
@@ -281,7 +275,6 @@ export class GroupsService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  /** Kullanıcı kendi ek gruplarından birini ana grup yapar (eski ana grup ek gruba döner). */
   async setOwnPrimary(viewer: RequestViewer, groupId: number | null): Promise<void> {
     const user = viewer.user!;
     const current = user.primary_group_id;
@@ -315,8 +308,6 @@ export class GroupsService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  // ---------- Grup yöneticisi (lider) işlemleri ----------
-
   async pendingRequests(groupId: number) {
     const rows = await this.db.q
       .selectFrom('group_join_requests')
@@ -329,7 +320,6 @@ export class GroupsService implements OnModuleInit, OnModuleDestroy {
     return rows.map((r) => ({ id: r.id, user: summaries.get(r.user_id)!, reason: r.reason, createdAt: r.created_at }));
   }
 
-  /** Tüm grupların bekleyen istekleri (admin paneli). */
   async allPendingRequests() {
     const rows = await this.db.q
       .selectFrom('group_join_requests')
@@ -410,8 +400,6 @@ export class GroupsService implements OnModuleInit, OnModuleDestroy {
       await this.notifications.notify(userId, 'group.added', { groupId, groupName: g.name, expiresAt }, viewer.user!.id);
     });
   }
-
-  // ---------- Yönetim ----------
 
   private async validateInput(input: GroupInput, id?: number): Promise<void> {
     if (input.parentId !== null) {
@@ -518,7 +506,6 @@ export class GroupsService implements OnModuleInit, OnModuleDestroy {
         const saved = await this.storage.saveImage(file, {
           purpose: 'group_icon',
           ownerUserId: null,
-          // Yatay rütbe görselleri (ör. 300×60) de yüklenebilsin
           maxBytes: 1024 * 1024,
           maxDimension: 1600,
           allowGif: true,
@@ -549,7 +536,6 @@ export class GroupsService implements OnModuleInit, OnModuleDestroy {
     });
   }
 
-  /** Admin: bir üyenin grup yapısını tamamen belirler. */
   async setUserGroups(
     actor: RequestViewer,
     userId: number,
@@ -626,9 +612,6 @@ export class GroupsService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
-  // ---------- Yardımcılar ----------
-
-  /** Başvuru onayı gibi sistem işlemleri: yetki denetimi çağıranın sorumluluğunda. */
   async grant(userId: number, groupId: number, asPrimary: boolean, actorId: number | null): Promise<void> {
     const g = await this.require(groupId);
     const target = await this.users.findById(userId);
@@ -694,7 +677,6 @@ export class GroupsService implements OnModuleInit, OnModuleDestroy {
     if (changed) await this.cache.invalidate();
   }
 
-  /** Süresi dolan üyelikleri kaldırır. */
   async expireMemberships(): Promise<number> {
     const now = this.clock.now();
     const expired = await this.db.q
@@ -732,7 +714,6 @@ export class GroupsService implements OnModuleInit, OnModuleDestroy {
     return expired.length + primaries.length;
   }
 
-  /** Mesaj gruplarını tüm üyeler için tek sorguda yeniden hesaplar. */
   async recalcAllPostGroups(): Promise<void> {
     await sql`
       update users set post_group_id = (

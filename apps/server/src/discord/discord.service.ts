@@ -22,11 +22,6 @@ interface DiscordConfig {
 
 const WIDGET_TTL = 5 * 60_000;
 
-/**
- * Discord entegrasyonu: yeni konular (isteğe bağlı yanıtlar) webhook ile kanala gönderilir;
- * ana sayfadaki blok sunucunun widget verisini (çevrimiçi sayısı, davet) gösterir.
- * Yalnızca misafirlerin görebildiği içerik gönderilir; gizli ve onay bekleyen konular gönderilmez.
- */
 @Injectable()
 export class DiscordService implements OnModuleInit {
   private readonly logger = new Logger('Discord');
@@ -57,7 +52,6 @@ export class DiscordService implements OnModuleInit {
     return this.settings.get('discord.config') as DiscordConfig;
   }
 
-  /** Yönetim ekranı için (webhook adresi gizli) */
   adminView() {
     const c = this.cfg();
     return {
@@ -116,7 +110,6 @@ export class DiscordService implements OnModuleInit {
     }
   }
 
-  /** Mesajı misafir görebiliyorsa Discord'a gönderir */
   private async send(postId: number, isTopic: boolean): Promise<void> {
     const url = this.webhook();
     if (!url || !this.settings.plugin('discord')) return;
@@ -184,7 +177,6 @@ export class DiscordService implements OnModuleInit {
     if (!res.ok) this.logger.warn(`Discord webhook ${res.status}: ${(await res.text()).slice(0, 200)}`);
   }
 
-  /** Ayarlar ekranındaki "Deneme mesajı gönder" */
   async test(): Promise<void> {
     const url = this.webhook();
     if (!url) throw Errors.badRequest('Önce webhook adresini kaydedin.');
@@ -203,7 +195,6 @@ export class DiscordService implements OnModuleInit {
       );
   }
 
-  /** Sunucu widget'ı (Sunucu Ayarları → Widget → "Sunucu widget'ını etkinleştir" açık olmalı) */
   async widget(): Promise<DiscordWidget | null> {
     const c = this.cfg();
     if (!c.guildId) return null;
@@ -235,7 +226,6 @@ export class DiscordService implements OnModuleInit {
         };
       }
     } catch {
-      /* Discord'a ulaşılamadı */
     }
     this.widgetCache = { at: this.clock.now(), guildId: c.guildId, value };
     return value;

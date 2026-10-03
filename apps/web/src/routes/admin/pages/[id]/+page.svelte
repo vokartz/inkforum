@@ -79,7 +79,6 @@
   let errors = $state<Record<string, string>>({});
   let saving = $state(false);
   let left = false;
-  /** Kod alanları "Özel kod" yetkisi ister */
   const locked = $derived(!data.canCode);
   const url = $derived(form.route ? `/${form.route}` : `/pages/${form.slug || '…'}`);
   let hostsText = $state(untrack(() => form.allowedHosts.join('\n')));
@@ -102,7 +101,6 @@
     { v: 'server', l: t('Sunucu'), code: true },
   ]);
 
-  // Biçim değişince önceki içerik saklanır
   const stash: Partial<Record<PageFormat, string>> = {};
   function setFormat(f: PageFormat) {
     if (f === form.format) return;
@@ -125,7 +123,6 @@
         ...form,
         metaDescription: form.metaDescription?.trim() || null,
         route: form.route?.trim() || null,
-        // Kayıtlı gizli değerler: yeni değer yazılmadıysa yalnızca ad gönderilir (sunucuda korunur)
         secrets: form.secrets.filter((x) => x.name.trim()).map((x) => (x.value ? { name: x.name.trim(), value: x.value } : { name: x.name.trim() })),
       };
       const res = data.page ? await api.put<AdminCustomPage>(`/api/admin/pages/${data.page.id}`, body) : await api.post<AdminCustomPage>('/api/admin/pages', body);
@@ -169,7 +166,6 @@
     }
   }
 
-  // ---------- Örnekler ----------
   async function useExample(x: PageExample) {
     const replaces = [x.html && form.body.trim(), x.css && form.css.trim(), x.js && form.js.trim(), x.sidebar && form.sidebarHtml.trim(), x.server && form.serverCode.trim()].some(Boolean);
     if (replaces && !(await confirmAction({ title: t('Örnek eklensin mi?'), description: t('Örneğin içerdiği alanlar (HTML, CSS, JS, kenar çubuğu, sunucu kodu) şu anki içeriğin yerine geçer.'), confirmLabel: t('Ekle') }))) return;
@@ -194,7 +190,6 @@
     toast.success(t('"{title}" örneği eklendi. Adresleri ve anahtarları kendi sisteminize göre değiştirin.', { title: t(x.title) }));
   }
 
-  // ---------- Sunucu kodu denemesi ----------
   let testMethod = $state<'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'>('GET');
   let testPath = $state('/');
   let testQuery = $state('');
@@ -221,7 +216,6 @@
     }
   }
 
-  // ---------- Eski görsel düzenleyici sayfaları → HTML ----------
   let legacyBlocks = $state<ResolvedBlock[] | null>(null);
   let legacyHost = $state<HTMLElement | null>(null);
   let converting = $state(false);
@@ -238,7 +232,6 @@
       try {
         css = (JSON.parse(data.page.body) as { css?: string }).css ?? '';
       } catch {
-        /* boş */
       }
       form.format = 'html';
       form.body = html;
@@ -297,7 +290,7 @@
     {#if legacyBlocks}<div bind:this={legacyHost} class="pointer-events-none fixed -left-[9999px] w-[1200px]" aria-hidden="true"><BuilderPage blocks={legacyBlocks} standalone={form.layout === 'blank'} /></div>{/if}
   {/if}
   {#if locked}
-    <p class="flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground"><LockIcon class="size-4" />{t('HTML, CSS, JavaScript ve sunucu kodu için "Özel kod" yetkisi gerekir; yalnızca BBCode içeriği ve sayfa ayarlarını değiştirebilirsin.')}</p>
+    <p class="flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground"><LockIcon class="size-4" />{t('HTML, CSS, JavaScript ve sunucu kodu için "Kod düzenleme" yetkisi gerekir; yalnızca BBCode içeriği ve sayfa ayarlarını değiştirebilirsin.')}</p>
   {/if}
 
   <!-- Sekmeler -->
@@ -407,7 +400,7 @@
   {:else if tab === 'js'}
     <div class="grid gap-2">
       <CodeEditor bind:value={form.js} language="JavaScript" minHeight={520} maxLength={200000} placeholder={JS_PLACEHOLDER} />
-      <p class="text-xs text-muted-foreground">{t('Sayfa içeriğinden sonra tarayıcıda çalışır. forum.viewer, forum.page.data, forum.api(), forum.token() kullanılabilir.')}</p>
+      <p class="text-xs text-muted-foreground">{t('Sayfa içeriğinden sonra tarayıcıda çalışır. forum.viewer, forum.page.data, forum.api() kullanılabilir.')}</p>
     </div>
   {:else if tab === 'sidebar'}
     <div class="grid gap-2">
@@ -425,7 +418,7 @@
           <Button variant="outline" size="sm" class="justify-self-start" onclick={() => (form.serverCode = DEFAULT_SERVER_CODE)}><PlusIcon />{t('Başlangıç şablonunu ekle')}</Button>
         {/if}
         <p class="text-xs text-muted-foreground">
-          {t('Kod forum sunucusunda yalıtılmış bir ortamda çalışır: dosya sistemine ve sunucuya erişemez; istek başına 1 sn işlemci, 10 sn toplam süre ve 32 MB bellek sınırı vardır. Kullanılabilenler: req, json(), html(), text(), redirect(), notFound(), fetch(), kv, secrets, forum.token(), forum.user(), console.log().')}
+          {t('Kod forum sunucusunda yalıtılmış bir ortamda çalışır: dosya sistemine ve sunucuya erişemez; istek başına 1 sn işlemci, 10 sn toplam süre ve 32 MB bellek sınırı vardır. Kullanılabilenler: req, json(), html(), text(), redirect(), notFound(), fetch(), kv, secrets, forum.user(), console.log().')}
         </p>
       </div>
 

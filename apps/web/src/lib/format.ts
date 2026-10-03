@@ -1,6 +1,5 @@
 import { i18n, localeTag, t } from '$lib/i18n.svelte';
 
-/** Biçimlendiriciler dil başına bir kez oluşturulur (Intl nesneleri pahalıdır) */
 const cache = new Map<string, { date: Intl.DateTimeFormat; dateTime: Intl.DateTimeFormat; short: Intl.DateTimeFormat; num: Intl.NumberFormat; compact: Intl.NumberFormat; rtf: Intl.RelativeTimeFormat; dayMonth: Intl.DateTimeFormat; clock: Intl.DateTimeFormat; dayClock: Intl.DateTimeFormat }>();
 function fmt() {
   const tag = localeTag();
@@ -30,7 +29,6 @@ export function formatDateTime(ms: number | null | undefined): string {
   return ms ? fmt().dateTime.format(ms) : '—';
 }
 
-/** Sohbet saati: bugünse "14:05", değilse "3 Eki 14:05" */
 export function formatClock(ms: number | null | undefined): string {
   if (!ms) return '—';
   return new Date(ms).toDateString() === new Date().toDateString() ? fmt().clock.format(ms) : fmt().dayClock.format(ms);
@@ -62,7 +60,6 @@ export function timeAgo(ms: number | null | undefined, now = Date.now()): string
   return t('az önce');
 }
 
-/** "--05-20" (gün-ay) veya "1995-05-20" biçimlerini okunur hale getirir. */
 export function formatBirthdate(value: string | null): string {
   if (!value) return '—';
   const md = value.startsWith('--') ? value.slice(2) : value.slice(5);
@@ -71,7 +68,6 @@ export function formatBirthdate(value: string | null): string {
   return value.startsWith('--') ? dayMonth : `${dayMonth} ${value.slice(0, 4)}`;
 }
 
-/** datetime-local input değeri ↔ epoch ms */
 export function toLocalInput(ms: number | null | undefined): string {
   if (!ms) return '';
   const d = new Date(ms);
@@ -93,7 +89,6 @@ export function fileSize(bytes: number): string {
   return `${(bytes / 1024 ** 4).toFixed(2)} TB`;
 }
 
-/** 7600 → "7,6 B" */
 export function formatCompact(n: number | null | undefined): string {
   const v = n ?? 0;
   return v < 10_000 ? fmt().num.format(v) : fmt().compact.format(v);

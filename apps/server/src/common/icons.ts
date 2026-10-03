@@ -7,15 +7,10 @@ import type { IconNode } from '@forum/shared';
 export type IconWeight = 'regular' | 'bold' | 'fill' | 'duotone';
 
 const require = createRequire(import.meta.url);
-/** .../@phosphor-icons/core/assets */
 const ASSETS = dirname(dirname(require.resolve('@phosphor-icons/core/assets/regular/house.svg')));
 
 const NAMES = new Set<string>(catalog.map((i) => i.name));
 
-/**
- * Eski (lucide) ikon adları → Phosphor. Önceki sürümde kaydedilmiş bölüm ve menü ikonları
- * bozulmasın diye çözümlemede kullanılır; açılışta veritabanındaki adlar da bununla güncellenir.
- */
 export const LEGACY_ICONS: Record<string, string> = {
   'messages-square': 'chats-circle',
   'message-square': 'chat-centered-text',
@@ -50,7 +45,6 @@ export const LEGACY_ICONS: Record<string, string> = {
   home: 'house',
 };
 
-/** Kayıtlı ad → geçerli Phosphor adı (yoksa null). */
 export function resolveIconName(name: string | null | undefined): string | null {
   if (!name) return null;
   if (NAMES.has(name)) return name;
@@ -71,17 +65,12 @@ function parse(svg: string): IconNode {
   for (const [, tag, rawAttrs] of svg.matchAll(TAG)) {
     const attrs: Record<string, string> = {};
     for (const [, k, v] of rawAttrs!.matchAll(ATTR)) attrs[k!] = v!;
-    // Phosphor'un boş 256×256 dolgu dikdörtgeni gereksiz.
     if (tag === 'rect' && attrs.fill === 'none' && attrs.width === '256') continue;
     out.push([tag!, attrs]);
   }
   return out;
 }
 
-/**
- * Phosphor ikon adı (kebab-case) → SVG düğümleri (viewBox 0 0 256 256, dolgu tabanlı).
- * Bölüm ve menü ikonları sunucuda çözülür; böylece tarayıcı tüm ikon setini indirmez.
- */
 export function iconNode(name: string | null | undefined, weight: IconWeight = 'duotone'): IconNode | null {
   const resolved = resolveIconName(name);
   if (!resolved) return null;
@@ -103,7 +92,6 @@ export interface IconSearchHit {
   nodes: IconNode;
 }
 
-/** Yönetim panelindeki ikon seçici için ad, kategori ve etiketlerde arama. */
 export function searchIcons(query: string, limit = 160, weight: IconWeight = 'duotone'): IconSearchHit[] {
   const q = query.trim().toLocaleLowerCase('en').replace(/\s+/g, '-');
   const scored: Array<{ name: string; score: number }> = [];

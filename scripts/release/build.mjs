@@ -1,18 +1,4 @@
 #!/usr/bin/env node
-/**
- * InkForum sürüm paketi.
- *
- * Sunucu tek dosyada birleştirilip küçültülür (kurulum ve imaj küçük kalsın), arayüz SvelteKit
- * derlemesinden gelir. Kaynak kodun tamamı bu depoda AGPL-3.0 ile açıktır. Çıktı:
- *
- *   release/inkforum/            → Docker imajının ve sunucu paketinin içeriği
- *     server.mjs  cli.mjs  updater.mjs  web/  package.json  forum.release  BUILD  LICENSE
- *   release/dist/inkforum-<sürüm>.tar.gz   (+ SHA256SUMS)
- *
- * Kullanım (önce: INKFORUM_RELEASE=1 pnpm build):
- *   node scripts/release/build.mjs [--no-archive] [--with-modules]
- *     --with-modules  node_modules'u da kurar ve <platform>-<arch> paketi üretir
- */
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { cpSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, rmdirSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
@@ -43,7 +29,6 @@ const readPkg = (dir) => JSON.parse(readFileSync(join(root, dir, 'package.json')
 const serverPkg = readPkg('apps/server');
 const dbPkg = readPkg('packages/db');
 
-/** Çalışma anında dosya okuyan ya da yerel (native) bileşen içeren paketler paketlenmez, npm ile kurulur. */
 const runtimeDeps = {
   '@node-rs/argon2': serverPkg.dependencies['@node-rs/argon2'],
   '@phosphor-icons/core': serverPkg.dependencies['@phosphor-icons/core'],
@@ -56,7 +41,6 @@ const external = [
   ...Object.keys(optionalDeps),
   'better-sqlite3',
   '@electric-sql/pglite',
-  // Nest'in isteğe bağlı modülleri (kullanılmıyor)
   '@nestjs/microservices',
   '@nestjs/microservices/*',
   '@nestjs/websockets',
@@ -68,7 +52,6 @@ const external = [
   'pg-native',
 ];
 
-/** Önceki çıktıyı siler; bağlantılar (symlink/junction) hedefleri izlenmeden kaldırılır */
 function clean(dir) {
   if (!existsSync(dir)) return;
   for (const e of readdirSync(dir)) {
@@ -78,7 +61,7 @@ function clean(dir) {
       try {
         unlinkSync(p);
       } catch {
-        rmdirSync(p); // Windows dizin bağlantısı (junction)
+        rmdirSync(p);
       }
     }
     else if (st.isDirectory()) clean(p);
@@ -110,7 +93,7 @@ for (const [from, to] of entries) {
     format: 'esm',
     target: 'node22',
     minify: true,
-    keepNames: true, // Nest bağımlılık çözümü ve günlükler sınıf adlarını kullanır
+    keepNames: true,
     sourcemap: false,
     legalComments: 'none',
     external,
@@ -120,7 +103,6 @@ for (const [from, to] of entries) {
   console.log(`  ✓ ${to} (${(statSync(join(out, to)).size / 1024).toFixed(0)} KB)`);
 }
 
-// Arayüz: kaynak haritaları çıkarılır
 cpSync(webBuild, join(out, 'web'), { recursive: true, filter: (src) => !src.endsWith('.map') });
 console.log('  ✓ web/');
 
@@ -150,13 +132,13 @@ if (!commit) {
 writeFileSync(join(out, 'BUILD'), `${commit.slice(0, 12) || 'local'} ${new Date().toISOString().slice(0, 10)}\n`);
 for (const f of ['LICENSE', 'CHANGELOG.md', 'CHANGELOG_tr.md']) if (existsSync(join(root, f))) cpSync(join(root, f), join(out, f));
 cpSync(join(root, '.env.example'), join(out, '.env.example'));
-// cPanel / Passenger / PM2 başlangıç dosyası (app.js: cPanel'in varsayılan adı)
 cpSync(join(root, 'scripts/release/files/app.cjs'), join(out, 'app.cjs'));
 writeFileSync(join(out, 'app.js'), "// cPanel'in varsayılan başlangıç dosyası; asıl dosya app.cjs\nimport('./app.cjs');\n");
-// Arayüz ve e-posta çevirileri (sunucu I18nService bunları <kök>/i18n klasöründen okur)
 cpSync(join(root, 'packages/shared/i18n'), join(out, 'i18n'), { recursive: true });
-// Paylaşım görselleri (Open Graph) için yazı tipi: işletim sisteminde font olmasa da metin doğru çizilir
 cpSync(join(root, 'apps/server/assets/fonts'), join(out, 'fonts'), { recursive: true });
+const sdk = join(root, 'packages/sdk');
+if (!existsSync(join(sdk, 'dist/index.d.ts'))) throw new Error('packages/sdk derlenmemiş: önce INKFORUM_RELEASE=1 pnpm build');
+for (const p of ['starter', 'examples', 'bin/inkforum-ext.mjs', 'dist/index.d.ts', 'dist/client.d.ts']) cpSync(join(sdk, p), join(out, 'sdk', p), { recursive: true });
 
 if (args.has('--with-modules')) {
   console.log('  … npm install --omit=dev');
@@ -166,7 +148,6 @@ if (args.has('--with-modules')) {
 if (!args.has('--no-archive')) {
   mkdirSync(dist, { recursive: true });
   const name = args.has('--with-modules') ? `inkforum-${version}-${process.platform}-${process.arch}.tar.gz` : `inkforum-${version}.tar.gz`;
-  // Göreli yollar: GNU tar "C:\…" biçimini uzak sunucu adresi sanar
   execFileSync('tar', ['-czf', `dist/${name}`, 'inkforum'], { cwd: join(root, 'release'), stdio: 'inherit' });
   const sums = readdirSync(dist)
     .filter((f) => f.endsWith('.tar.gz'))

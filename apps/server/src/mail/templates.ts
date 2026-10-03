@@ -39,17 +39,12 @@ ${
 }
 
 export interface ComposeContext extends MailContext {
-  /** Düğme rengi (forumun vurgu rengi) */
   accent: string;
-  /** Mutlak logo adresi (yoksa forum adı yazılır) */
   logoUrl: string | null;
-  /** E-postanın dili (html lang) */
   lang?: string;
-  /** Alt bilgi metni ({forum} yerine forum bağlantısı gelir) */
   footer?: string;
 }
 
-/** `{{degisken}}` yer tutucularını doldurur; `html` açıksa değerler kaçışlanır. */
 export function fillVars(tpl: string, vars: Record<string, string>, html: boolean): string {
   return tpl.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_, k: string) => {
     const val = vars[k] ?? '';
@@ -57,7 +52,6 @@ export function fillVars(tpl: string, vars: Record<string, string>, html: boolea
   });
 }
 
-/** HTML gövdeden düz metin sürümü: paragraflar satır olur, düğmeler "Etiket: adres" yazılır. */
 export function htmlToText(html: string): string {
   const decode = (s: string) =>
     s.replace(/&(amp|lt|gt|quot|#39|nbsp);/g, (_, e: string) => ({ amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'", nbsp: ' ' })[e] ?? '');
@@ -77,16 +71,10 @@ export function htmlToText(html: string): string {
     .trim();
 }
 
-/**
- * Düzenlenebilir şablon gövdesini e-posta düzenine yerleştirir.
- * Gövdedeki `class="button"` bağlantıları ve `class="muted"` paragraflar satır içi stile çevrilir
- * (e-posta istemcileri <style> etiketlerini çoğunlukla yok sayar).
- */
 export function composeMail(ctx: ComposeContext, subjectTpl: string, bodyTpl: string, vars: Record<string, string>): MailContent {
   const all = { forumName: ctx.forumName, forumUrl: ctx.appUrl, ...vars };
   const subject = fillVars(subjectTpl, all, false).replace(/[\r\n]+/g, ' ').trim();
   const accent = /^#[0-9a-f]{6}$/i.test(ctx.accent) ? ctx.accent : '#18181b';
-  // Açık vurgu renklerinde (ör. gri) beyaz yazı okunmaz: parlaklığa göre koyu ya da beyaz
   const accentText = (() => {
     const n = parseInt(accent.slice(1), 16);
     const lin = (c: number) => (c / 255 <= 0.03928 ? c / 255 / 12.92 : ((c / 255 + 0.055) / 1.055) ** 2.4);

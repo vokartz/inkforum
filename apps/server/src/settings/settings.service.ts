@@ -34,7 +34,6 @@ export class SettingsService implements OnModuleInit {
   }
 
   async onModuleInit(): Promise<void> {
-    // Tablolar henüz yoksa (migration öncesi) varsayılanlarla devam edilir; bootstrap sonrası yeniden yüklenir.
     await this.reload().catch(() => undefined);
   }
 
@@ -64,17 +63,14 @@ export class SettingsService implements OnModuleInit {
     return this.values[key];
   }
 
-  /** Değer veritabanında kayıtlı mı (değilse varsayılan kullanılıyor) */
   isStored(key: SettingKey): boolean {
     return this.stored.has(key);
   }
 
-  /** Eklenti açık mı (Yönetim → Eklentiler) */
   plugin(key: PluginKey): boolean {
     return pluginEnabled(this.values as unknown as Record<string, unknown>, key);
   }
 
-  /** Etkin açılış sayfası adresi; eklenti kapalıysa boş */
   landing(): string {
     return effectiveLanding(this.values as unknown as Record<string, unknown>);
   }
@@ -93,7 +89,6 @@ export class SettingsService implements OnModuleInit {
     return out as PublicSettings;
   }
 
-  /** Ayarları doğrular ve kaydeder. Varsayılana eşit değerlerin satırı silinir. */
   async update(patch: Record<string, unknown>, actorId: number | null, opts: { allowHidden?: boolean } = {}): Promise<string[]> {
     const fields: Record<string, string> = {};
     const valid: Array<[SettingKey, unknown]> = [];
@@ -116,7 +111,6 @@ export class SettingsService implements OnModuleInit {
     return changed;
   }
 
-  /** İç kullanım (doğrulamasız, gizli anahtarlar dahil). */
   async set<K extends SettingKey>(key: K, value: SettingsValues[K], actorId: number | null = null): Promise<void> {
     await this.write([[key, value]], actorId);
   }

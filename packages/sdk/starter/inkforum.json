@@ -1,0 +1,15 @@
+{
+  "id": "__ID__",
+  "name": "__NAME__",
+  "version": "0.1.0",
+  "description": "__NAME__ eklentisi",
+  "author": "",
+  "icon": "puzzle-piece",
+  "inkforum": ">=1.5.0",
+  "server": "server.mjs",
+  "client": { "scripts": [], "styles": ["style.css"] },
+  "settings": [{ "key": "greeting", "type": "text", "label": "Karşılama metni", "default": "Merhaba", "public": true }],
+  "permissions": [{ "key": "view", "label": "Sayfayı görüntüleme", "defaults": { "member": 1 } }],
+  "nav": [{ "label": "__NAME__", "url": "/__ID__", "icon": "puzzle-piece", "visibility": "all" }],
+  "csp": {}
+}

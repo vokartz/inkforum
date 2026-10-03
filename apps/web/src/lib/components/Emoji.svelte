@@ -3,9 +3,7 @@
   import { cn } from '$lib/utils';
 
   interface Props {
-    /** Unicode emoji */
     emoji: string;
-    /** Piksel (varsayılan: yazı boyutunun 1.25 katı) */
     size?: number;
     class?: string;
     label?: string;

@@ -1,0 +1,55 @@
+{
+  "id": "complaints",
+  "name": "Şikayet Merkezi",
+  "version": "1.0.0",
+  "description": "Bilet (ticket) mantığında şikayet sistemi: mesaj, üye ve konu şikayetleri; ekip kuyruğu, atama, öncelik, iç notlar, durum takibi ve bildirimler.",
+  "author": "InkForum",
+  "icon": "flag",
+  "inkforum": ">=1.5.0",
+  "server": "server.mjs",
+  "client": { "scripts": [], "styles": ["style.css"] },
+  "settings": [
+    {
+      "key": "categories",
+      "type": "textarea",
+      "label": "Şikayet kategorileri",
+      "hint": "Her satıra bir kategori yazın. Üyeler şikayet açarken bunlardan birini seçer.",
+      "default": "Hakaret / küfür\nSpam / reklam\nKural ihlali\nHile / bug kullanımı\nDiğer",
+      "section": "Genel"
+    },
+    {
+      "key": "maxOpen",
+      "type": "number",
+      "label": "Üye başına en fazla açık şikayet",
+      "hint": "Açık, inceleniyor ve yanıt bekleniyor durumundaki şikayetler sayılır.",
+      "default": 5,
+      "min": 1,
+      "max": 50,
+      "section": "Genel"
+    },
+    {
+      "key": "autoAck",
+      "type": "boolean",
+      "label": "Otomatik ilk yanıt gönder",
+      "hint": "Açık olursa her yeni şikayete \"Şikayetin alındı, en kısa sürede incelenecek.\" yanıtı eklenir.",
+      "default": true,
+      "section": "Yanıtlar"
+    }
+  ],
+  "permissions": [
+    {
+      "key": "file",
+      "label": "Şikayet açma",
+      "description": "Mesaj, üye ve konuları şikayet edebilir; kendi şikayetlerini takip edebilir.",
+      "defaults": { "member": 1 }
+    },
+    {
+      "key": "handle",
+      "label": "Şikayetleri yönetme",
+      "description": "Şikayet kuyruğunu görür; durum, öncelik ve atama değiştirir, yanıt ve iç not yazar.",
+      "defaults": { "global_moderator": 1, "moderator": 1 }
+    }
+  ],
+  "nav": [{ "label": "Şikayetlerim", "url": "/sikayetler", "icon": "flag", "visibility": "members", "permission": "ext.complaints.file" }],
+  "csp": {}
+}

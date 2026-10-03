@@ -16,7 +16,7 @@ installs with one command, runs happily on a cheap VPS and updates itself with o
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-ffdd00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/vokartz)
 
-**English** · [Türkçe](README_tr.md) · [Deutsch](README_de.md) · [简体中文](README_zh.md) · [Español](README_es.md) · [Français](README_fr.md) · [Русский](README_ru.md) · [Português](README_pt.md)
+**English** · [Türkçe](README_tr.md)
 
 [Quick start](#-quick-start) · [Features](#-features) · [Updates](#-updates) · [Backups](#-backups--restore) · [Import](#-import-from-another-forum) · [FAQ](#-faq) · [Support](#-support-the-project)
 
@@ -33,7 +33,7 @@ installs with one command, runs happily on a cheap VPS and updates itself with o
 | **Full control without code** | Themes, colours, menus, home page, permissions, e-mail templates, plugins… everything lives in the admin panel. |
 | **One-click updates** | New releases appear in the panel with release notes. A backup is taken first and the previous version is restored automatically if anything goes wrong. |
 | **Secure by default** | Built-in web application firewall (WAF), two-factor authentication, re-authentication for admin actions, strict Content Security Policy. |
-| **Multilingual** | English, Turkish, German, Chinese, Spanish, French, Russian and Portuguese — members pick their own language. |
+| **Multilingual** | English and Turkish — members pick their own language. |
 
 ## 🚀 Quick start
 
@@ -161,8 +161,8 @@ Can't use Docker (cPanel/Passenger, Plesk, plain Node.js)? Every release also sh
 <summary><b>Integrations</b></summary>
 
 - OAuth 2.0 provider ("Sign in with your forum account", PKCE), scoped REST API, API keys
-- Signed webhooks (new topic, registration, group change…), signed member tokens for game panels / UCPs
-- Custom HTML/CSS/JS snippets (safe via CSP nonces) and a `window.forum` JavaScript API
+- Signed webhooks (new topic, registration, group change…)
+- Installable extensions (.zip/.tgz upload or npm package) that add pages, admin pages, API routes, database tables, menu links, page slots and event/job handlers; a starter kit (example extension, types, packing tool) downloaded from the admin panel and ready-made extensions
 </details>
 
 ## 🔄 Updates

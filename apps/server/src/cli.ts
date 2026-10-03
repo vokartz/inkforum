@@ -17,15 +17,6 @@ import { ForumCacheService } from './forum/forum-cache.service.js';
 import { PostsService } from './forum/posts.service.js';
 import type { RequestViewer } from './common/request-context.js';
 
-/**
- * Komut satırı araçları:
- *   node dist/cli.js migrate      → migration'ları ve açılış uzlaştırmasını çalıştırır
- *   node dist/cli.js cron         → zamanı gelen görevleri ve bekleyen işleri çalıştırır (cPanel cron için)
- *   node dist/cli.js seed-dev     → geliştirme için örnek üyeler ve forum içeriği oluşturur
- *   node dist/cli.js transfer-db <hedef>
- *                                 → tüm verileri başka bir veritabanına taşır (ör. SQLite → PostgreSQL);
- *                                   hedef: postgres://kullanici:sifre@sunucu:5432/veritabani ya da sqlite:/yol/forum.db
- */
 async function main(): Promise<void> {
   const command = process.argv[2] ?? 'help';
   const config = loadConfig(process.env, { WORKER_ENABLED: 'false' });
@@ -56,10 +47,6 @@ async function main(): Promise<void> {
   }
 }
 
-/**
- * Veritabanı taşıma: mevcut (DB_DRIVER / DATABASE_URL / DB_SQLITE_PATH) veritabanı kaynak, verilen adres hedeftir.
- * Kaynak değiştirilmez; hedef boş olmalıdır. Bittiğinde .env'de hedef veritabanına geçip uygulamayı yeniden başlatın.
- */
 async function transferDb(config: ReturnType<typeof loadConfig>, targetArg: string | undefined): Promise<void> {
   if (!targetArg) {
     console.error('Hedef veritabanı adresi gerekli: transfer-db postgres://kullanici:sifre@sunucu:5432/veritabani');
@@ -78,7 +65,6 @@ async function transferDb(config: ReturnType<typeof loadConfig>, targetArg: stri
   const dest = await createDatabase(target);
   try {
     console.log(`Kaynak: ${config.db.driver} → Hedef: ${target.driver}`);
-    // Kaynak da güncel şemada olmalı
     const up = await migrateToLatest(source.db);
     if (up.error) throw up.error;
     const r = await transferDatabase({ db: source.db, driver: source.driver }, { db: dest.db, driver: dest.driver }, { log: (m) => console.log(`  ${m}`) });
@@ -115,7 +101,6 @@ async function seedDev(app: Awaited<ReturnType<typeof NestFactory.createApplicat
     { username: 'Mehmet', posts: 75 },
     { username: 'Zeynep', posts: 3 },
     { username: 'Can', posts: 260 },
-    // Yönetim paneli denemeleri için (yalnızca geliştirme verisi)
     { username: 'Deniz', primary: adminGroup.id, posts: 90 },
   ];
   for (const s of samples) {
@@ -139,7 +124,6 @@ async function seedDev(app: Awaited<ReturnType<typeof NestFactory.createApplicat
   await seedForumContent(app, samples.map((s) => s.username));
 }
 
-/** Örnek konular ve yanıtlar (bir kez). */
 async function seedForumContent(app: Awaited<ReturnType<typeof NestFactory.createApplicationContext>>, usernames: string[]): Promise<void> {
   const db = app.get(Db);
   const settings = app.get(SettingsService);
@@ -161,7 +145,6 @@ async function seedForumContent(app: Awaited<ReturnType<typeof NestFactory.creat
   const as = (name: string) => viewers.get(name)!;
   const board = async (name: string) => (await forum.structure()).boards.find((b) => b.name === name)!;
 
-  // Önekler
   const help = await board('Yardım ve Destek');
   const now = Date.now();
   for (const [i, p] of [

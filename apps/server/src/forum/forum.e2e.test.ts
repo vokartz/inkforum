@@ -120,7 +120,7 @@ describe('topics and posts', () => {
     const notes = await ali.get('/api/me/notifications');
     const types = notes.body.items.map((n: { type: string }) => n.type);
     expect(types).toContain('forum.quote');
-    expect(types).not.toContain('forum.mention'); // aynı mesajda alıntılanan kişiye ikinci bildirim gitmez
+    expect(types).not.toContain('forum.mention');
 
     const page = await h.agent().get(`/api/topics/${topicId}`);
     expect(page.body.topic.replyCount).toBe(1);
@@ -155,7 +155,6 @@ describe('topics and posts', () => {
     const page = await h.agent().get(`/api/topics/${topicId}`);
     expect(page.body.topic.replyCount).toBe(1);
     expect(page.body.posts.items.some((p: { id: number }) => p.id === r.body.postId)).toBe(false);
-    // Yanıtı olan konunun ilk mesajını sahibi silemez.
     expect((await ali.delete(`/api/posts/${firstPostId}`)).status).toBe(403);
   });
 
@@ -253,7 +252,6 @@ describe('board permissions and moderation', () => {
     await admin.put(`/api/admin/forum/boards/${boards['Yardım ve Destek']}/moderators`, { userIds: [await userId('Ayse')] });
     expect((await ayse.post(`/api/mod/topics/${t.topicId}/lock`)).status).toBe(200);
     expect((await ali.post(`/api/topics/${t.topicId}/posts`, { body: 'kilitli mi?' })).status).toBe(403);
-    // Başka bölümde moderatör değil.
     const other = await newTopic(ali, boards['Konu Dışı']!, 'Başka bölüm');
     expect((await ayse.post(`/api/mod/topics/${other.topicId}/lock`)).status).toBe(403);
   });

@@ -22,7 +22,6 @@ export class WikiController {
     return this.wiki.index(v);
   }
 
-  /** Sayfa: ?path=kurallar/rol-kurallari */
   @Get('page')
   page(@Query('path', new ZodPipe(pathQuery)) path: string, @CurrentViewer() v: RequestViewer) {
     return this.wiki.page(v, path);
@@ -34,7 +33,6 @@ export class WikiController {
     return { items: await this.wiki.search(v, String(q ?? '').slice(0, 100)) };
   }
 
-  /** Wiki düzenleyicileri için ikon arama (yönetici olmaları gerekmez) */
   @Get('icons')
   @RequireAuth()
   @RateLimit({ limit: 120, windowMs: MINUTE, by: 'user' })

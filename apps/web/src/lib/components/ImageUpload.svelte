@@ -7,14 +7,11 @@
   import { t } from '$lib/i18n.svelte';
 
   interface Props {
-    /** Mevcut görsel adresi */
     current: string | null;
-    /** Kırpılacak kare boyutu (0 = kırpma yok) */
     squareSize?: number;
     maxBytes: number;
     rounded?: boolean;
     previewSize?: number;
-    /** Önizleme genişliği (yatay görseller için; boşsa kare) */
     previewWidth?: number;
     label?: string;
     onupload: (blob: Blob, filename: string) => Promise<void>;

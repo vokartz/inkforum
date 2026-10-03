@@ -16,23 +16,16 @@
   import { cn } from '$lib/utils';
   import { t } from '$lib/i18n.svelte';
 
-  /**
-   * Özel sayfa: HTML / BBCode içerik, sayfaya özel CSS ve JS, isteğe bağlı kenar çubuğu.
-   * Sayfanın JS'i `window.forum.page` (sunucu verisi) ve `forum.api()` ile sunucu koduna ulaşır.
-   */
   let { page: p, safeMode = false }: { page: CustomPageView; safeMode?: boolean } = $props();
   const viewer = $derived(appPage.data.viewer);
   const canEdit = $derived(!!viewer?.isAdmin);
-  // Güvenli modda ya da özel kod kapalıyken HTML sayfaların kodu çalıştırılmaz.
   const blocked = $derived(p.format === 'html' && (safeMode || !p.html));
   const code = $derived(!safeMode);
   const sidebar = $derived(code && p.layout !== 'blank' && p.sidebar && p.sidebar !== 'none' && p.sidebarHtml ? p.sidebar : null);
   const css = $derived(code && p.css ? `<style data-page-css>${p.css.replace(/<\/style/gi, '<\\/style')}</style>` : '');
-  // Sayfanın JS'i içerikten sonra, kendi betiği olarak çalışır (CSP nonce'u runScripts ekler)
   const CLOSE = '</' + 'script>';
   const script = $derived(code && p.js ? `<script>${p.js.replace(/<\/script/gi, '<\\/script')}${CLOSE}` : '');
 
-  /** Sunucu verisi şablonlarda {{data.alan}} olarak kullanılabilir (3 düzeye kadar) */
   const dataVars = $derived.by(() => {
     const out: Record<string, string> = {};
     const walk = (v: unknown, key: string, depth: number) => {
@@ -53,7 +46,6 @@
       { id: p.id, slug: p.slug, route: p.route ?? null, title: p.title, data: p.data ?? null },
     );
   }
-  // Sayfanın betikleri (alt bileşen) takılmadan önce forum.page ve bileşenler hazır olmalı
   if (browser) {
     untrack(install);
     defineForumElements();
@@ -91,7 +83,7 @@
 
 {#snippet content()}
   {#if blocked}
-    <p class="flex items-center gap-2 rounded-md bg-muted px-4 py-6 text-sm text-muted-foreground"><ShieldWarningIcon class="size-5" />{t('Bu sayfa özel kod içeriyor; güvenli modda ya da özel kod kapalıyken gösterilmez.')}</p>
+    <p class="flex items-center gap-2 rounded-md bg-muted px-4 py-6 text-sm text-muted-foreground"><ShieldWarningIcon class="size-5" />{t('Bu sayfa kod içeriyor; güvenli modda gösterilmez.')}</p>
   {:else if p.format === 'builder'}
     <BuilderPage blocks={p.blocks ?? []} standalone={p.layout === 'blank'} />
   {:else if p.format === 'html'}

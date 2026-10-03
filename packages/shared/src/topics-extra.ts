@@ -3,8 +3,6 @@ import type { UserSummary } from './dto.js';
 import type { Paginated } from './validation.js';
 import type { UnreadTopicItem } from './forum.js';
 
-// ---------- Etiketler ----------
-
 export interface TopicTag {
   id: number;
   name: string;
@@ -17,7 +15,6 @@ export interface TagSummary extends TopicTag {
   isOfficial: boolean;
 }
 
-/** Etiket adı: harf, rakam, boşluk, tire ve nokta (Türkçe karakterler serbest). */
 export const tagNameSchema = z
   .string()
   .trim()
@@ -32,7 +29,6 @@ export const tagNameSchema = z
 
 export const tagsInputSchema = z.array(tagNameSchema).max(10, 'En fazla 10 etiket.').default([]);
 
-/** Etiket adresi: Türkçe karakterler sadeleştirilir. */
 export function tagSlug(name: string): string {
   const map: Record<string, string> = { ç: 'c', ğ: 'g', ı: 'i', ö: 'o', ş: 's', ü: 'u', â: 'a', î: 'i', û: 'u' };
   return name
@@ -69,8 +65,6 @@ export const adminTagSchema = z.object({
     .default(null),
   isOfficial: z.boolean().default(false),
 });
-
-// ---------- Anketler ----------
 
 export const POLL_SHOW_RESULTS = ['always', 'after_vote', 'after_close'] as const;
 export type PollShowResults = (typeof POLL_SHOW_RESULTS)[number];
@@ -109,7 +103,6 @@ export const pollVoteSchema = z.object({ optionIds: z.array(z.number().int().pos
 export interface PollOptionView {
   id: number;
   label: string;
-  /** Sonuçlar gizliyse null */
   votes: number | null;
 }
 
@@ -134,7 +127,6 @@ export interface PollVoter {
   at: number;
 }
 
-/** Konu sayfasının altındaki gezinme: benzer konular ve sonraki okunmamış konu. */
 export interface TopicRelated {
   similar: UnreadTopicItem[];
   nextUnread: { id: number; title: string; slug: string } | null;

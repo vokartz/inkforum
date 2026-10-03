@@ -1,6 +1,5 @@
 import type { RequestHandler } from './$types';
 
-/** Dinamik robots.txt (Yönetim → Ayarlar → Arama motorları ve paylaşım) */
 export const GET: RequestHandler = async ({ fetch }) => {
   const res = await fetch('/api/seo/robots');
   const body = res.ok ? await res.text() : 'User-agent: *\nAllow: /\n';

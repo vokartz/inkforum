@@ -25,7 +25,6 @@ const settingsInput = z.object({
 });
 const restoreInput = z.object({ confirm: z.literal('GERİ YÜKLE', { error: 'Onaylamak için "GERİ YÜKLE" yazın.' }) });
 
-/** Yüklenen yedekler önce geçici klasöre yazılır (bellekte tutulmaz); klasör denetleyici kurulurken belirlenir */
 let storageDir = '';
 const incomingDir = () => {
   const dir = join(storageDir, 'backups', '.incoming');

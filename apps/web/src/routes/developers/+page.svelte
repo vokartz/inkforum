@@ -22,13 +22,11 @@
     { id: 'hatalar', label: 'Hatalar ve sınırlar' },
   ];
 
-  // Kod örneklerindeki açıklamalar ve örnek değerler de çevrilir: anahtar, ${…} yerine {0}, {1}… içeren şablondur
   function ts(strings: TemplateStringsArray, ...values: string[]): string {
     const key = strings.reduce((acc, part, i) => acc + (i ? `{${i - 1}}` : '') + part, '');
     return tc(key).replace(/\{(\d+)\}/g, (m, i: string) => values[Number(i)] ?? m);
   }
 
-  const S = '</' + 'script>';
   const samples = $derived({
     authorizeUrl: ts`${base}/oauth/authorize
   ?response_type=code
@@ -149,10 +147,6 @@ $event = json_decode($raw, true);`,
 
 // OAuth token uç noktası RFC 6749 biçiminde döner:
 { "error": "invalid_grant", "error_description": "Kod geçersiz ya da süresi dolmuş." }`,
-    lightweight: ts`<!-- ${t('Forumun kendi sayfalarında (Yönetim → Özel kod) çalışan hafif yol')} -->
-<script>
-  window.forum.token().then((jwt) => fetch('https://ucp.example.com/api/me', { headers: { Authorization: 'Bearer ' + jwt } }));
-${S}`,
   });
 
   async function copy(v: string) {
@@ -160,7 +154,6 @@ ${S}`,
       await navigator.clipboard.writeText(v);
       toast.success(t('Kopyalandı.'));
     } catch {
-      /* yok */
     }
   }
   const ENDPOINTS: Array<[string, string, string, string]> = [
@@ -285,8 +278,7 @@ ${S}`,
       <h2>{t('API anahtarları')}</h2>
       <p class="text-muted-foreground">{t('Yönetici tarafından belirli bir hesap adına ve seçili izinlerle oluşturulur')} (<code>fk_…</code>). {t('Üye etkileşimi gerektirmeyen arka plan işleri içindir.')} <code>admin</code> {t('izinli anahtarlar, bağlı olduğu hesabın yönetim yetkileriyle yönetim uç noktalarını kullanabilir; bu yüzden ayrı bir bot hesabı açıp yalnızca gereken yetkileri vermen önerilir.')}</p>
       {@render code(samples.apikey, 'curl')}
-      <p class="text-muted-foreground">{t('Hafif yol: forumun kendi sayfalarına eklediğin özel kod (Yönetim → Özel kod), giriş yapmış üye için imzalı kısa ömürlü bir kimlik belirteci alabilir:')}</p>
-      {@render code(samples.lightweight, 'HTML')}
+      <p class="text-muted-foreground">{t('Forumun içinde çalışması gereken bir entegrasyon (kendi sayfaların, API uçların ya da tek oturum) için bir InkForum eklentisi yazabilirsin:')} <a href="/admin/extensions/docs" class="text-link hover:underline">{t('Eklenti geliştirici rehberi')}</a>.</p>
     </section>
 
     <section id="webhooklar" class="grid gap-4">

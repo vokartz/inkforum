@@ -1,19 +1,8 @@
 import type { ColumnType, Generated, Insertable, Selectable, Updateable } from 'kysely';
 
-/**
- * Veritabanı tipleri (elle yazılır; SQLite ve PostgreSQL için ortak).
- * - Zaman damgaları: epoch ms (number)
- * - Bayraklar: smallint 0/1 (yazarken boolean da kabul edilir, BooleanToIntPlugin çevirir)
- * - JSON: text (repository katmanında parse edilir)
- */
-
 type Id = Generated<number>;
-/** DB varsayılanı olan bayrak. */
 type Flag = ColumnType<number, number | boolean | undefined, number | boolean>;
-/** DB varsayılanı olan sayı/metin. */
 type Def<T> = ColumnType<T, T | undefined, T>;
-
-// ---------- Altyapı ----------
 
 export interface SettingsTable {
   key: string;
@@ -89,8 +78,6 @@ export interface AuditLogTable {
   created_at: number;
 }
 
-// ---------- Gruplar ----------
-
 export type GroupKind = 'regular' | 'post_count' | 'system';
 export type GroupJoinType = 'closed' | 'requestable' | 'free';
 export type GroupVisibility = 'visible' | 'hidden' | 'additional_only';
@@ -155,7 +142,6 @@ export interface GroupPermissionsTable {
 
 export interface PermissionProfilesTable {
   id: Id;
-  /** Sistem profilleri için sabit anahtar (default, read_only, members_only). */
   key: string | null;
   name: string;
   description: Def<string>;
@@ -169,8 +155,6 @@ export interface PermissionProfileEntriesTable {
   permission: string;
   value: number;
 }
-
-// ---------- Kullanıcılar ----------
 
 export type UserStatusValue = 'active' | 'pending_email' | 'pending_approval' | 'deactivated';
 
@@ -212,10 +196,8 @@ export interface UsersTable {
   last_ip: string | null;
   deleted_at: number | null;
   reputation: Def<number>;
-  /** "Siteyi okundu say" zamanı. */
   mark_read_at: number | null;
   cover_file_id: number | null;
-  /** Kapak fotoğrafının dikey konumu (0–100, yüzde). */
   cover_offset: Def<number>;
   created_at: number;
   updated_at: number;
@@ -319,8 +301,6 @@ export interface UserRecoveryCodesTable {
   created_at: number;
 }
 
-// ---------- Politikalar ----------
-
 export interface PoliciesTable {
   id: Id;
   key: string;
@@ -359,8 +339,6 @@ export interface PolicyAcceptancesTable {
   user_agent: string | null;
 }
 
-// ---------- Özel profil alanları ----------
-
 export type ProfileFieldType = 'text' | 'textarea' | 'select' | 'radio' | 'checkbox' | 'url' | 'number' | 'date';
 export type ProfileFieldVisibility = 'public' | 'members' | 'owner_staff' | 'staff';
 
@@ -390,8 +368,6 @@ export interface UserProfileFieldValuesTable {
   field_id: number;
   value: string;
 }
-
-// ---------- Yasaklar ----------
 
 export interface BansTable {
   id: Id;
@@ -437,8 +413,6 @@ export interface BanLogTable {
   context: 'access' | 'login' | 'register' | 'post';
   created_at: number;
 }
-
-// ---------- Uyarılar ----------
 
 export interface WarningTemplatesTable {
   id: Id;
@@ -496,8 +470,6 @@ export interface WarningActionApplicationsTable {
   reverted_at: number | null;
 }
 
-// ---------- Başarılar ----------
-
 export interface AchievementCategoriesTable {
   id: Id;
   name: string;
@@ -537,8 +509,6 @@ export interface UserAchievementsTable {
   awarded_at: number;
 }
 
-// ---------- Bildirimler ----------
-
 export interface NotificationsTable {
   id: Id;
   user_id: number;
@@ -555,8 +525,6 @@ export interface NotificationPreferencesTable {
   channel: 'web' | 'email';
   enabled: Flag;
 }
-
-// ---------- Forum ----------
 
 export interface ForumCategoriesTable {
   id: Id;
@@ -617,7 +585,6 @@ export interface TopicPrefixesTable {
   id: Id;
   name: string;
   color: string | null;
-  /** null = tüm bölümler */
   board_ids_json: string | null;
   sort_order: Def<number>;
   created_at: number;
@@ -794,7 +761,6 @@ export interface CustomPagesTable {
   slug: string;
   title: string;
   format: Def<'bbcode' | 'html' | 'builder'>;
-  /** Kök adres (ör. "ucp" → /ucp); boşsa /pages/{slug} */
   route: string | null;
   body: Def<string>;
   body_html: Def<string>;
@@ -814,7 +780,6 @@ export interface CustomPagesTable {
   server_code: Def<string>;
   server_enabled: Flag;
   allowed_hosts_json: Def<string>;
-  /** Şifreli JSON: { AD: değer } */
   secrets_enc: Def<string>;
 }
 
@@ -904,10 +869,8 @@ export interface TicketCategoriesTable {
   intro_html: Def<string>;
   created_at: number;
   updated_at: number;
-  /** Yeni talepleri otomatik atama: none | round_robin | least_open | fixed */
   auto_assign: Def<'none' | 'round_robin' | 'least_open' | 'fixed'>;
   auto_assign_user_id: number | null;
-  /** Önce çevrimiçi yetkililer (yoksa tümü) */
   auto_assign_online: Flag;
 }
 
@@ -983,6 +946,35 @@ export interface ThemesTable {
   created_by: number | null;
   created_at: number;
   updated_at: number;
+}
+
+export interface ExtensionsTable {
+  id: string;
+  name: string;
+  version: string;
+  is_enabled: Generated<number>;
+  source: Generated<string>;
+  package_name: string | null;
+  manifest_json: string;
+  settings_json: Generated<string>;
+  error: string | null;
+  installed_by: number | null;
+  installed_at: number;
+  updated_at: number;
+}
+
+export interface ExtensionKvTable {
+  ext_id: string;
+  key: string;
+  value_json: string;
+  expires_at: number | null;
+  updated_at: number;
+}
+
+export interface ExtensionMigrationsTable {
+  ext_id: string;
+  name: string;
+  applied_at: number;
 }
 
 export interface ShoutsTable {
@@ -1278,6 +1270,9 @@ export interface DB {
   topic_members: TopicMembersTable;
   shouts: ShoutsTable;
   themes: ThemesTable;
+  extensions: ExtensionsTable;
+  extension_kv: ExtensionKvTable;
+  extension_migrations: ExtensionMigrationsTable;
   polls: PollsTable;
   poll_options: PollOptionsTable;
   poll_votes: PollVotesTable;

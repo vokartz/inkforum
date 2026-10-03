@@ -14,6 +14,7 @@
   import EmptyState from '$lib/components/EmptyState.svelte';
   import { api, errorMessage } from '$lib/api';
   import HomeBlock from '$lib/components/home/HomeBlock.svelte';
+  import ExtensionSlotView from '$lib/components/ExtensionSlotView.svelte';
   import SignInIcon from 'phosphor-svelte/lib/SignIn';
   import UserPlusIcon from 'phosphor-svelte/lib/UserPlus';
   import { t, tc } from '$lib/i18n.svelte';
@@ -27,6 +28,9 @@
   const forum = $derived(data.forum);
   const welcome = $derived(page.url.searchParams.has('welcome'));
   const forumName = $derived(String(s['general.forumName'] ?? 'Forum'));
+  const extTop = $derived(page.data.ext?.slots.homeTop ?? []);
+  const extSide = $derived(page.data.ext?.slots.homeSidebar ?? []);
+  const hasSidebar = $derived(data.home.sidebar.length > 0 || extSide.length > 0);
 
   let pickerOpen = $state(false);
   let pickBoard = $state<number | null>(null);
@@ -101,8 +105,9 @@
     </div>
   </div>
 
-  <div class="grid grid-cols-[minmax(0,1fr)] gap-6 {data.home.sidebar.length ? 'lg:grid-cols-[minmax(0,1fr)_20rem]' : ''}" data-part="home-grid">
+  <div class="grid grid-cols-[minmax(0,1fr)] gap-6 {hasSidebar ? 'lg:grid-cols-[minmax(0,1fr)_20rem]' : ''}" data-part="home-grid">
     <div class="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-6">
+      {#if extTop.length}<ExtensionSlotView items={extTop} key="homeTop" />{/if}
       {#each forum.categories as cat, i (cat.id)}
         <div class="animate-rise" style="--i:{i}">
           <CategorySection id={cat.id} name={tc(cat.name)} description={tc(cat.description)} collapsible={cat.isCollapsible} background={cat.background} count={cat.boards.length}>
@@ -121,11 +126,12 @@
       {/each}
     </div>
 
-    {#if data.home.sidebar.length}
+    {#if hasSidebar}
         <aside class="grid content-start gap-5" data-part="home-sidebar">
           {#each data.home.sidebar as block (block.id)}
             <HomeBlock {block} compact forum={data.forum} recent={data.recent} birthdays={data.birthdays} />
           {/each}
+          {#if extSide.length}<ExtensionSlotView items={extSide} key="homeSidebar" card />{/if}
         </aside>
     {/if}
   </div>

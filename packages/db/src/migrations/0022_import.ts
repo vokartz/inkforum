@@ -1,11 +1,6 @@
 import type { Kysely } from 'kysely';
 import { helpers, notNull, textDefault } from './_helpers.js';
 
-/**
- * Başka forum yazılımlarından (SMF, phpBB, IPS, MyBB) içe aktarma.
- *  - import_runs: yüklenen döküm, analiz sonucu, seçenekler, ilerleme ve günlük
- *  - import_redirects: eski adreslerin (viewtopic.php?t=12, index.php?topic=5 …) yeni sayfalara yönlendirilmesi
- */
 export async function up(db: Kysely<any>): Promise<void> {
   const h = helpers(db);
 

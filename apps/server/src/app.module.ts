@@ -78,6 +78,8 @@ import { WafController } from './security/waf.controller.js';
 import { CaptchaController } from './security/captcha.controller.js';
 import { CaptchaService } from './security/captcha.service.js';
 import { CustomController } from './custom/custom.controller.js';
+import { AdminExtensionsController, ExtensionsController } from './extensions/extensions.controller.js';
+import { ExtensionsService } from './extensions/extensions.service.js';
 import { InstallService } from './install/install.service.js';
 import { InstallController } from './install/install.controller.js';
 import { BackupService } from './maintenance/backup.service.js';
@@ -126,6 +128,8 @@ export class AppModule {
         DiscordController,
         ThemesController,
         CustomController,
+        ExtensionsController,
+        AdminExtensionsController,
         WikiController,
         ApplicationsController,
         TicketsController,
@@ -165,6 +169,7 @@ export class AppModule {
         DiscordService,
         ThemesService,
         CustomService,
+        ExtensionsService,
         BuilderService,
         PageRuntimeService,
         PageForumApi,

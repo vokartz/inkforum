@@ -1,18 +1,9 @@
 #!/usr/bin/env node
-/**
- * Sürüm notları (iki dilli): İngilizce bölüm CHANGELOG.md'den, Türkçe bölüm CHANGELOG_tr.md'den alınır.
- * Türkçe kısım GitHub'da açılır bir bölümdür; yönetim paneli RELEASE_NOTES_TR_MARKER işaretine göre
- * yöneticinin diline uygun kısmı gösterir (packages/shared/src/updates.ts → pickReleaseNotes).
- * Bölüm yoksa ya da boşsa notlar önceki etiketten bu yana gelen commit mesajlarından üretilir.
- *
- *   node scripts/release/notes.mjs 1.2.0 > notes.md
- */
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-/** packages/shared/src/updates.ts ile aynı olmalı */
 const TR_MARKER = '<!-- inkforum:tr -->';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');

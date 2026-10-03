@@ -16,9 +16,7 @@
   let { data } = $props();
   const m = $derived(data.matrix);
 
-  /** Düzenlenen değerler: groupId -> permission -> 1 | 0 | -1 */
   let draft = $state<Record<string, Record<string, number>>>({});
-  // SSR sırasında da dolu gelmesi için hemen çalıştırılır; veri değişince yeniden eşitlenir.
   function syncState1() {
     if (!m) return;
     const next: Record<string, Record<string, number>> = {};

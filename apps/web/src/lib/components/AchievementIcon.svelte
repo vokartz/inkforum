@@ -12,7 +12,6 @@
   }
   let { iconUrl, tier, size = 48, locked = false, class: className }: Props = $props();
 
-  // Bronz, Gümüş, Altın, Platin, Elmas
   const TIER_COLORS = ['#b45309', '#94a3b8', '#eab308', '#22d3ee', '#a855f7'];
   const color = $derived(TIER_COLORS[Math.min(Math.max(tier, 1), 5) - 1]);
 </script>

@@ -32,7 +32,6 @@
     if (href) await goto(href);
   }
 
-  // Günlere göre gruplar: Bugün, Dün, Bu hafta, Daha eski
   const groups = $derived.by(() => {
     const start = new Date();
     start.setHours(0, 0, 0, 0);

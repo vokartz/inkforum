@@ -34,7 +34,6 @@ export type NotificationType =
   | 'system.update'
   | 'system.updated';
 
-/** E-postayla da gönderilebilen bildirim türleri ve şablonları. */
 const EMAIL_TEMPLATES: Record<string, MailTemplateKey | undefined> = {
   'forum.quote': 'notifyQuote',
   'forum.mention': 'notifyMention',
@@ -89,7 +88,6 @@ export class NotificationsService implements OnModuleInit {
     this.jobs.schedule('notifications.prune', DAY, () => this.prune());
   }
 
-  /** Bildirim oluşturur (kullanıcı web kanalını kapatmadıysa). */
   async notify(userId: number, type: NotificationType, data: Record<string, unknown>, actorId: number | null = null): Promise<void> {
     const pref = await this.db.q
       .selectFrom('notification_preferences')
@@ -113,17 +111,14 @@ export class NotificationsService implements OnModuleInit {
       try {
         await this.email(userId, type, data);
       } catch {
-        /* e-posta kuyruğa alınamadı; site içi bildirim yine de var */
       }
     }
   }
 
-  /** Yalnızca e-posta (site içi bildirimi olmayan türler, ör. özel mesaj). */
   async emailOnly(userId: number, type: 'message.new', data: Record<string, unknown>): Promise<void> {
     try {
       await this.email(userId, type, data);
     } catch {
-      /* yoksay */
     }
   }
 
@@ -149,7 +144,6 @@ export class NotificationsService implements OnModuleInit {
       .where('deleted_at', 'is', null)
       .executeTakeFirst();
     if (!user || user.status !== 'active' || !user.email_verified_at) return;
-    // Takip edilen konu: üye konuyu okuyana kadar tek e-posta (okunmamış başka yanıt bildirimi varsa gönderme).
     if (type === 'forum.reply') {
       const unread = await this.db.q
         .selectFrom('notifications')
@@ -229,10 +223,6 @@ export class NotificationsService implements OnModuleInit {
     return n;
   }
 
-  /**
-   * Tercihler: `enabled` site içi, `email` e-posta kanalı (e-postası olmayan türlerde null).
-   * Özel mesajlar yalnızca e-posta kanalında listelenir.
-   */
   async preferences(userId: number): Promise<Array<{ type: string; label: string; enabled: boolean | null; email: boolean | null }>> {
     const rows = await this.db.q.selectFrom('notification_preferences').select(['type', 'channel', 'enabled']).where('user_id', '=', userId).execute();
     const web = new Map(rows.filter((r) => r.channel === 'web').map((r) => [r.type, r.enabled === 1]));
@@ -244,7 +234,6 @@ export class NotificationsService implements OnModuleInit {
     ];
   }
 
-  /** `tür: açık/kapalı` (site içi) ve `email:tür: açık/kapalı` (e-posta) anahtarları. */
   async setPreferences(userId: number, prefs: Record<string, boolean>): Promise<void> {
     const valid = new Set<string>(NOTIFICATION_TYPES.map((t) => t.type));
     await this.db.tx(async () => {

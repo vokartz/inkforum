@@ -23,7 +23,6 @@ const MOD_KEYS = [
   'mod.post.approve',
 ];
 
-/** Bölüm bazında erişim: yetki profili + bölüm moderatörlüğü + üst bölüm görünürlüğü. */
 @Injectable()
 export class ForumAccessService {
   constructor(
@@ -63,7 +62,6 @@ export class ForumAccessService {
     };
   }
 
-  /** Bölüm ve tüm üst bölümleri görülebiliyorsa erişim bilgisi, değilse null. */
   async access(viewer: RequestViewer, boardId: number): Promise<BoardAccess | null> {
     const chain = await this.forum.ancestry(boardId);
     if (!chain.length) return null;
@@ -81,12 +79,10 @@ export class ForumAccessService {
     return a;
   }
 
-  /** Görülebilen bölümler (yapı sırasıyla). Gizli bölümler yalnızca moderatörlere listelenir. */
   async visibleBoards(viewer: RequestViewer, opts: { includeHidden?: boolean } = {}): Promise<Map<number, BoardAccess>> {
     const { boards } = await this.forum.structure();
     const out = new Map<number, BoardAccess>();
     const byId = new Map(boards.map((b) => [b.id, b]));
-    // Üst bölümler önce işlensin diye derinliğe göre sırala.
     const depth = (b: CachedBoard): number => {
       let d = 0;
       let cur = b;

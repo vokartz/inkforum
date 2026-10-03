@@ -1,20 +1,10 @@
-/*
- * OTOMATİK ÜRETİLDİ (scratchpad/gen_tokens.py mantığıyla; elle düzenlerken tüm varyantları birlikte güncelleyin).
- * Temalar: <html data-style="modern|community" data-theme="light|dark|system" data-radius="...">.
- * Tüm bileşenler bu değişkenleri kullanır; tema paketleri (K3) bunları ve `data-part` kancalarını ezebilir.
- * Vurgu rengi (--primary) ve yazı tipi (--app-font) yönetim panelinden gelir, sayfa başında yazılır.
- */
-
 :root {
-  /* Vurgu renginin yüzeylere yayılması (Yönetim → Görünüm → Renk yayılımı); 0 = yalnızca butonlar */
   --tint: 0;
   --tint-k: 1;
   --app-font: 'Roboto Variable';
   --primary: #7b61ff;
   --primary-foreground: #ffffff;
 }
-
-/* ===== modern ===== */
 
 :root, [data-style='modern'] {
   --radius: 0.625rem;
@@ -149,8 +139,6 @@
   }
 }
 
-/* ===== community ===== */
-
 [data-style='community'] {
   --tint-k: 1.15;
   --radius: 0.75rem;
@@ -284,8 +272,6 @@
     color-scheme: dark;
   }
 }
-
-/* ===== Köşe yuvarlaklığı (yönetim ayarı; "auto" temanınkini kullanır) ===== */
 
 [data-radius='none'] {
   --radius: 0rem;

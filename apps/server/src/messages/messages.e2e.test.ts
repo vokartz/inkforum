@@ -35,7 +35,6 @@ describe('private messages', () => {
     const list = await veli.get('/api/messages');
     expect(list.body.items[0]).toMatchObject({ id: convId, title: 'Merhaba', unread: true, participantCount: 2 });
     expect(list.body.items[0].participants[0].username).toBe('MesajAli');
-    // Gönderen için okunmamış değil
     expect((await ali.get('/api/me/counters')).body).toEqual({ notifications: 0, messages: 0, modQueue: 0 });
   });
 
@@ -49,7 +48,6 @@ describe('private messages', () => {
     const reply = await veli.post(`/api/messages/${convId}`, { body: 'Aleykümselam!' });
     expect(reply.status).toBe(201);
     expect((await ali.get('/api/me/counters')).body.messages).toBe(1);
-    // Katılımcı olmayan göremez
     expect((await ayse.get(`/api/messages/${convId}`)).status).toBe(404);
     expect((await ayse.post(`/api/messages/${convId}`, { body: 'x' })).status).toBe(404);
   });

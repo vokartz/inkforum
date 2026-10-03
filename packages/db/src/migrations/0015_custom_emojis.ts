@@ -1,7 +1,6 @@
 import type { Kysely } from 'kysely';
 import { flag, helpers, intDefault, notNull, ref, textDefault } from './_helpers.js';
 
-/** Yöneticinin yüklediği özel emojiler (:kisaad: ile kullanılır). */
 export async function up(db: Kysely<any>): Promise<void> {
   const h = helpers(db);
   await h

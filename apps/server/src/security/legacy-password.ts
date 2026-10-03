@@ -1,17 +1,3 @@
-/**
- * Başka forum yazılımlarından taşınan şifre özetlerinin doğrulanması. Üye ilk girişte eski şifresini
- * kullanabilir; doğrulama başarılı olunca özet argon2id ile yenilenir (AuthService → needsRehash).
- *
- * Saklama biçimleri (users.password_hash):
- *   $2a$ / $2b$ / $2y$ …          bcrypt, ham şifre (IPS 4, XenForo…)
- *   $H$ / $P$ …                   phpass, ham şifre (WordPress…)
- *   $legacy$smf1$<ad>$<sha1>      SMF 2.0: sha1(küçükharf(kayıtlı kullanıcı adı) + şifre)
- *   $legacy$smf2$<ad>$<özet>      SMF 2.1: bcrypt(küçükharf(ad) + şifre); yükseltilmemiş 2.0 sha1 özetleri de
- *   $legacy$phpbb$<özet>$         phpBB: girdi htmlspecialchars + NFC; phpass / bcrypt / argon2 / $CP$ / md5
- *   $legacy$md5salt$<tuz>$<md5>   MyBB: md5(md5(tuz) + md5(şifre))
- *   $legacy$ipsmd5$<tuz>$<md5>    IPB/IPS eski: aynı formül, şifre IPS kurallarıyla temizlenerek
- * <ad>, <özet> ve <tuz> base64url kodludur (SMF'de ad, veritabanında kayıtlı hâliyle).
- */
 import { createHash, timingSafeEqual } from 'node:crypto';
 
 const md5 = (s: string | Buffer) => createHash('md5').update(s).digest();
@@ -26,7 +12,6 @@ function safeEqual(a: string, b: string): boolean {
   return x.length === y.length && timingSafeEqual(x, y);
 }
 
-/** PHP strtolower (yalnızca ASCII A–Z) */
 const phpLower = (s: string) => s.replace(/[A-Z]/g, (c) => c.toLowerCase());
 const decodeNumeric = (s: string) => s.replace(/&#(\d+);/g, (_m, n: string) => String.fromCodePoint(Number(n)));
 
@@ -49,7 +34,6 @@ function encode64(input: Buffer, count: number): string {
   return out;
 }
 
-/** phpass taşınabilir özet ($H$ / $P$) */
 export function phpassVerify(password: string, hash: string): boolean {
   if (hash.length !== 34 || !/^\$[HP]\$/.test(hash)) return false;
   const countLog2 = ITOA64.indexOf(hash[3]!);
@@ -61,7 +45,6 @@ export function phpassVerify(password: string, hash: string): boolean {
   return safeEqual(hash.slice(0, 12) + encode64(h, 16), hash);
 }
 
-/** IPB/IPS eski özetlerde şifreyi temizleme (parseCleanValue; sıra önemlidir) */
 export function ipsClean(pw: string, backslash = false): string {
   let s = pw
     .replace(/&#032;/g, ' ')
@@ -81,7 +64,6 @@ export function ipsClean(pw: string, backslash = false): string {
   return s;
 }
 
-/** phpBB şifre girdisi: htmlspecialchars(ENT_COMPAT) + satır sonları + NFC */
 function phpbbInput(pw: string): string {
   return pw
     .normalize('NFC')
@@ -106,7 +88,6 @@ async function bcryptVerify(password: string, hash: string): Promise<boolean> {
     }
   }
   if (!bcryptImpl) throw new Error('bcrypt doğrulaması için hash-wasm gerekli.');
-  // PHP "$2y$" ile "$2b$" aynı algoritmadır; bcrypt 72 bayttan sonrasını yok sayar
   const normalized = hash.replace(/^\$2[axy]\$/, '$2b$');
   const bytes = Buffer.from(password, 'utf8');
   const pw = bytes.length > 72 ? bytes.subarray(0, 72).toString('utf8') : password;
@@ -131,7 +112,6 @@ async function argonVerify(password: string, hash: string): Promise<boolean> {
   }
 }
 
-/** phpBB'nin kayıtlı özetini (herhangi bir nesil) verilen şifreyle dener */
 async function phpbbCheck(stored: string, pw: string): Promise<boolean> {
   const h = stored.startsWith('$CP$') ? stored.slice(4) : stored;
   if (/^\$[HP]\$/.test(h)) return phpassVerify(pw, h);
@@ -142,7 +122,6 @@ async function phpbbCheck(stored: string, pw: string): Promise<boolean> {
   return false;
 }
 
-/** Bu özet eski bir forumdan mı? */
 export function isLegacyHash(hash: string): boolean {
   return /^\$(2[abxy]|H|P|legacy)\$/.test(hash);
 }
@@ -158,7 +137,6 @@ export async function verifyLegacy(hash: string, password: string): Promise<bool
     case 'smf2': {
       const name = b64(a);
       const stored = b64(b);
-      // SMF 2.1'e yükseltilmiş forumlarda giriş yapmamış üyelerin 2.0 (sha1) özetleri kalır
       if (/^[0-9a-f]{40}$/i.test(stored)) return safeEqual(sha1hex(phpLower(name) + password), stored.toLowerCase());
       const unicodeName = decodeNumeric(name).normalize('NFC').toLowerCase();
       for (const n of new Set([phpLower(name), unicodeName])) if (await bcryptVerify(n + password, stored)) return true;
@@ -172,7 +150,6 @@ export async function verifyLegacy(hash: string, password: string): Promise<bool
     case 'md5salt':
       return safeEqual(md5hex(md5hex(b64(a)) + md5hex(password)), b.toLowerCase());
     case 'xfcore': {
-      // XenForo 1.x / 2.x eski düzeni: f(f(şifre) + tuz), f = sha256 ya da sha1
       const [fn, stored = ''] = b.split('.');
       if (fn !== 'sha256' && fn !== 'sha1') return false;
       const h = (x: string) => createHash(fn).update(x, 'utf8').digest('hex');
@@ -190,7 +167,6 @@ export async function verifyLegacy(hash: string, password: string): Promise<bool
   }
 }
 
-/** İçe aktarıcılar için özet biçimleyiciler */
 export const legacyHash = {
   smf1: (storedUsername: string, sha1: string) => `$legacy$smf1$${enc(storedUsername)}$${sha1.toLowerCase()}`,
   smf2: (storedUsername: string, stored: string) => `$legacy$smf2$${enc(storedUsername)}$${enc(stored)}`,

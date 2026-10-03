@@ -16,11 +16,9 @@
   import type { RegisterInfo } from '$lib/types';
 
   interface Props {
-    /** Sayfada sunucudan gelir; pencerede açılışta yüklenir. */
     info?: RegisterInfo | null;
     ondone: (res: RegisterResult, email: string) => void | Promise<void>;
     idPrefix?: string;
-    /** Dar yerleşim (pencere) */
     compact?: boolean;
   }
   let { info: initial = null, ondone, idPrefix = 'reg', compact = false }: Props = $props();

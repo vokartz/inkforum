@@ -97,9 +97,6 @@ export class ProfilesService {
       .map((g) => this.groups.badge(g!));
   }
 
-  // ---------- Herkese açık profil ----------
-
-  /** Profil sayfası dışındaki üye listeleri (konular, mesajlar) de aynı görünürlük kurallarına uyar */
   async assertProfileVisible(viewer: RequestViewer, userId: number): Promise<void> {
     if (!can(viewer, 'profile.view')) throw Errors.forbidden('Profilleri görüntüleme yetkiniz yok.');
     const user = await this.users.findById(userId);
@@ -163,7 +160,6 @@ export class ProfilesService {
       },
       staff: staff
         ? {
-            // E-posta yalnızca üye yönetimi yetkisiyle (moderatörler göremez)
             email: can(viewer, 'admin.users.view') ? user.email : null,
             registeredIp: can(viewer, 'mod.ip.view') ? user.registered_ip : null,
             lastIp: can(viewer, 'mod.ip.view') ? user.last_ip : null,
@@ -215,8 +211,6 @@ export class ProfilesService {
     this.assertCanEdit(viewer, userId);
     await this.users.update(userId, { cover_offset: Math.min(100, Math.max(0, Math.round(offset))) });
   }
-
-  // ---------- Kendi profili ----------
 
   async editData(viewer: RequestViewer, userId: number) {
     const user = await this.users.findById(userId);
@@ -286,7 +280,6 @@ export class ProfilesService {
     let customTitle: string | null | undefined;
     if (input.customTitle !== undefined) {
       if (!can(viewer, 'profile.customTitle')) {
-        // Yetkisi yoksa alan sessizce yok sayılır (form tüm alanları gönderebilir).
         customTitle = undefined;
       } else {
         const max = this.settings.get('profile.customTitleMaxLength');
@@ -388,8 +381,6 @@ export class ProfilesService {
     });
   }
 
-  // ---------- Hesap: kullanıcı adı / görünen ad / e-posta ----------
-
   async changeUsername(viewer: RequestViewer, userId: number, username: string): Promise<void> {
     const own = viewer.user?.id === userId;
     const isAdmin = can(viewer, 'admin.users.edit');
@@ -405,7 +396,6 @@ export class ProfilesService {
         throw Errors.field('username', `Kullanıcı adınızı ${new Date(next).toLocaleDateString('tr-TR')} tarihinden sonra değiştirebilirsiniz.`);
       }
     }
-    // Aynı kişinin yalnızca büyük/küçük harf değişikliği serbesttir.
     const sameCanonical = canonicalName(clean) === user.username_canonical;
     const errors = sameCanonical ? {} : await this.auth.validateNames(clean, user.display_name, userId, !isAdmin);
     if ('username' in errors) throw Errors.field('username', errors.username!);
@@ -502,15 +492,12 @@ export class ProfilesService {
         email_canonical: canonicalEmail(payload.email),
         email_verified_at: this.clock.now(),
       });
-      // Hesap e-postası değişti: üçüncü taraf erişimleri (OAuth, API anahtarı) sıfırlanır
       await revokeUserTokens(this.db, user.id, this.clock.now());
       await this.mail.send(user.email, await this.mail.compose('emailChangedNotice', { name: user.display_name, newEmail: payload.email }, user.locale));
       await this.audit.log({ type: 'security', action: 'user.email_change', actorId: user.id, targetType: 'user', targetId: user.id, ip, data: { from: user.email, to: payload.email } });
       this.events.emit('user.emailVerified', { userId: user.id });
     });
   }
-
-  // ---------- Üye listesi / çevrimiçi ----------
 
   async memberList(viewer: RequestViewer, q: z.output<typeof memberListSchema>) {
     let base = this.db.q.selectFrom('users').where('users.deleted_at', 'is', null).where('users.status', '=', 'active');

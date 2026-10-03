@@ -22,10 +22,6 @@ class BooleanToIntTransformer extends OperationNodeTransformer {
   }
 }
 
-/**
- * Parametre olarak verilen boolean değerleri 1/0'a çevirir.
- * SQLite sürücüleri boolean bağlamayı reddeder; PostgreSQL'de de sütunlar smallint'tir.
- */
 export class BooleanToIntPlugin implements KyselyPlugin {
   readonly #transformer = new BooleanToIntTransformer();
 

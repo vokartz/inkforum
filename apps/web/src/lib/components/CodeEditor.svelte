@@ -3,10 +3,6 @@
   import { cn } from '$lib/utils';
   import { t, localeTag } from '$lib/i18n.svelte';
 
-  /**
-   * Hafif kod düzenleyici: satır numaraları, Tab ile girinti, Shift+Tab ile geri alma.
-   * Harici bağımlılık yok; HTML / CSS / JS için yeterli ve hızlı.
-   */
   let {
     value = $bindable(''),
     language = 'HTML',
@@ -32,7 +28,6 @@
       queueMicrotask(() => area?.setSelectionRange(start + INDENT.length, start + INDENT.length));
       return;
     }
-    // Seçili satırları topluca girintile / geri al
     const block = value.slice(lineStart, end);
     const next = e.shiftKey ? block.replace(/^ {1,2}/gm, '') : block.replace(/^/gm, INDENT);
     value = value.slice(0, lineStart) + next + value.slice(end);

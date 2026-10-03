@@ -39,13 +39,8 @@ const SEEDED_NAV_KEY = 'seeded:nav:v1';
 const PHOSPHOR_ICONS_KEY = 'migrated:icons:phosphor';
 const SEEDED_HOME_KEY = 'seeded:home:v1';
 const SEEDED_REACTIONS_KEY = 'seeded:reactions:v1';
-/** Önceki sürümün örnek bölüm renkleri (tek tonlu ikonlara geçerken temizlenir). */
 const OLD_SEED_COLORS = ['#f59e0b', '#3b82f6', '#10b981', '#ec4899', '#8b5cf6', '#64748b'];
 
-/**
- * Açılış: migration'lar → idempotent uzlaştırıcı (sistem grupları, yetki varsayılanları) →
- * ilk kurulum verileri (bir kez) → varsayılan yönetici.
- */
 @Injectable()
 export class BootstrapService implements OnModuleInit {
   private readonly logger = new Logger('Bootstrap');
@@ -76,8 +71,6 @@ export class BootstrapService implements OnModuleInit {
   }
 
   async migrate(): Promise<void> {
-    // Güncellemeden gelen yeni migration'lar uygulanmadan önce mevcut veritabanının yedeği alınır
-    // (PostgreSQL'de migration'lar zaten tek işlemde uygulanır; hata olursa hiçbiri kalmaz).
     const pending = await pendingMigrations(this.db.q);
     if (pending.length && pending.length < Object.keys(migrations).length && this.backups.supported().ok) {
       try {
@@ -101,7 +94,6 @@ export class BootstrapService implements OnModuleInit {
     if (firstRun) await this.seedInitialData();
     await this.applyPermissionDefaults();
     await this.install.init(await this.ensureAdmin());
-    // Örnek forum yapısı kurulum sihirbazında seçilir; otomatik kurulumda (ADMIN_PASSWORD) hemen oluşturulur
     if (this.install.installed) await this.seedForum();
     if (!(await this.getState(SEEDED_NAV_KEY))) {
       await this.appearance.seedDefaults();
@@ -121,7 +113,6 @@ export class BootstrapService implements OnModuleInit {
     }
   }
 
-  /** lucide adlarını Phosphor karşılıklarına çevirir; eski örnek renkleri kaldırır. */
   private async migrateIconNames(): Promise<void> {
     for (const [from, to] of Object.entries(LEGACY_ICONS)) {
       if (from === to) continue;
@@ -254,7 +245,6 @@ export class BootstrapService implements OnModuleInit {
     });
   }
 
-  /** Sistem yetki profillerini (varsayılan, salt okunur, yalnız üyeler) oluşturur. */
   private async ensurePermissionProfiles(): Promise<void> {
     const existing = await this.db.q.selectFrom('permission_profiles').select('key').where('key', 'is not', null).execute();
     const keys = new Set(existing.map((r) => r.key));
@@ -270,10 +260,6 @@ export class BootstrapService implements OnModuleInit {
     if (created) await this.permissions.invalidate();
   }
 
-  /**
-   * Yetki kayıt defterindeki varsayılanları sistem gruplarına (genel yetkiler) ve sistem yetki profillerine
-   * (bölüm yetkileri) uygular. Her anahtar yalnızca bir kez uygulanır; yöneticinin sonradan yaptığı değişiklikler korunur.
-   */
   private async applyPermissionDefaults(): Promise<void> {
     await this.ensurePermissionProfiles();
     const applied = new Set<string>(JSON.parse((await this.getState(APPLIED_PERMISSIONS_KEY)) ?? '[]') as string[]);
@@ -316,19 +302,13 @@ export class BootstrapService implements OnModuleInit {
     this.logger.log(`${pendingGlobal.length + pendingBoard.length} yetki varsayılanı uygulandı.`);
   }
 
-  /** Örnek forum yapısı ve hoş geldin konusu (bir kez). */
   private async seedForum(): Promise<void> {
     if (await this.getState(SEEDED_FORUM_KEY)) return;
-    // Otomatik kurulumda (ADMIN_PASSWORD) örnek içerik forumun varsayılan dilinde oluşturulur
     const locale = this.i18n.defaultLocale();
     await this.forumSeed.seed((text) => this.i18n.t(locale, text));
     await this.setState(SEEDED_FORUM_KEY, String(this.clock.now()));
   }
 
-  /**
-   * Yönetici var mı; yoksa ve ADMIN_PASSWORD verilmişse (otomatik kurulum) oluşturur.
-   * Şifre verilmemişse yönetici kurulum sihirbazında (/install) oluşturulur.
-   */
   private async ensureAdmin(): Promise<boolean> {
     const adminGroup = await this.groups.bySystemKey('admin');
     const existing = await this.db.q

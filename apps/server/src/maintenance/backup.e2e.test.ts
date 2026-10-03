@@ -65,7 +65,6 @@ describe.skipIf(sqliteOnly)('backups and restore', () => {
 
   it('applies SQL and full backups on the next start', async () => {
     await h.close();
-    // Tam yedek (planlanan): veritabanı + yüklenen dosyalar yeni konuma
     const target = join(dir, 'restored');
     mkdirSync(target, { recursive: true });
     const config = { ...h.config, db: { ...h.config.db, sqlitePath: join(target, 'forum.db') }, uploadsDir: join(target, 'uploads') };
@@ -77,7 +76,6 @@ describe.skipIf(sqliteOnly)('backups and restore', () => {
     expect(readFileSync(join(target, 'uploads', 'avatars', 'test.png'), 'utf8')).toBe('resim');
     expect(JSON.parse(readFileSync(join(dir, 'restore', 'last.json'), 'utf8')).ok).toBe(true);
 
-    // SQL dökümü: yeni bir SQLite dosyasına deyim deyim uygulanır
     const target2 = join(dir, 'restored2');
     mkdirSync(target2, { recursive: true });
     writeFileSync(join(dir, 'restore', 'pending.json'), JSON.stringify({ file: join(dir, 'backups', names.sql!), name: names.sql, kind: 'sql', requestedAt: Date.now() }));

@@ -32,7 +32,6 @@ describe('install wizard', () => {
     expect(blocked.status).toBe(503);
     expect(blocked.body.error.code).toBe('INSTALL_REQUIRED');
     expect((await a.post('/api/auth/register', {})).status).toBe(503);
-    // Sihirbazın ihtiyaç duyduğu uç noktalar açık
     expect((await a.get('/api/auth/me')).status).toBe(200);
     expect((await a.get('/api/health')).status).toBe(200);
 
@@ -114,11 +113,9 @@ describe('updates and backups', () => {
     expect(res.body.latest.notesHtml).toContain('<strong>Wiki</strong>');
     expect(res.body.latest.notesHtml).not.toContain('<script');
     expect(res.body.releases.map((r: { version: string }) => r.version)).toEqual(['99.1.0']);
-    // Kaynak koddan çalışırken kurulum yapılmaz
     expect(res.body.canInstall).toBe(false);
     expect((await admin.post('/api/admin/updates/install', { version: '99.1.0' })).status).toBe(400);
 
-    // Beta kanalında ön sürüm de görünür
     expect((await admin.put('/api/admin/updates/settings', { autoCheck: true, channel: 'beta', autoInstall: 'off', installHour: 4, notifyAdmins: true })).status).toBe(200);
     const beta = await admin.get('/api/admin/updates');
     expect(beta.body.latest.version).toBe('99.2.0-beta.1');
@@ -136,7 +133,6 @@ describe('updates and backups', () => {
     expect(updateNotes).toHaveLength(1);
   });
 
-  // Yedekleme SQLite dosyası (VACUUM INTO) ya da pg_dump ister; PGlite (bellek içi) test sürücüsünde yok
   it.skipIf(process.env.TEST_DB_DRIVER === 'pglite')('creates, lists, downloads and deletes database backups', async () => {
     const admin = await adminAgent(h);
     const created = await admin.post('/api/admin/backups', {});
@@ -148,7 +144,6 @@ describe('updates and backups', () => {
     const dl = await admin.get(`/api/admin/backups/${created.body.name}/download`);
     expect(dl.status).toBe(200);
     expect(dl.headers['content-disposition']).toContain(created.body.name);
-    // Yol geçişi denemesi
     expect((await admin.get('/api/admin/backups/..%2F..%2Fforum.db/download')).status).toBe(404);
     expect((await admin.delete(`/api/admin/backups/${created.body.name}`)).status).toBe(200);
     expect((await admin.get('/api/admin/backups')).body.items).toHaveLength(0);
@@ -196,7 +191,6 @@ describe('automatic site address (APP_URL=auto)', () => {
     const env = await request(h.app.getHttpServer()).get('/api/install/environment').set('Host', 'forum.example').set('X-Forwarded-Proto', 'https');
     expect(env.body.appUrl).toBe('https://forum.example');
 
-    // Başka bir siteden gönderilen istek
     const cross = await post('/api/install', 'forum.example', 'https://evil.example', validInstall);
     expect(cross.status).toBe(403);
     expect(cross.body.error.code).toBe('BAD_ORIGIN');
@@ -208,7 +202,6 @@ describe('automatic site address (APP_URL=auto)', () => {
     const saved = await h.db.q.selectFrom('system_state').select('value').where('key', '=', 'site:url').executeTakeFirst();
     expect(saved?.value).toBe('https://forum.example');
 
-    // Adres artık sabit: başka bir alan adından gelen istek reddedilir
     const other = await post('/api/auth/login', 'other.example', 'https://other.example', { identifier: 'Kurucu', password: 'GucluSifre123' });
     expect(other.status).toBe(403);
   });

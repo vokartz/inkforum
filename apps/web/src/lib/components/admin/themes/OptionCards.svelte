@@ -1,7 +1,6 @@
 <script lang="ts" generics="T extends string | number">
   import { cn } from '$lib/utils';
 
-  /** Görsel seçenek düğmeleri (tek seçim) */
   let {
     value = $bindable(),
     options,

@@ -31,6 +31,7 @@ designed to run on cheap servers: **a single Node process**, **SQLite** by defau
 | **Design** | Modern / Community / Classic (SMF) themes, light-dark mode, accent colour, 9 fonts, menu and home editors, appearance reset, fully responsive |
 | **Studio** | Full-screen drag & drop page builder (25 blocks, templates, custom CSS/HTML), landing page |
 | **Plugins** | Landing page, Wiki, Applications, Support tickets — toggled in Admin → Plugins |
+| **Extensions** | Installable extensions (.zip/.tgz upload or npm package) that add pages, admin pages, API routes, database tables, menu links, page slots and event/job handlers; starter kit and `inkforum-ext` tool in `packages/sdk` (template in `starter/`, ready-made extensions in `examples/`), downloaded from the admin panel |
 | **SEO & sharing** | Dynamic robots.txt, sectioned sitemap, Open Graph / X cards, JSON-LD, generated share images, oEmbed and embeddable topic cards, PWA manifest |
 | **Security** | Built-in WAF (patterns, rate limits, bad bots, Turnstile / hCaptcha / proof-of-work), argon2id, CSP nonces, CSRF, SSRF-safe webhooks, admin re-authentication |
 | **Operations** | Setup wizard, GitHub-based update checks and one-click / automatic updates, backups (DB / SQL / full) with upload & restore, system health, maintenance tools |

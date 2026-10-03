@@ -6,7 +6,6 @@ export const privacySchema = z.object({
   birthdateVisibility: z.enum(['none', 'day_month', 'full']).default('day_month'),
   profileVisibility: z.enum(['everyone', 'members']).default('everyone'),
   showAchievements: z.boolean().default(true),
-  /** Kimler özel mesaj gönderebilir (yönetim ve moderatörler her zaman gönderebilir) */
   allowMessages: z.enum(['everyone', 'nobody']).default('everyone'),
 });
 export type Privacy = z.infer<typeof privacySchema>;

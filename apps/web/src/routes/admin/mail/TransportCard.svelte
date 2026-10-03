@@ -39,7 +39,6 @@
     { v: 'log', label: 'Gönderme', hint: 'Yalnızca storage/mail klasörüne yazar (test)', icon: FileTextIcon },
     { v: 'env', label: '.env dosyası', hint: 'MAIL_DRIVER / SMTP_URL değerleri', icon: GearIcon },
   ];
-  // Yaygın sağlayıcılar: tıklayınca sunucu, port ve güvenlik doldurulur.
   const PRESETS = [
     { name: 'Gmail', host: 'smtp.gmail.com', port: 587, security: 'starttls' as const, note: 'Google hesabında 2 adımlı doğrulama açıp "Uygulama şifresi" oluşturun.' },
     { name: 'Outlook / Office 365', host: 'smtp.office365.com', port: 587, security: 'starttls' as const, note: 'Hesapta SMTP kimlik doğrulaması açık olmalı.' },
@@ -57,7 +56,6 @@
     security = p.security;
     presetNote = p.note;
   }
-  // Port değişince yaygın güvenlik türü önerilir.
   function onPort() {
     if (port === 465) security = 'tls';
     else if (port === 587) security = 'starttls';

@@ -1,0 +1,23 @@
+{
+  "id": "demo-ucp",
+  "name": "Örnek Oyun Paneli",
+  "version": "1.0.0",
+  "description": "Eklenti sisteminin örneği: karakter sayfası, başvuru formu, yönetim ekranı, profil sekmesi ve ana sayfa kartı.",
+  "author": "InkForum",
+  "icon": "game-controller",
+  "inkforum": ">=1.5.0",
+  "server": "server.mjs",
+  "client": { "scripts": [], "styles": ["style.css"] },
+  "settings": [
+    { "key": "serverName", "type": "text", "label": "Oyun sunucusunun adı", "default": "Ink Roleplay", "public": true, "section": "Genel" },
+    { "key": "maxCharacters", "type": "number", "label": "Üye başına en fazla karakter", "default": 3, "min": 1, "max": 20, "section": "Genel" },
+    { "key": "playerGroup", "type": "groups", "label": "Başvurusu onaylanan üyenin ekleneceği gruplar", "section": "Başvurular" },
+    { "key": "apiKey", "type": "secret", "label": "Oyun sunucusu API anahtarı", "hint": "Gerçek bir sunucuya bağlanırken kullanılır (örnekte kullanılmaz).", "section": "Bağlantı" }
+  ],
+  "permissions": [
+    { "key": "view", "label": "Oyun panelini kullanma", "defaults": { "member": 1 } },
+    { "key": "review", "label": "Karakter başvurularını değerlendirme", "defaults": { "global_moderator": 1 } }
+  ],
+  "nav": [{ "label": "Oyun Paneli", "url": "/oyun", "icon": "game-controller", "visibility": "members" }],
+  "csp": {}
+}

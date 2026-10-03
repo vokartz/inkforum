@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Db } from '../database/db.service.js';
 
-/** Uygulama içi olaylar. Kalıcı işler (e-posta, başarı değerlendirme) dinleyicilerde kuyruğa atılır. */
 export interface AppEvents {
   'user.registered': { userId: number };
   'user.activated': { userId: number };
@@ -35,7 +34,11 @@ export class EventsService {
     this.handlers.set(name, list);
   }
 
-  /** Aktif transaction varsa commit sonrasında yayınlanır. */
+  off<K extends AppEventName>(name: K, handler: Handler<K>): void {
+    const list = this.handlers.get(name);
+    if (list) this.handlers.set(name, list.filter((h) => h !== handler));
+  }
+
   emit<K extends AppEventName>(name: K, payload: AppEvents[K]): void {
     this.db.afterCommit(() => this.dispatch(name, payload));
   }

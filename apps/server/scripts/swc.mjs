@@ -1,4 +1,3 @@
-// `swc` CLI'yi proje içi native önbellek ayarıyla çalıştırır. Kullanım: node scripts/swc.mjs [--watch]
 import './swc-env.mjs';
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';

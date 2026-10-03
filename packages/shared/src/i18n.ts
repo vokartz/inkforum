@@ -1,27 +1,10 @@
-/**
- * Çok dilli arayüz (i18n).
- *
- * Anahtarlar Türkçe kaynak metnin kendisidir (gettext tarzı): `t('Kaydet')`. Türkçe katalog gerekmez;
- * diğer diller `packages/shared/i18n/<dil>.json` dosyalarında `{ "Kaydet": "Save" }` biçiminde tutulur.
- * Çevirisi olmayan metin Türkçe gösterilir. Katalogları `pnpm i18n:extract` günceller.
- *
- * Yer tutucular: `{ad}` → params.ad. Çoğul (ICU alt kümesi): `{n, plural, one {# topic} other {# topics}}`
- * (`#` sayının kendisidir; `=0 {…}` tam eşleşme de desteklenir).
- */
-
-export const LOCALES = ['tr', 'en', 'de', 'zh', 'es', 'fr', 'ru', 'pt'] as const;
+export const LOCALES = ['tr', 'en'] as const;
 export type Locale = (typeof LOCALES)[number];
 export const SOURCE_LOCALE: Locale = 'tr';
 
 export const LOCALE_INFO: Record<Locale, { name: string; english: string; tag: string; flag: string }> = {
   tr: { name: 'Türkçe', english: 'Turkish', tag: 'tr-TR', flag: '🇹🇷' },
   en: { name: 'English', english: 'English', tag: 'en-US', flag: '🇬🇧' },
-  de: { name: 'Deutsch', english: 'German', tag: 'de-DE', flag: '🇩🇪' },
-  zh: { name: '简体中文', english: 'Chinese (Simplified)', tag: 'zh-CN', flag: '🇨🇳' },
-  es: { name: 'Español', english: 'Spanish', tag: 'es-ES', flag: '🇪🇸' },
-  fr: { name: 'Français', english: 'French', tag: 'fr-FR', flag: '🇫🇷' },
-  ru: { name: 'Русский', english: 'Russian', tag: 'ru-RU', flag: '🇷🇺' },
-  pt: { name: 'Português', english: 'Portuguese (Brazil)', tag: 'pt-BR', flag: '🇧🇷' },
 };
 
 export const LANG_COOKIE = 'forum_lang';
@@ -30,14 +13,12 @@ export function isLocale(v: unknown): v is Locale {
   return typeof v === 'string' && (LOCALES as readonly string[]).includes(v);
 }
 
-/** "tr-TR", "en_US", "zh-Hans-CN" → desteklenen dil (yoksa null) */
 export function normalizeLocale(v: string | null | undefined): Locale | null {
   if (!v) return null;
   const base = v.trim().toLowerCase().split(/[-_]/)[0] ?? '';
   return isLocale(base) ? base : null;
 }
 
-/** Accept-Language başlığından etkin diller arasında en uygun olanı */
 export function matchAcceptLanguage(header: string | null | undefined, enabled: readonly Locale[]): Locale | null {
   if (!header) return null;
   const prefs = header
@@ -69,7 +50,6 @@ function pluralRule(locale: Locale): Intl.PluralRules {
   return r;
 }
 
-/** `{…}` bloğunun kapanışını (iç içe süslü parantezleri sayarak) bulur */
 function closing(s: string, open: number): number {
   let depth = 0;
   for (let i = open; i < s.length; i++) {
@@ -79,7 +59,6 @@ function closing(s: string, open: number): number {
   return -1;
 }
 
-/** Yer tutucuları ve çoğul bloklarını doldurur */
 export function format(message: string, params: TParams | undefined, locale: Locale): string {
   if (!params || !message.includes('{')) return message;
   let out = '';
@@ -125,7 +104,6 @@ export function format(message: string, params: TParams | undefined, locale: Loc
   return out;
 }
 
-/** Dil kataloğu, çevrilmemiş metinlerde yedek dile (İngilizce) düşer; Türkçe kaynak metin yalnızca ikisi de boşsa görünür */
 export const FALLBACK_LOCALE: Locale = 'en';
 export function withFallback(catalog: Catalog | null | undefined, fallback: Catalog | null | undefined): Catalog {
   const out: Catalog = {};
@@ -134,16 +112,11 @@ export function withFallback(catalog: Catalog | null | undefined, fallback: Cata
   return out;
 }
 
-/** Katalogdan çeviri (yoksa kaynak metin) + biçimlendirme */
 export function translate(catalog: Catalog | null | undefined, locale: Locale, source: string, params?: TParams): string {
   const msg = (locale !== SOURCE_LOCALE && catalog?.[source]) || source;
   return format(msg, params, locale);
 }
 
-/**
- * Sunucudan gelen, önceden doldurulmuş Türkçe metinleri çevirir (ör. "Şifre en az 10 karakter olmalı.").
- * Katalogdaki `{…}` yer tutuculu anahtarlar kalıba çevrilip eşleştirilir; eşleşmezse metin olduğu gibi döner.
- */
 export function createMessageTranslator(catalog: Catalog, locale: Locale): (text: string) => string {
   const patterns: Array<{ re: RegExp; names: string[]; target: string }> = [];
   for (const [key, target] of Object.entries(catalog)) {

@@ -45,7 +45,6 @@
     errors = {};
     open = true;
   }
-  // Sorumlu gruplar değiştikçe "belirli yetkili" için aday listesi yenilenir
   let handlers = $state<UserSummary[]>([]);
   let handlersKey = '';
   $effect(() => {

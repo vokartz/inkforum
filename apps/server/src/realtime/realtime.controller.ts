@@ -9,7 +9,6 @@ import { RealtimeService } from './realtime.service.js';
 export class RealtimeController {
   constructor(private readonly realtime: RealtimeService) {}
 
-  /** Anlık bildirim akışı (Server-Sent Events): yeni bildirim, mesaj ve okundu bilgileri */
   @Get('me/stream')
   stream(@CurrentViewer() v: RequestViewer, @Res() res: Response): void {
     this.realtime.subscribe(v.user!.id, res);

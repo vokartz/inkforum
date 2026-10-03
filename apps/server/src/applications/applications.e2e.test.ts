@@ -69,7 +69,6 @@ describe('applications', () => {
     const dup = await alice.post('/api/applications/forms/ekip-basvurusu', { answers: { yas: 21, neden: 'Topluluğa katkı sağlamak istiyorum.', rol: 'Etkinlik', kurallar: true } });
     expect(dup.status).toBe(403);
 
-    // İnceleyici grubundaki üye görür, başka üye göremez
     const queue = (await bob.get('/api/applications/review?status=open')).body;
     expect(queue.items.map((i: { id: number }) => i.id)).toEqual([sent.body.id]);
     const outsider = await registerActive(h, 'Yabanci');
@@ -94,7 +93,6 @@ describe('applications', () => {
     const aliceId = (await h.db.q.selectFrom('users').select('id').where('username', '=', 'Basvuran').executeTakeFirstOrThrow()).id;
     const member = await h.db.q.selectFrom('group_members').select('group_id').where('user_id', '=', aliceId).where('group_id', '=', staffGroup).executeTakeFirst();
     expect(member).toBeTruthy();
-    // Artık grupta: yeniden başvuramaz
     const el = (await alice.get('/api/applications/forms/ekip-basvurusu')).body.eligibility;
     expect(el.ok).toBe(false);
   });

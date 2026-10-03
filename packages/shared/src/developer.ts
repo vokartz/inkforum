@@ -1,10 +1,5 @@
 import { z } from 'zod';
 
-/**
- * Geliştirici platformu: OAuth 2.0 uygulamaları, API anahtarları, webhook'lar ve sosyal giriş.
- * UCP / oyun paneli / Discord botu gibi dış sistemler forumla bu yollarla konuşur.
- */
-
 export const API_SCOPES = ['profile', 'email', 'read', 'write', 'messages', 'admin'] as const;
 export type ApiScope = (typeof API_SCOPES)[number];
 
@@ -19,7 +14,6 @@ export const API_SCOPE_INFO: Record<ApiScope, { label: string; description: stri
 
 export const OAUTH_SCOPES = API_SCOPES.filter((s) => API_SCOPE_INFO[s].oauth);
 
-/** Yönlendirme adresi: https ya da yerel geliştirme için http://localhost / 127.0.0.1 (özel şemalar da olur: myapp://cb). */
 const redirectUri = z
   .string()
   .trim()
@@ -51,9 +45,7 @@ export const oauthClientInput = z.object({
   logoUrl: optionalUrl,
   redirectUris: z.array(redirectUri).min(1, 'En az bir yönlendirme adresi girin.').max(10),
   scopes: z.array(z.enum(API_SCOPES)).min(1, 'En az bir izin seçin.'),
-  /** Gizli anahtarı güvenle saklayabilen sunucu uygulaması (tarayıcı / mobil uygulamalar için kapalı + PKCE). */
   isConfidential: z.boolean().default(true),
-  /** Birinci taraf uygulama: onay ekranı gösterilmez. */
   isTrusted: z.boolean().default(false),
   isEnabled: z.boolean().default(true),
 });
@@ -69,7 +61,6 @@ export interface AdminOAuthClient extends OAuthClientInput {
 
 export const apiKeyInput = z.object({
   name: z.string().trim().min(2, 'Ad en az 2 karakter.').max(60),
-  /** Anahtarın kimin adına çalışacağı (boşsa oluşturan yönetici). */
   userId: z.number().int().positive().nullable().default(null),
   scopes: z.array(z.enum(API_SCOPES)).min(1, 'En az bir izin seçin.'),
   expiresAt: z.number().int().nullable().default(null),
@@ -134,12 +125,10 @@ export interface WebhookDelivery {
   deliveredAt: number | null;
 }
 
-/** OAuth onay ekranı bilgisi */
 export interface OAuthAuthorizeInfo {
   client: { name: string; description: string; homepageUrl: string | null; logoUrl: string | null; isTrusted: boolean };
   scopes: Array<{ key: ApiScope; label: string; description: string }>;
   redirectHost: string;
-  /** Üye bu izinleri daha önce verdiyse onay ekranı atlanabilir */
   alreadyApproved: boolean;
 }
 
@@ -153,8 +142,6 @@ export interface AuthorizedApp {
   lastUsedAt: number | null;
 }
 
-// ---------- Sosyal giriş ----------
-
 export const SOCIAL_PROVIDERS = [
   { key: 'discord', label: 'Discord', color: '#5865F2' },
   { key: 'google', label: 'Google', color: '#4285F4' },
@@ -167,7 +154,6 @@ export const socialProvidersInput = z.partialRecord(
   z.object({
     enabled: z.boolean(),
     clientId: z.string().trim().max(200).default(''),
-    /** Boş bırakılırsa kayıtlı anahtar korunur */
     clientSecret: z.string().trim().max(300).optional(),
   }),
 );

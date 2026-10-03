@@ -1,6 +1,5 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
-/* Yazı tipleri: yalnızca seçili olan indirilir (@font-face tembel yüklenir). */
 @import '@fontsource-variable/roboto';
 @import '@fontsource-variable/inter';
 @import '@fontsource-variable/open-sans';
@@ -12,14 +11,6 @@
 @import '@fontsource-variable/figtree';
 @import './theme-tokens.css';
 
-/*
- * Tema: <html data-theme="light|dark|system">. "system" işletim sistemi tercihini izler.
- * Koyu tema değişkenleri hem data-theme=dark hem de (system + prefers-color-scheme: dark) için uygulanır.
- */
-/*
- * bits-ui durumları `data-state="open|closed|checked|unchecked|active"` olarak yazar; shadcn bileşenleri ise
- * `data-open:` gibi kısa varyantlar kullanır. Açılış/kapanış animasyonları ve etkin durum stilleri için eşleme:
- */
 @custom-variant data-open (&:where([data-state='open'], [data-open]:not([data-open='false'])));
 @custom-variant data-closed (&:where([data-state='closed'], [data-closed]:not([data-closed='false'])));
 @custom-variant data-checked (&:where([data-state='checked'], [data-checked]:not([data-checked='false'])));
@@ -40,7 +31,6 @@
 }
 
 @theme inline {
-  /* Tüm köşeler --radius ile orantılı: "köşeli" seçilince hepsi sıfırlanır */
   --radius-xs: calc(var(--radius) * 0.4);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
@@ -100,7 +90,6 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
-    /* Tam genişlik sayfa blokları (100vw) yatay kaydırma çubuğu açmasın */
     overflow-x: clip;
   }
   h1,
@@ -112,18 +101,11 @@
   ::selection {
     background: color-mix(in oklch, var(--primary) 35%, transparent);
   }
-  /*
-   * Sütun tanımı olmayan grid'ler tek, daralabilen sütun kullanır: uzun bir kod, bağlantı ya da
-   * kaydırılabilir şerit yüzünden grid içeriğe göre genişleyip mobilde ekranı taşırmaz.
-   * (Katman sırası sayesinde grid-cols-* yardımcıları her kırılımda bunun önüne geçer.)
-   */
   :where(.grid) {
     grid-template-columns: minmax(0, 1fr);
   }
 }
 
-/* ---------- Hareket yardımcıları ---------- */
-/* Yatay kaydırılan şeritler (sekmeler, menüler): kaydırma çubuğu gizli, dokunmatikte akıcı */
 @utility scrollbar-none {
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
@@ -191,7 +173,6 @@
   }
 }
 
-/* Görsel yüklenmemiş banner: vurgu renginden koyu degrade + nokta deseni + yavaş ışık */
 .forum-banner-pattern {
   background:
     radial-gradient(55% 140% at 88% -10%, color-mix(in oklch, var(--primary) 70%, white) 0%, transparent 60%),
@@ -239,7 +220,6 @@
   animation: forum-shimmer 1.4s linear infinite;
 }
 
-/* Kullanıcı içeriği (Markdown çıktısı) */
 .prose-forum {
   line-height: 1.7;
   overflow-wrap: anywhere;
@@ -271,7 +251,6 @@
   font-weight: 700;
   margin: 1em 0 0.4em;
 }
-/* BBCode başlıkları: bağlantı kimliği var, sabit üst çubuğun altında kalmasın */
 .prose-forum .bb-h {
   scroll-margin-top: 5.5rem;
   font-weight: 800;
@@ -343,7 +322,6 @@
   padding: 0.35em 0.6em;
 }
 
-/* ---------- BBCode içerik ---------- */
 .prose-forum .bb-quote {
   position: relative;
   margin: 0.5em 0 0.9em;
@@ -366,7 +344,6 @@
 .prose-forum .bb-quote-author {
   color: var(--foreground);
 }
-/* Dile göre metin: --bb-quote-says / --bb-quote-label kök düzende (+layout.svelte) ayarlanır */
 .prose-forum .bb-quote-says::before {
   content: var(--bb-quote-says, 'yazdı:');
 }
@@ -435,7 +412,6 @@
   margin: 0 0.05em;
   vertical-align: -0.25em;
 }
-/* Özel emojiler: en-boy oranı korunur, biraz daha büyük (çıkartma gibi) */
 .prose-forum .bb-emoji-custom {
   width: auto;
   max-width: 4em;
@@ -449,7 +425,6 @@
   height: auto;
   vertical-align: bottom;
 }
-/* Gömülü içerik */
 .prose-forum .bb-embed {
   position: relative;
   width: 100%;
@@ -585,7 +560,6 @@
   margin: 1em 0;
 }
 
-/* ---------- Editör ---------- */
 .bb-editor .ProseMirror {
   min-height: inherit;
   outline: none;
@@ -684,7 +658,6 @@
   background: color-mix(in oklch, var(--primary) 12%, transparent);
 }
 
-/* ---------- Hareket ---------- */
 @keyframes forum-progress {
   0% {
     transform: translateX(-100%);
@@ -704,7 +677,6 @@
   }
 }
 
-/* Sayfa geçişi: içerik alanı hafifçe kayarak belirir */
 ::view-transition-old(page) {
   animation: 140ms ease-out both forum-vt-out;
 }
@@ -723,9 +695,6 @@
   }
 }
 
-/* ================================================================
- * Tema: Topluluk — geniş kartlar, sade başlıklar, vurgu renkli sayfa başlığı
- * ================================================================ */
 [data-style='community'] [data-part='category-header'] h2 {
   font-size: 1.2rem;
 }
@@ -757,9 +726,6 @@
   background: var(--primary);
 }
 
-/* ================================================================
- * Tema stüdyosu: düzen seçenekleri (<html data-sidebar / data-forum-list>)
- * ================================================================ */
 @media (min-width: 64rem) {
   [data-sidebar='left'] [data-part='home-grid'] {
     grid-template-columns: 20rem minmax(0, 1fr) !important;
@@ -775,7 +741,6 @@
   grid-template-columns: minmax(0, 1fr) !important;
 }
 
-/* Kaydırınca beliren içerik (use:reveal) — yalnızca ilk ekranın altındakilere uygulanır */
 .reveal {
   opacity: 0;
   transition:
@@ -794,16 +759,11 @@
   transform: none;
 }
 
-/* Sayfa oluşturucu: tam genişlik bölüm */
 .builder-bleed {
   width: 100vw;
   margin-inline: calc(50% - 50vw);
 }
 
-/* ---------- Yazdırma ----------
- * Hangi tema ve mod seçili olursa olsun kâğıtta beyaz zemin, koyu yazı. Menü, alt bilgi, düğmeler ve editörler
- * basılmaz; sayfa başında forum adı ve adres, kartlar sade çerçeveli olarak çıkar.
- */
 @media print {
   @page {
     margin: 14mm 14mm 16mm;
@@ -843,7 +803,6 @@
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-  /* Ekrana ait her şey */
   [data-part='page-background'],
   [data-part='site-banner'],
   [data-part='site-footer'],
@@ -870,7 +829,6 @@
     max-width: none !important;
     padding: 0 !important;
   }
-  /* Sayfa başlığı: forum adı + adres (yalnız kâğıtta) */
   main[data-part='page']::before {
     content: attr(data-print-title);
     display: block;
@@ -897,7 +855,6 @@
   [class*='backdrop-blur'] {
     backdrop-filter: none !important;
   }
-  /* Okunaklı içerik */
   .prose-forum {
     max-width: none !important;
     color: #111 !important;

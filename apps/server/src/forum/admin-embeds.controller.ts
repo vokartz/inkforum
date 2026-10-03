@@ -26,7 +26,6 @@ const testSchema = z.object({
   clickToLoad: z.boolean().default(false),
 });
 
-/** Gömülü içerik (embed) yönetimi. */
 @Controller('admin/embeds')
 export class AdminEmbedsController {
   constructor(
@@ -72,14 +71,12 @@ export class AdminEmbedsController {
       { allowHidden: true },
     );
     if (changed.length) {
-      // Mesajlar HTML olarak saklandığından tümü arka planda yeniden işlenir.
       await this.render.invalidateAll();
       await this.audit.log({ type: 'admin', action: 'embeds.update', actorId: v.user!.id, ip: v.ip, data: { changed } });
     }
     return { ok: true, changed };
   }
 
-  /** Taslak ayarlarla bir bağlantının nasıl görüneceğini gösterir. */
   @Post('test')
   @HttpCode(200)
   @AdminEndpoint('admin.settings')

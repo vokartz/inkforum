@@ -26,7 +26,6 @@ describe('detectStoragePersistence', () => {
   it('flags the container filesystem and tmpfs', () => {
     expect(detectStoragePersistence('/app/storage', [ROOT, PROC].join('\n'))).toMatchObject({ ephemeral: true, reason: 'container-fs' });
     expect(detectStoragePersistence('/app/storage', [ROOT, mount('/', '/app/storage', 'tmpfs')].join('\n')).ephemeral).toBe(true);
-    // Kapsayıcı dışında (ör. sanal makinede) kök disk kalıcıdır
     expect(detectStoragePersistence('/app/storage', mount('/', '/')).ephemeral).toBe(false);
   });
 

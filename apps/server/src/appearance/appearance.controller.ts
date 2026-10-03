@@ -9,7 +9,8 @@ import { Errors } from '../common/errors.js';
 import { SettingsService } from '../settings/settings.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { AppearanceService } from './appearance.service.js';
-import { searchIcons } from '../common/icons.js';
+import { iconNode, searchIcons } from '../common/icons.js';
+import { ExtensionsService } from '../extensions/extensions.service.js';
 
 const assetParam = z.enum(Object.keys(BRANDING_ASSETS) as [BrandingAsset, ...BrandingAsset[]]);
 const socialSchema = z.object({ links: SETTINGS['appearance.socialLinks'].schema });
@@ -22,13 +23,23 @@ export class AppearanceController {
     private readonly appearance: AppearanceService,
     private readonly settings: SettingsService,
     private readonly audit: AuditService,
+    private readonly extensions: ExtensionsService,
   ) {}
 
-  /** Ziyaretçiye göre üst menü. */
   @Get('nav')
   @AllowBeforeInstall()
-  nav(@CurrentViewer() v: RequestViewer) {
-    return this.appearance.nav(v);
+  async nav(@CurrentViewer() v: RequestViewer) {
+    const entries = await this.appearance.nav(v);
+    const ext = this.extensions.navItems(v).map((n, i) => ({
+      id: -(i + 1),
+      label: n.label,
+      href: n.url,
+      icon: iconNode(n.icon, 'bold'),
+      newTab: /^https?:\/\//.test(n.url),
+      style: 'link' as const,
+      children: [],
+    }));
+    return [...entries, ...ext];
   }
 
   @Get('admin/appearance')
@@ -44,7 +55,6 @@ export class AppearanceController {
     };
   }
 
-  /** İkon seçici: Phosphor kataloğunda arama (düğümler sunucuda çözülür). */
   @Get('admin/icons')
   @AdminEndpoint()
   icons(@Query('q') q?: string, @Query('weight') weight?: string) {

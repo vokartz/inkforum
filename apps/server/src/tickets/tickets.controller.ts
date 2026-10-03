@@ -57,7 +57,6 @@ export class TicketsController {
     return this.tickets.create(v, body);
   }
 
-  /** Talep mesajlarına görsel (ekran görüntüsü) */
   @Post('tickets/images')
   @HttpCode(201)
   @RequireAuth()
@@ -89,8 +88,6 @@ export class TicketsController {
     await this.tickets.update(v, id, body);
     return { ok: true };
   }
-
-  // ---------- Yönetim ----------
 
   @Get('admin/ticket-categories')
   @AdminEndpoint('admin.tickets')

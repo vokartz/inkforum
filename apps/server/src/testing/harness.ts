@@ -25,7 +25,6 @@ export interface Harness {
   close(): Promise<void>;
 }
 
-/** Cookie'leri saklayan ve her istekte Origin başlığı gönderen istemci. */
 export class Agent {
   private cookies = new Map<string, string>();
 
@@ -54,6 +53,18 @@ export class Agent {
     return this.store(await this.apply(request(this.app.getHttpServer()).get(path)));
   }
 
+  async getBuffer(path: string) {
+    return this.store(
+      await this.apply(request(this.app.getHttpServer()).get(path))
+        .buffer(true)
+        .parse((res, cb) => {
+          const chunks: Buffer[] = [];
+          res.on('data', (c: Buffer) => chunks.push(c));
+          res.on('end', () => cb(null, Buffer.concat(chunks)));
+        }),
+    );
+  }
+
   async post(path: string, body: unknown = {}) {
     return this.store(await this.apply(request(this.app.getHttpServer()).post(path)).send(body as object));
   }
@@ -74,7 +85,6 @@ export class Agent {
     return this.store(await this.apply(request(this.app.getHttpServer()).post(path)).attach(field, buffer, filename));
   }
 
-  /** Uzun süreli bağlantılar (ör. olay akışı) için çerez başlığı */
   cookieHeader(): string {
     return [...this.cookies].map(([k, v]) => `${k}=${v}`).join('; ');
   }
@@ -109,7 +119,6 @@ export async function createHarness(env: Record<string, string> = {}): Promise<H
   const app = await createApp(config);
   await app.init();
   const settings = app.get(SettingsService);
-  // Testlerde form zamanlama kontrolünü kapat.
   await settings.set('registration.minSubmitSeconds', 0);
   return {
     app,
@@ -124,7 +133,6 @@ export async function createHarness(env: Record<string, string> = {}): Promise<H
   };
 }
 
-/** Kayıt formu için güncel politika versiyonları. */
 export async function registrationPolicyIds(agent: Agent): Promise<number[]> {
   const res = await agent.get('/api/auth/register');
   return (res.body.policies as Array<{ versionId: number }>).map((p) => p.versionId);

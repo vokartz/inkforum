@@ -6,11 +6,9 @@
   interface Props {
     title: string;
     icon?: IconComponent;
-    /** Başlığın sağındaki bağlantı */
     href?: string | null;
     hrefLabel?: string;
     class?: string;
-    /** İçeriğe iç boşluk verme (liste gibi kendi boşluğu olan içerikler) */
     flush?: boolean;
     children: Snippet;
   }

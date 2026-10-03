@@ -16,10 +16,6 @@ const idPng = z
   .transform((s) => Number(s.replace(/\.png$/, '')));
 const pageParam = z.coerce.number().int().min(1).max(10_000);
 
-/**
- * Arama motorları ve paylaşım: robots.txt, site haritası verisi, oEmbed, gömülü konu kartı verisi
- * ve paylaşım görselleri. Hepsi herkese açıktır ve yalnızca misafirin görebildiği içeriği döndürür.
- */
 @Controller()
 @AllowIncomplete()
 export class SeoController {
@@ -57,7 +53,6 @@ export class SeoController {
     return this.seo.sitemapTopics(page);
   }
 
-  /** https://oembed.com — ?url=https://site/t/12&format=json */
   @Get('oembed')
   @RateLimit({ limit: 120, windowMs: MINUTE })
   async oembed(@Query('url') url?: string, @Query('format') format?: string, @Query('maxwidth') maxwidth?: string, @Res({ passthrough: true }) res?: Response) {
@@ -72,7 +67,6 @@ export class SeoController {
     return data;
   }
 
-  /** /embed/t/:id sayfasının verisi (WAF muaf: /api/embed/) */
   @Get('embed/topics/:id')
   async topicEmbed(@Param('id', new ZodPipe(idPng)) id: number, @Res({ passthrough: true }) res: Response) {
     const card = await this.seo.topicEmbed(id);
@@ -98,8 +92,6 @@ export class SeoController {
   async siteImage(@Res() res: Response) {
     this.sendImage(res, await this.seo.siteImage());
   }
-
-  // ----- Paylaşım kartı tasarımı (yönetim) -----
 
   @Put('admin/seo/og-card')
   @AdminEndpoint('admin.settings')

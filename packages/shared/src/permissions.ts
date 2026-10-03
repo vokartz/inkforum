@@ -1,10 +1,3 @@
-/**
- * Yetki kayıt defteri. Tüm yetki anahtarları burada tanımlanır; sunucudaki çözümleyici,
- * açılıştaki reconciler (varsayılanlar) ve admin yetki matrisi bu listeyi kullanır.
- *
- * Değerler: 1 = izin, -1 = yasak, satır yok = ayarsız. Yasak her zaman kazanır.
- */
-
 export const SYSTEM_GROUP_KEYS = ['guest', 'member', 'admin', 'global_moderator', 'moderator'] as const;
 export type SystemGroupKey = (typeof SYSTEM_GROUP_KEYS)[number];
 
@@ -22,11 +15,8 @@ export interface PermissionDefinition {
   category: string;
   label: string;
   description?: string;
-  /** Sistem gruplarına ilk kurulumda (ve yeni anahtar eklendiğinde bir kez) verilecek değerler. */
   defaults: Partial<Record<Exclude<SystemGroupKey, 'admin'>, 1 | -1>>;
-  /** Misafir grubuna verilebilir mi? */
   guestGrantable: boolean;
-  /** Admin panelinde uyarıyla gösterilir. */
   dangerous?: boolean;
 }
 
@@ -42,7 +32,6 @@ export const PERMISSION_CATEGORIES: PermissionCategory[] = [
 const MODS = { global_moderator: 1 } as const;
 
 export const PERMISSIONS: PermissionDefinition[] = [
-  // Genel
   {
     key: 'members.list',
     scope: 'global',
@@ -142,7 +131,6 @@ export const PERMISSIONS: PermissionDefinition[] = [
     guestGrantable: false,
   },
 
-  // Profil
   {
     key: 'profile.view',
     scope: 'global',
@@ -217,7 +205,6 @@ export const PERMISSIONS: PermissionDefinition[] = [
     guestGrantable: false,
   },
 
-  // Moderasyon
   {
     key: 'mod.warnings.view',
     scope: 'global',
@@ -276,7 +263,6 @@ export const PERMISSIONS: PermissionDefinition[] = [
     guestGrantable: false,
   },
 
-  // Yönetim
   {
     key: 'admin.access',
     scope: 'global',
@@ -456,15 +442,23 @@ export const PERMISSIONS: PermissionDefinition[] = [
     dangerous: true,
   },
   {
-    key: 'admin.customCode',
+    key: 'admin.extensions',
     scope: 'global',
     category: 'admin',
-    label: 'Özel HTML / CSS / JavaScript ve entegrasyon ayarları',
+    label: 'Eklenti kurma, kaldırma ve açıp kapatma (eklentiler sunucuda kod çalıştırır)',
     defaults: {},
     guestGrantable: false,
     dangerous: true,
   },
-  // ---------- Bölüm kapsamlı (yetki profilleri) ----------
+  {
+    key: 'admin.customCode',
+    scope: 'global',
+    category: 'admin',
+    label: 'Kod düzenleme (sayfa, tema ve ana sayfa blokları için HTML / CSS / JavaScript)',
+    defaults: {},
+    guestGrantable: false,
+    dangerous: true,
+  },
   {
     key: 'board.view',
     scope: 'board',
@@ -648,10 +642,38 @@ export const GLOBAL_PERMISSIONS = PERMISSIONS.filter((p) => p.scope === 'global'
 export const BOARD_PERMISSIONS = PERMISSIONS.filter((p) => p.scope === 'board');
 
 export function isPermissionKey(key: string): boolean {
-  return PERMISSION_MAP.has(key);
+  return PERMISSION_MAP.has(key) || EXTRA_PERMISSIONS.has(key);
 }
 
-/** Registry'nin kararlı özeti; değişince reconciler yeni anahtarların varsayılanlarını uygular. */
+const EXTRA_PERMISSIONS = new Map<string, PermissionDefinition>();
+
+export const EXTENSION_PERMISSION_CATEGORY: PermissionCategory = {
+  key: 'extensions',
+  label: 'Eklentiler',
+  description: 'Kurulu eklentilerin tanımladığı yetkiler',
+};
+
+export function registerExtraPermissions(owner: string, defs: PermissionDefinition[]): void {
+  clearExtraPermissions(owner);
+  for (const d of defs) EXTRA_PERMISSIONS.set(d.key, { ...d, scope: 'global', category: 'extensions' });
+}
+
+export function clearExtraPermissions(owner: string): void {
+  for (const key of [...EXTRA_PERMISSIONS.keys()]) if (key.startsWith(`ext.${owner}.`)) EXTRA_PERMISSIONS.delete(key);
+}
+
+export function permissionDef(key: string): PermissionDefinition | undefined {
+  return PERMISSION_MAP.get(key) ?? EXTRA_PERMISSIONS.get(key);
+}
+
+export function allGlobalPermissions(): PermissionDefinition[] {
+  return [...GLOBAL_PERMISSIONS, ...EXTRA_PERMISSIONS.values()];
+}
+
+export function extraPermissions(): PermissionDefinition[] {
+  return [...EXTRA_PERMISSIONS.values()];
+}
+
 export function permissionRegistrySignature(): string {
   return PERMISSIONS.map((p) => `${p.key}:${JSON.stringify(p.defaults)}`)
     .sort()

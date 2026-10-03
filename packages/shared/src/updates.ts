@@ -1,11 +1,6 @@
 import { z } from 'zod';
 import type { DeployMode } from './install.js';
 
-/**
- * Sürümler ve otomatik güncelleme. Yayınlar GitHub'daki dağıtım deposundan (varsayılan vokartz/inkforum)
- * okunur; sürüm notları yayın açıklamasındaki Markdown metnidir.
- */
-
 export const PRODUCT_NAME = 'InkForum';
 export const DEFAULT_UPDATE_REPO = 'vokartz/inkforum';
 
@@ -28,14 +23,13 @@ export function isVersion(v: string): boolean {
   return parseVersion(v) !== null;
 }
 
-/** "v1.2.3" → "1.2.3" */
 export function cleanVersion(v: string): string {
   return v.trim().replace(/^v/, '');
 }
 
 function comparePre(a: string | null, b: string | null): number {
   if (a === b) return 0;
-  if (a === null) return 1; // kararlı sürüm, ön sürümden büyüktür
+  if (a === null) return 1;
   if (b === null) return -1;
   const pa = a.split('.');
   const pb = b.split('.');
@@ -55,7 +49,6 @@ function comparePre(a: string | null, b: string | null): number {
   return 0;
 }
 
-/** a < b → -1, eşit → 0, a > b → 1 (geçersiz sürümler en küçük sayılır) */
 export function compareVersions(a: string, b: string): number {
   const x = parseVersion(a);
   const y = parseVersion(b);
@@ -66,7 +59,6 @@ export function compareVersions(a: string, b: string): number {
 
 export type UpdateKind = 'major' | 'minor' | 'patch' | 'pre';
 
-/** Mevcut sürümden hedefe geçişin türü */
 export function updateKind(from: string, to: string): UpdateKind | null {
   const a = parseVersion(from);
   const b = parseVersion(to);
@@ -77,10 +69,6 @@ export function updateKind(from: string, to: string): UpdateKind | null {
   return 'pre';
 }
 
-/**
- * Sürüm notları İngilizce yazılır; Türkçe çevirisi bu işaretten sonra, GitHub'da açılır bir bölümde gelir
- * (scripts/release/notes.mjs). Yönetim paneli yöneticinin diline uygun kısmı gösterir.
- */
 export const RELEASE_NOTES_TR_MARKER = '<!-- inkforum:tr -->';
 
 export function pickReleaseNotes(body: string, locale: string): string {
@@ -105,7 +93,6 @@ export const AUTO_INSTALL_INFO: Record<AutoInstallMode, { label: string; descrip
   all: { label: 'Tüm güncellemeler', description: 'Ana sürümler dahil her yeni sürüm otomatik kurulur.' },
 };
 
-/** Otomatik kurulumun bu geçişe izin verip vermediği */
 export function autoInstallAllows(mode: AutoInstallMode, kind: UpdateKind | null): boolean {
   if (!kind || mode === 'off') return false;
   if (mode === 'all') return true;
@@ -122,9 +109,7 @@ export interface ReleaseAsset {
 export interface ReleaseInfo {
   version: string;
   name: string;
-  /** Markdown */
   notes: string;
-  /** Güvenli HTML (sunucuda üretilir) */
   notesHtml: string;
   publishedAt: number;
   prerelease: boolean;
@@ -155,17 +140,13 @@ export interface UpdateStatus {
   kind: UpdateKind | null;
   releases: ReleaseInfo[];
   canInstall: boolean;
-  /** Kurulum yapılamıyorsa nedeni */
   installBlocker: string | null;
   job: UpdateJob | null;
   settings: UpdateSettingsInput;
-  /** Docker: güncelleyici kapsayıcısına ulaşılabiliyor mu (son denemenin sonucu) */
   updater: { reachable: boolean; error: string | null } | null;
-  /** Coolify: Deploy Webhook ile güncelleme (tek imajla kurulumlar için) */
   coolify: { detected: boolean; configured: boolean; webhookUrl: string; hasToken: boolean } | null;
 }
 
-/** Coolify "Deploy Webhook" adresi ve API anahtarı (boş anahtar = değiştirme) */
 export const coolifyUpdateInput = z.object({
   webhookUrl: z
     .string()
@@ -180,7 +161,6 @@ export const updateSettingsInput = z.object({
   autoCheck: z.boolean().default(true),
   channel: z.enum(UPDATE_CHANNELS).default('stable'),
   autoInstall: z.enum(AUTO_INSTALL_MODES).default('off'),
-  /** Otomatik kurulumun yapılacağı saat (sunucu saatiyle, 0–23) */
   installHour: z.number().int().min(0).max(23).default(4),
   notifyAdmins: z.boolean().default(true),
 });

@@ -1,6 +1,3 @@
-/**
- * Ara depo (geçici SQLite) üzerinde okuyucuların kullandığı yardımcılar ve platform tespiti.
- */
 import { openSqlite, type SqliteStatement, type SqlValue } from './sql-dump.js';
 import type { Platform } from './model.js';
 
@@ -56,7 +53,6 @@ export class Stage {
     return this.db.prepare(sql).get(...params);
   }
 
-  /** Tablo yoksa boş liste */
   rows(table: string, rest = ''): StageRow[] {
     if (!this.has(table)) return [];
     return this.all(`SELECT * FROM ${q(table)} ${rest}`);
@@ -68,7 +64,6 @@ export class Stage {
     this.db.exec(`CREATE INDEX IF NOT EXISTS ${q(name)} ON ${q(table)} (${columns.map(q).join(', ')})`);
   }
 
-  /** Büyük tabloları döküm sırasıyla (rowid) sayfa sayfa okur; bellek kullanımı sabit kalır */
   *scan(table: string, select = '*', where = '', pageSize = 2000): Generator<StageRow> {
     if (!this.has(table)) return;
     let last = 0;
@@ -85,10 +80,6 @@ export class Stage {
   }
 }
 
-/**
- * Birleştirmeli (JOIN) sayfalı okuma: `alias` tablosunun rowid sırasıyla.
- * Örn. join('t.*, m.subject', 'smf_topics t LEFT JOIN smf_messages m ON m.id_msg = t.id_first_msg', 't')
- */
 export function* joinScan(stage: Stage, select: string, from: string, alias: string, where = '', pageSize = 2000): Generator<StageRow> {
   let last = 0;
   const stmt = stage.db.prepare(
@@ -105,29 +96,22 @@ export function* joinScan(stage: Stage, select: string, from: string, alias: str
 
 export const q = (s: string) => `"${s.replace(/"/g, '""')}"`;
 
-/** Kaynak tablolar: tüm platformlarda gereken tablo son ekleri (önekten bağımsız) */
 export const WANTED_SUFFIXES = [
-  // SMF
   'members', 'membergroups', 'categories', 'boards', 'moderators', 'moderator_groups', 'topics', 'messages', 'polls', 'poll_choices',
   'log_polls', 'personal_messages', 'pm_recipients', 'attachments', 'settings', 'ban_groups', 'ban_items', 'custom_fields',
-  // phpBB
   'users', 'groups', 'user_group', 'ranks', 'forums', 'posts', 'poll_options', 'poll_votes', 'privmsgs', 'privmsgs_to', 'config', 'banlist',
   'acl_groups', 'acl_options', 'acl_roles', 'acl_roles_data', 'moderator_cache', 'profile_fields_data',
-  // IPS
   'core_members', 'core_groups', 'core_sys_lang', 'core_sys_lang_words', 'forums_forums', 'forums_topics', 'forums_posts', 'core_polls',
   'core_voters', 'core_message_topics', 'core_message_posts', 'core_message_topic_user_map', 'core_attachments', 'core_attachments_map',
   'core_permission_index', 'core_moderators', 'core_admin_permission_rows', 'core_banfilters', 'core_member_ranks', 'core_sys_conf_settings',
   'core_applications', 'core_validating', 'core_pfields_content',
-  // MyBB
   'usergroups', 'usertitles', 'threads', 'pollvotes', 'privatemessages', 'datacache', 'forumpermissions', 'banned', 'userfields', 'banfilters',
-  // XenForo (xf_ öneki)
   'xf_user', 'xf_user_group', 'xf_user_authenticate', 'xf_user_profile', 'xf_user_ban', 'xf_user_title_ladder', 'xf_node', 'xf_link_forum', 'xf_forum',
   'xf_thread', 'xf_post', 'xf_attachment', 'xf_attachment_data', 'xf_poll', 'xf_poll_response', 'xf_poll_vote', 'xf_conversation_master',
   'xf_conversation_message', 'xf_conversation_recipient', 'xf_moderator_content', 'xf_ban_email', 'xf_ip_match', 'xf_ip', 'xf_option', 'xf_addon',
   'xf_permission_entry_content',
 ];
 
-/** Gereksiz büyük tablolar (arama dizinleri, günlükler, oturumlar) */
 const NEVER = /(search|session|captcha|_cache$|output_cache|wordlist|wordmatch|_log$|core_log|mail_queue|notifications|item_markers|follow)/i;
 
 export function keepTable(table: string): boolean {
@@ -138,14 +122,12 @@ export function keepTable(table: string): boolean {
 
 const IPS_WORD_KEYS = /^(forums_forum_\d+(_desc)?|core_group_\d+|core_member_rank_\d+)$/;
 
-/** IPS dil tablosu ve MyBB önbellek tablosundan yalnızca gereken satırlar */
 export function keepRow(table: string, value: (column: string) => SqlValue): boolean {
   if (table.endsWith('core_sys_lang_words')) {
     const key = value('word_key');
     return typeof key === 'string' && IPS_WORD_KEYS.test(key);
   }
   if (table.endsWith('datacache')) return value('title') === 'version';
-  // XenForo: IP günlüğünden yalnızca mesaj ve kayıt IP'leri, ayarlardan yalnızca forum adresi
   if (/xf_ip$/.test(table)) return value('content_type') === 'post' || (value('content_type') === 'user' && value('action') === 'register');
   if (/xf_option$/.test(table)) return value('option_id') === 'boardUrl' || value('option_id') === 'boardTitle';
   if (/xf_addon$/.test(table)) return value('addon_id') === 'XF';
@@ -157,7 +139,6 @@ export interface Detection {
   prefix: string;
 }
 
-/** Tablo ve sütun imzalarına göre platform ve tablo öneki */
 export function detectPlatform(stage: Stage): Detection | null {
   const tables = stage.tables();
   const find = (suffix: string, cols: string[]) =>

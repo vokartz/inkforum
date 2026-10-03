@@ -4,13 +4,10 @@
   import { cn } from '$lib/utils';
 
   interface Props {
-    /** Logo yüksekliği (px); yazı logoda punto buna göre ayarlanır */
     size?: number;
-    /** Logo yoksa forum adını yazı logo olarak göster */
     withName?: boolean;
     class?: string;
     nameClass?: string;
-    /** Logonun üzerinde durduğu yüzey: auto = temaya göre, dark = koyu zemin (banner), light = açık zemin */
     surface?: 'auto' | 'dark' | 'light';
   }
   let { size = 36, withName = true, class: className, nameClass, surface = 'auto' }: Props = $props();

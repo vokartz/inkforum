@@ -10,7 +10,6 @@ import { SocialService } from './social.service.js';
 
 const pageQuery = z.object({ page: z.coerce.number().int().min(1).default(1) });
 
-/** Yönetim → Geliştiriciler: OAuth uygulamaları, API anahtarları, webhook'lar, sosyal giriş. */
 @Controller('admin/developers')
 export class DeveloperAdminController {
   constructor(
@@ -25,8 +24,6 @@ export class DeveloperAdminController {
     const [clients, keys, hooks] = await Promise.all([this.oauth.adminClients(), this.oauth.adminKeys(), this.webhooks.list()]);
     return { clients, keys, webhooks: hooks, social: this.social.admin(), metadata: this.oauth.metadata() };
   }
-
-  // ----- OAuth uygulamaları -----
 
   @Post('clients')
   @HttpCode(201)
@@ -56,8 +53,6 @@ export class DeveloperAdminController {
     return { ok: true };
   }
 
-  // ----- API anahtarları -----
-
   @Post('keys')
   @HttpCode(201)
   @AdminEndpoint('admin.developers')
@@ -71,8 +66,6 @@ export class DeveloperAdminController {
     await this.oauth.revokeKey(v, id);
     return { ok: true };
   }
-
-  // ----- Webhook'lar -----
 
   @Post('webhooks')
   @HttpCode(201)
@@ -120,8 +113,6 @@ export class DeveloperAdminController {
   redeliver(@Param('id', new ZodPipe(idParam)) id: number) {
     return this.webhooks.redeliver(id);
   }
-
-  // ----- Sosyal giriş -----
 
   @Put('social')
   @AdminEndpoint('admin.developers')

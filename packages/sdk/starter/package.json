@@ -1,0 +1,10 @@
+{
+  "name": "inkforum-__ID__",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "validate": "node tools/inkforum-ext.mjs validate",
+    "pack": "node tools/inkforum-ext.mjs pack"
+  }
+}

@@ -2,8 +2,6 @@ import { z } from 'zod';
 import type { UserSummary } from './dto.js';
 import { ICON_NAME, type IconNode } from './forum.js';
 
-/** Destek talepleri (eklenti): kategoriler, sorumlu yetkili grupları, durumlar ve öncelikler. */
-
 export const TICKET_STATUSES = ['open', 'answered', 'customer_reply', 'on_hold', 'closed'] as const;
 export type TicketStatus = (typeof TICKET_STATUSES)[number];
 export const TICKET_STATUS_LABELS: Record<TicketStatus, string> = {
@@ -20,7 +18,6 @@ export const TICKET_PRIORITY_LABELS: Record<TicketPriority, string> = { low: 'D�
 
 const color = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Renk #RRGGBB biçiminde olmalı.').nullable().default(null);
 
-/** Yeni talep geldiğinde sorumlu yetkili seçimi */
 export const TICKET_AUTO_ASSIGN = ['none', 'round_robin', 'least_open', 'fixed'] as const;
 export type TicketAutoAssign = (typeof TICKET_AUTO_ASSIGN)[number];
 export const TICKET_AUTO_ASSIGN_LABELS: Record<TicketAutoAssign, { label: string; description: string }> = {
@@ -35,12 +32,10 @@ export const ticketCategoryInput = z.object({
   description: z.string().trim().max(300).default(''),
   icon: z.string().trim().max(60).regex(ICON_NAME, 'Geçersiz ikon.').nullable().default(null),
   color,
-  /** Bu kategorideki talepleri görebilen ve yanıtlayabilen gruplar */
   handlerGroupIds: z.array(z.number().int().positive()).max(20).default([]),
   isActive: z.boolean().default(true),
   sortOrder: z.number().int().min(0).max(10_000).default(0),
   defaultPriority: z.enum(TICKET_PRIORITIES).default('normal'),
-  /** Yeni talep formunda gösterilen bilgi (BBCode) */
   intro: z.string().max(5000).default(''),
   autoAssign: z.enum(TICKET_AUTO_ASSIGN).default('none'),
   autoAssignUserId: z.number().int().positive().nullable().default(null),
@@ -58,9 +53,7 @@ export type TicketCreateInput = z.output<typeof ticketCreateInput>;
 
 export const ticketReplyInput = z.object({
   body: z.string().trim().min(1, 'Mesaj boş olamaz.').max(20_000),
-  /** Yetkililer: yalnızca ekibin göreceği not */
   internal: z.boolean().default(false),
-  /** Yetkililer: yanıtla birlikte durum değişikliği */
   status: z.enum(TICKET_STATUSES).optional(),
 });
 export type TicketReplyInput = z.output<typeof ticketReplyInput>;
@@ -117,12 +110,10 @@ export interface TicketMessage {
 
 export interface TicketDetail extends TicketItem {
   messages: TicketMessage[];
-  /** Yetkili (kategorinin sorumlu grubunda ya da destek yöneticisi) */
   canManage: boolean;
   canReply: boolean;
   canClose: boolean;
   canReopen: boolean;
-  /** Atanabilecek yetkililer (yalnızca yetkililere) */
   staff: UserSummary[];
   categories: Array<{ id: number; name: string }>;
 }

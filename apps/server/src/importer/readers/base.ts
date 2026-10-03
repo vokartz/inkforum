@@ -3,7 +3,6 @@ import { decodeEntities, ipText, num } from '../text.js';
 import type { ReaderContext, SourceCounts } from '../model.js';
 import { q, type Stage } from '../stage.js';
 
-/** Okuyucular için ortak yardımcılar */
 export abstract class BaseReader {
   constructor(
     protected readonly stage: Stage,
@@ -11,12 +10,10 @@ export abstract class BaseReader {
     protected readonly ctx: ReaderContext,
   ) {}
 
-  /** Önekli tablo adı */
   protected t(name: string): string {
     return this.prefix + name;
   }
 
-  /** Önekli ve tırnaklı tablo adı (SQL içinde) */
   protected tq(name: string, alias = ''): string {
     return `${q(this.prefix + name)}${alias ? ` ${alias}` : ''}`;
   }
@@ -33,12 +30,10 @@ export abstract class BaseReader {
     return this.stage.count(this.t(name), where);
   }
 
-  /** Metin (karakter seti çözülmüş) */
   protected s(v: SqlValue | undefined): string {
     return this.ctx.text(v);
   }
 
-  /** HTML varlıkları çözülmüş metin (SMF / phpBB adları, başlıklar) */
   protected e(v: SqlValue | undefined): string {
     return decodeEntities(this.ctx.text(v)).replace(/\u00a0/g, ' ').trim();
   }
@@ -51,7 +46,6 @@ export abstract class BaseReader {
     return String(num(v));
   }
 
-  /** Unix saniye → ms (0 / boş = null) */
   protected ms(v: SqlValue | undefined): number | null {
     const x = num(v);
     return x > 0 ? x * 1000 : null;
@@ -68,7 +62,6 @@ export abstract class BaseReader {
       .filter((x) => /^-?\d+$/.test(x));
   }
 
-  /** Eski forumdaki göreli yol → tam adres */
   protected url(path: string): string | null {
     if (!path) return null;
     if (/^https?:\/\//i.test(path)) return path;
@@ -84,7 +77,6 @@ export abstract class BaseReader {
 
 export const isImageName = (name: string, mime = '') => /^image\/(png|jpe?g|gif|webp)/i.test(mime) || /\.(png|jpe?g|gif|webp)$/i.test(name);
 
-/** Adres içindeki temel URL'yi bulur: "https://site.com/forum/Smileys" → "https://site.com/forum" */
 export function baseFrom(value: string, suffix: RegExp): string | null {
   const v = value.trim();
   if (!/^https?:\/\//i.test(v)) return null;

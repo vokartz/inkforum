@@ -2,11 +2,6 @@ import { beforeNavigate, goto } from '$app/navigation';
 import { confirmAction } from '$lib/confirm.svelte';
 import { t } from '$lib/i18n.svelte';
 
-/**
- * Kaydedilmemiş değişiklikle sayfadan çıkarken tarayıcının çirkin confirm() kutusu yerine forumun onay penceresini
- * gösterir. Sekme kapatma / yenilemede tarayıcılar yalnızca kendi uyarısına izin verir; orada o kullanılır.
- * Bileşenin script bloğunda çağrılmalıdır.
- */
 export function guardUnsaved(isDirty: () => boolean): void {
   let bypass = false;
   beforeNavigate((nav) => {

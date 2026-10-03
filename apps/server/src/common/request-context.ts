@@ -2,7 +2,6 @@ import { createParamDecorator, type ExecutionContext } from '@nestjs/common';
 import type { Request } from 'express';
 import type { Row } from '@forum/db';
 
-/** Her istekte middleware tarafından doldurulan kimlik bağlamı. */
 export interface RequestViewer {
   user: Row<'users'> | null;
   session: Row<'sessions'> | null;
@@ -11,11 +10,8 @@ export interface RequestViewer {
   isAdmin: boolean;
   ip: string | null;
   userAgent: string | null;
-  /** Arayüz / yanıt dili (üye tercihi → çerez → tarayıcı → varsayılan) */
   locale?: import('@forum/shared').Locale;
-  /** `Authorization: Bearer` ile gelen istek (OAuth erişim belirteci ya da API anahtarı). Çerez oturumu yoktur. */
   token?: { kind: 'oauth' | 'apikey'; id: number; clientId: number | null; scopes: Set<string> } | null;
-  /** Bearer başlığı vardı ama geçersiz / süresi dolmuş */
   tokenError?: boolean;
 }
 
@@ -35,7 +31,6 @@ export function viewerOf(req: Request): RequestViewer {
   return req.viewer;
 }
 
-/** Controller parametresi: `@CurrentViewer() viewer: RequestViewer` */
 export const CurrentViewer = createParamDecorator((_data: unknown, ctx: ExecutionContext) =>
   viewerOf(ctx.switchToHttp().getRequest<Request>()),
 );

@@ -2,7 +2,6 @@
   import { navigating } from '$app/state';
   import { t } from '$lib/i18n.svelte';
 
-  // Kısa geçişlerde titreme olmasın diye çubuk 150 ms gecikmeyle görünür.
   let visible = $state(false);
   let done = $state(false);
   let timer: ReturnType<typeof setTimeout> | undefined;

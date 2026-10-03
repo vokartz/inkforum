@@ -5,13 +5,11 @@
   interface Props {
     user: { displayName: string; avatarUrl: string | null; color?: string | null };
     size?: number;
-    /** Köşeli (profil kartı gibi büyük görünümler) */
     shape?: 'circle' | 'rounded';
     class?: string;
   }
   let { user, size = 32, shape = 'circle', class: className }: Props = $props();
 
-  // Avatar yüklemeyen üyeler: önce yönetimin yüklediği varsayılan avatar, yoksa nötr siluet.
   const fallback = $derived((page.data.viewer?.settings?.['appearance.defaultAvatarUrl'] as string | null | undefined) ?? null);
   const src = $derived(user.avatarUrl ?? fallback);
   const radius = $derived(shape === 'circle' ? 'rounded-full' : 'rounded-[22%]');

@@ -1,6 +1,3 @@
-/**
- * phpBB 3.0 – 3.3 okuyucusu.
- */
 import { legacyHash } from '../../security/legacy-password.js';
 import { phpbbToBBCode } from '../convert.js';
 import type {
@@ -79,8 +76,6 @@ export class PhpbbReader extends BaseReader implements SourceReader {
     return `${proto}${host}${port && port !== '80' && port !== '443' ? `:${port}` : ''}${path}`;
   }
 
-  // ---------- Gruplar ve rütbeler ----------
-
   private specialGroups(): Map<string, string> {
     const out = new Map<string, string>();
     for (const r of this.stage.rows(this.t('groups'), 'WHERE group_type = 3')) out.set(this.s(r.group_name), this.id(r.group_id));
@@ -105,7 +100,6 @@ export class PhpbbReader extends BaseReader implements SourceReader {
         hidden: this.n(r.group_type) === 2,
       });
     }
-    // Rütbeler: mesaj sayısı rütbeleri ve özel rütbeler (rütbe görselleriyle)
     const ranksPath = this.config('ranks_path') || 'images/ranks';
     for (const r of this.stage.rows(this.t('ranks'), 'ORDER BY rank_min')) {
       const image = this.s(r.rank_image);
@@ -124,8 +118,6 @@ export class PhpbbReader extends BaseReader implements SourceReader {
     }
     return out;
   }
-
-  // ---------- Üyeler ----------
 
   *users(): Iterable<SrcUser> {
     const memberships = new Map<string, string[]>();
@@ -190,8 +182,6 @@ export class PhpbbReader extends BaseReader implements SourceReader {
     }
   }
 
-  // ---------- Forum yapısı ----------
-
   private forumRows(): StageRow[] {
     return this.stage.rows(this.t('forums'), 'ORDER BY left_id');
   }
@@ -200,12 +190,10 @@ export class PhpbbReader extends BaseReader implements SourceReader {
     const out: SrcCategory[] = this.forumRows()
       .filter((r) => this.n(r.forum_type) === 0 && this.n(r.parent_id) === 0)
       .map((r) => ({ id: this.id(r.forum_id), name: this.e(r.forum_name), description: phpbbToBBCode(this.s(r.forum_desc), this.s(r.forum_desc_uid)), order: this.n(r.left_id) }));
-    // Kök düzeydeki forumlar için kategori
     if (this.forumRows().some((r) => this.n(r.parent_id) === 0 && this.n(r.forum_type) !== 0)) out.unshift({ id: 'root', name: 'Forum', description: '', order: -1 });
     return out;
   }
 
-  /** Grup → forum → f_read (1 evet, 0 asla, -1 hayır) */
   private readAccess(): Map<string, Set<string>> {
     const allowed = new Map<string, Set<string>>();
     if (!this.has('acl_groups') || !this.has('acl_options')) return allowed;
@@ -250,7 +238,6 @@ export class PhpbbReader extends BaseReader implements SourceReader {
     for (const r of rows) {
       if (isCategory(r)) continue;
       const id = this.id(r.forum_id);
-      // En yakın kök kategori ve (varsa) üst forum
       let parent = byId.get(this.id(r.parent_id));
       let categoryId = 'root';
       let parentId: string | null = null;
@@ -292,8 +279,6 @@ export class PhpbbReader extends BaseReader implements SourceReader {
       this.n(r.user_id) > 0 ? { boardId: this.id(r.forum_id), userId: this.id(r.user_id) } : { boardId: this.id(r.forum_id), groupId: this.id(r.group_id) },
     );
   }
-
-  // ---------- Konular ve mesajlar ----------
 
   private visible(r: StageRow, prefix: 'topic' | 'post'): { approved: boolean; deleted: boolean } {
     const vis = r[`${prefix}_visibility`];

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { BOARD_PERMISSIONS, PERMISSIONS, PERMISSION_MAP } from '@forum/shared';
+import { BOARD_PERMISSIONS, PERMISSIONS, extraPermissions, permissionDef } from '@forum/shared';
 import type { Row } from '@forum/db';
 import { Db } from '../database/db.service.js';
 import { CacheService } from '../cache/cache.service.js';
@@ -26,14 +26,6 @@ export interface ProfileRow {
   is_system: number;
 }
 
-/**
- * Yetki çözümleyici (SMF modeli):
- *  1. Efektif gruplar: her kayıtlı üye için `member` + ana grup + süresi dolmamış ek gruplar + mesaj grubu.
- *     Misafirler yalnızca `guest`.
- *  2. Ebeveyni olan grup kendi satırları yerine ebeveyninin satırlarını kullanır (miras).
- *  3. Her yetki için: herhangi bir yasak (-1) kazanır; yoksa herhangi bir izin (1) verir; yoksa yok.
- *  4. `admin` sistem grubu tüm kontrolleri atlar.
- */
 @Injectable()
 export class PermissionsService {
   constructor(
@@ -43,13 +35,12 @@ export class PermissionsService {
     private readonly clock: Clock,
   ) {}
 
-  /** Tüm grup-yetki satırları: groupId -> (permission -> value) */
   async table(): Promise<Map<number, Map<string, PermissionValue>>> {
     return this.cache.wrap(PERMISSIONS_NS, 'table', async () => {
       const rows = await this.db.q.selectFrom('group_permissions').selectAll().execute();
       const out = new Map<number, Map<string, PermissionValue>>();
       for (const r of rows) {
-        if (!PERMISSION_MAP.has(r.permission) || BOARD_KEYS.has(r.permission)) continue;
+        if ((!permissionDef(r.permission) && !r.permission.startsWith('ext.')) || BOARD_KEYS.has(r.permission)) continue;
         let m = out.get(r.group_id);
         if (!m) out.set(r.group_id, (m = new Map()));
         m.set(r.permission, r.value >= 0 ? 1 : -1);
@@ -70,7 +61,7 @@ export class PermissionsService {
         .filter((g): g is CachedGroup => !!g);
 
       if (groups.some((g) => g.system_key === 'admin')) {
-        return { isAdmin: true, permissions: new Set(PERMISSIONS.map((p) => p.key)) };
+        return { isAdmin: true, permissions: new Set([...PERMISSIONS, ...extraPermissions()].map((p) => p.key)) };
       }
 
       const allow = new Set<string>();
@@ -87,7 +78,6 @@ export class PermissionsService {
     });
   }
 
-  /** Kullanıcının efektif grup kimlikleri (misafir için guest). */
   async effectiveGroupIds(user: Row<'users'> | null): Promise<number[]> {
     if (!user) return [(await this.groups.bySystemKey('guest')).id];
     const now = this.clock.now();
@@ -111,15 +101,11 @@ export class PermissionsService {
     return { ...(await this.resolve(groupIds)), groupIds };
   }
 
-  // ---------- Yönetim ----------
-
-  /** Tek grubun satırları. */
   async groupEntries(groupId: number): Promise<Record<string, PermissionValue>> {
     const table = await this.table();
     return Object.fromEntries(table.get(groupId) ?? []);
   }
 
-  /** Bir grubun yetkilerini tamamen değiştirir (0 = ayarsız). */
   async setGroupPermissions(groupId: number, values: Record<string, 0 | 1 | -1>): Promise<void> {
     const group = await this.groups.get(groupId);
     if (!group) throw Errors.notFound('Grup bulunamadı.');
@@ -127,7 +113,7 @@ export class PermissionsService {
     if (group.parent_id) throw Errors.badRequest('Bu grup yetkilerini üst gruptan devralıyor; önce mirası kaldırın.');
     const fields: Record<string, string> = {};
     for (const [key, v] of Object.entries(values)) {
-      const def = PERMISSION_MAP.get(key);
+      const def = permissionDef(key);
       if (!def || def.scope !== 'global') fields[key] = 'Bilinmeyen yetki.';
       else if (v === 1 && group.system_key === 'guest' && !def.guestGrantable) fields[key] = 'Bu yetki misafirlere verilemez.';
       else if (![0, 1, -1].includes(v)) fields[key] = 'Geçersiz değer.';
@@ -154,14 +140,12 @@ export class PermissionsService {
     });
   }
 
-  /** Bir grubun yetkilerini diğerine kopyalar. */
   async copyPermissions(fromGroupId: number, toGroupId: number): Promise<void> {
     const entries = await this.groupEntries(fromGroupId);
     await this.db.tx(async () => {
       await this.db.q.deleteFrom('group_permissions').where('group_id', '=', toGroupId).execute();
       const rows = Object.entries(entries).map(([permission, value]) => ({ group_id: toGroupId, permission, value }));
       if (rows.length) await this.db.q.insertInto('group_permissions').values(rows).execute();
-      // Bölüm yetki profillerindeki satırlar da kopyalanır.
       await this.db.q.deleteFrom('permission_profile_entries').where('group_id', '=', toGroupId).execute();
       const boardRows = await this.db.q.selectFrom('permission_profile_entries').selectAll().where('group_id', '=', fromGroupId).execute();
       if (boardRows.length) {
@@ -173,8 +157,6 @@ export class PermissionsService {
       await this.invalidate();
     });
   }
-
-  // ---------- Bölüm yetkileri (yetki profilleri) ----------
 
   async profiles(): Promise<ProfileRow[]> {
     return this.cache.wrap(PERMISSIONS_NS, 'profiles', () =>
@@ -189,7 +171,6 @@ export class PermissionsService {
     return p.id;
   }
 
-  /** profileId -> groupId -> (permission -> value) */
   async profileTable(): Promise<Map<number, Map<number, Map<string, PermissionValue>>>> {
     return this.cache.wrap(PERMISSIONS_NS, 'profileTable', async () => {
       const rows = await this.db.q.selectFrom('permission_profile_entries').selectAll().execute();
@@ -206,10 +187,6 @@ export class PermissionsService {
     });
   }
 
-  /**
-   * Bir bölümdeki efektif yetkiler. `moderator` sistem grubu yalnızca kullanıcı o bölümün
-   * moderatörüyse hesaba katılır (SMF modeli).
-   */
   async resolveBoard(groupIds: number[], profileId: number | null, isBoardModerator: boolean): Promise<Set<string>> {
     const pid = profileId ?? (await this.defaultProfileId());
     const moderatorId = (await this.groups.bySystemKey('moderator')).id;
@@ -234,7 +211,6 @@ export class PermissionsService {
     });
   }
 
-  /** Profilin grup bazlı satırları: groupId -> (permission -> value) */
   async profileEntries(profileId: number): Promise<Record<number, Record<string, PermissionValue>>> {
     const table = (await this.profileTable()).get(profileId);
     const out: Record<number, Record<string, PermissionValue>> = {};
@@ -251,7 +227,7 @@ export class PermissionsService {
     if (group.parent_id) throw Errors.badRequest('Bu grup yetkilerini üst gruptan devralıyor; önce mirası kaldırın.');
     const fields: Record<string, string> = {};
     for (const [key, v] of Object.entries(values)) {
-      const def = PERMISSION_MAP.get(key);
+      const def = permissionDef(key);
       if (!def || def.scope !== 'board') fields[key] = 'Bilinmeyen yetki.';
       else if (v === 1 && group.system_key === 'guest' && !def.guestGrantable) fields[key] = 'Bu yetki misafirlere verilemez.';
       else if (![0, 1, -1].includes(v)) fields[key] = 'Geçersiz değer.';
@@ -308,7 +284,6 @@ export class PermissionsService {
     await this.invalidate();
   }
 
-  /** Sistem dışı profili siler; onu kullanan bölümler varsayılan profile döner. */
   async deleteProfile(id: number): Promise<void> {
     const profile = (await this.profiles()).find((p) => p.id === id);
     if (!profile) throw Errors.notFound('Yetki profili bulunamadı.');

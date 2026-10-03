@@ -18,7 +18,7 @@ describe('emoji', () => {
     expect(html).toContain('/emoji/1f1f9-1f1f7.svg');
     expect(html).toContain('/emoji/31-20e3.svg');
     expect(html).toContain('© 2026');
-    expect(html).toContain('🦄'); // görseli olmayan emoji metin kalır
+    expect(html).toContain('🦄');
     expect(renderBBCode('[url=https://a.com]😀[/url]', { emoji: { has } }).html).toContain('bb-emoji');
   });
 });

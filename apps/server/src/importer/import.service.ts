@@ -1,11 +1,4 @@
 /* eslint-disable no-control-regex -- işaretçiler bilerek kontrol karakterleriyle yazılır */
-/**
- * Başka forum yazılımlarından içe aktarma: döküm yükleme → ara depo + analiz → seçeneklerle aktarma.
- *
- * Aktarma arka planda çalışır; ilerleme bellekte, günlük ve istatistikler import_runs tablosunda tutulur.
- * Başlamadan önce otomatik yedek alınır; bir şey ters giderse Bakım sayfasından geri dönülebilir.
- * Üyeler eski şifreleriyle giriş yapar (legacy-password.ts); ilk girişte şifre argon2id ile yenilenir.
- */
 import { existsSync, mkdirSync, readdirSync, renameSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
@@ -41,9 +34,7 @@ export interface ImportOptions {
   charset: SourceCharset;
   fixMojibake: boolean;
   baseUrl: string;
-  /** Mevcut kategori, bölüm ve konuları (ör. kurulumdaki örnek forum) sil */
   clearForum: boolean;
-  /** Kaynakta mesaj sayısı rütbeleri varsa varsayılan rütbe gruplarını kaldır */
   replaceRanks: boolean;
   include: { polls: boolean; conversations: boolean; bans: boolean };
   files: { avatars: boolean; groupIcons: boolean; attachmentImages: boolean };
@@ -118,7 +109,6 @@ export class ImportService implements OnModuleInit {
     private readonly settings: SettingsService,
   ) {}
 
-  /** Yeniden başlatmada yarım kalan işler başarısız sayılır */
   async onModuleInit(): Promise<void> {
     try {
       await this.db.q
@@ -127,7 +117,6 @@ export class ImportService implements OnModuleInit {
         .where('status', 'in', ['staging', 'running'])
         .execute();
     } catch {
-      /* tablo henüz yok (migration öncesi) */
     }
   }
 
@@ -148,8 +137,6 @@ export class ImportService implements OnModuleInit {
   private stagePath(id: number): string {
     return join(this.runDir(id), 'stage.db');
   }
-
-  // ---------- Sorgular ----------
 
   async list(): Promise<Array<ReturnType<ImportService['dto']>>> {
     const rows = await this.db.q.selectFrom('import_runs').selectAll().orderBy('id', 'desc').limit(20).execute();
@@ -188,9 +175,6 @@ export class ImportService implements OnModuleInit {
     };
   }
 
-  // ---------- Yükleme ve analiz ----------
-
-  /** Yüklenen dökümü kaydeder ve ara depoya yazmayı arka planda başlatır */
   async adoptUpload(tmpPath: string, originalName: string, size: number, userId: number): Promise<number> {
     if (this.busy()) {
       rmSync(tmpPath, { force: true });
@@ -253,7 +237,6 @@ export class ImportService implements OnModuleInit {
       } finally {
         stage.close();
       }
-      // Kaynak döküm artık gerekmez (ara depo yeterli)
       rmSync(file, { force: true });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -294,7 +277,6 @@ export class ImportService implements OnModuleInit {
     }
   }
 
-  /** Karakter seti önizlemesi: örnek üye adları ve konu başlıkları */
   async preview(id: number, charset: SourceCharset, fixMojibake: boolean): Promise<string[]> {
     const run = await this.require(id);
     if (run.status !== 'ready') throw Errors.badRequest('Önizleme yalnızca analiz tamamlandıktan sonra yapılabilir.');
@@ -323,20 +305,16 @@ export class ImportService implements OnModuleInit {
     if (this.active?.id === id) this.active.cancel = true;
   }
 
-  /** Eski adres → yeni kimlik (ör. viewtopic.php?t=12 → konu) */
   async redirect(kind: string, oldId: string): Promise<number | null> {
     const row = await this.db.q.selectFrom('import_redirects').select('new_id').where('kind', '=', kind).where('old_id', '=', oldId).executeTakeFirst();
     return row?.new_id ?? null;
   }
 
-  /** Artık dosya kalmışsa temizle (yüklenip analize başlanmayanlar) */
   cleanupIncoming(): void {
     const dir = join(this.dir, '.incoming');
     if (!existsSync(dir)) return;
     for (const f of readdirSync(dir)) rmSync(join(dir, f), { force: true });
   }
-
-  // ---------- Aktarma ----------
 
   async start(id: number, options: ImportOptions, actorId: number): Promise<void> {
     if (this.busy()) throw Errors.conflict('Şu anda başka bir içe aktarma işlemi sürüyor.');
@@ -416,8 +394,7 @@ export class ImportService implements OnModuleInit {
     }
   }
 
-  // Aktarma adımlarının kullandığı servisler (ImportJob içinden)
-  /** @internal */ get deps() {
+  get deps() {
     return {
       db: this.db,
       clock: this.clock,
@@ -441,7 +418,6 @@ export class ImportService implements OnModuleInit {
 
 type Deps = ImportService['deps'];
 
-/** Tek bir aktarma çalıştırması (durum ve eşleme tabloları) */
 class ImportJob {
   private readonly d: Deps;
   private readonly users = new Map<string, { id: number; name: string }>();
@@ -513,8 +489,6 @@ class ImportJob {
     if (this.downloadFailures) this.warn(`${this.downloadFailures} dosya indirilemedi; eski adresleriyle bağlantı olarak bırakıldı.`);
   }
 
-  // ---------- Hazırlık ----------
-
   private async backup(): Promise<void> {
     this.d.phase(this.state, 'backup', 1);
     if (!this.d.backups.supported().ok) {
@@ -555,8 +529,6 @@ class ImportJob {
     });
     this.info('Mevcut kategoriler, bölümler ve konular temizlendi.');
   }
-
-  // ---------- Gruplar ----------
 
   private async download(url: string, maxBytes: number): Promise<Buffer | null> {
     if (!/^https?:\/\//i.test(url)) return null;
@@ -637,7 +609,6 @@ class ImportJob {
         }
       }
       this.groupMap.set(g.id, id);
-      // Rütbe görseli ve renk (sistem gruplarında yalnızca boşsa)
       const current = existing.find((e) => e.id === id);
       if (g.iconUrl && this.opts.files.groupIcons && !current?.icon_file_id) {
         const buf = await this.download(g.iconUrl, 1024 * 1024);
@@ -656,8 +627,6 @@ class ImportJob {
     await this.d.groupCache.invalidate();
     this.info(`${this.state.stats.groups ?? 0} grup/rütbe oluşturuldu, ${this.state.stats.groupIcons ?? 0} rütbe görseli indirildi.`);
   }
-
-  // ---------- Üyeler ----------
 
   private async importUsers(): Promise<void> {
     this.d.phase(this.state, 'users', this.reader.counts().users);
@@ -693,7 +662,6 @@ class ImportJob {
       const emailCanon = u.email.includes('@') ? canonicalEmail(u.email) : '';
       const existing = emailCanon ? emails.get(emailCanon) : undefined;
       if (existing) {
-        // Aynı e-postalı üye zaten var (ör. aktarmayı yapan yönetici): içerikleri ona bağlanır
         const row = await this.q.selectFrom('users').select('display_name').where('id', '=', existing).executeTakeFirstOrThrow();
         this.users.set(u.id, { id: existing, name: row.display_name });
         this.mergedUsers.add(existing);
@@ -773,8 +741,6 @@ class ImportJob {
 
   private readonly bannedUsers: Array<{ userId: number; until: number; reason: string }> = [];
 
-  // ---------- Kategoriler, bölümler, erişim ----------
-
   private readonly profileCache = new Map<string, number>();
 
   private async accessProfile(access: SrcAccess): Promise<number | null> {
@@ -799,7 +765,6 @@ class ImportJob {
     else {
       const defaultId = await this.d.permissions.defaultProfileId();
       id = await this.d.permissions.createProfile({ name, description: 'İçe aktarılan forumun bölüm erişiminden oluşturuldu.', copyFromId: defaultId });
-      // Misafir ve üyelerin satırları kaldırılır; seçilen gruplara üyelerin yetkileri verilir
       const memberRows = await this.q.selectFrom('permission_profile_entries').selectAll().where('profile_id', '=', id).where('group_id', '=', this.sys.member).execute();
       await this.q.deleteFrom('permission_profile_entries').where('profile_id', '=', id).where('group_id', 'in', [this.sys.member, this.sys.guest]).execute();
       for (const g of groupIds) {
@@ -910,8 +875,6 @@ class ImportJob {
     this.info(`${this.state.stats.categories ?? 0} kategori, ${this.state.stats.boards ?? 0} bölüm, ${this.state.stats.moderators ?? 0} bölüm moderatörü aktarıldı.`);
   }
 
-  // ---------- Konular ----------
-
   private async importTopics(): Promise<void> {
     this.d.phase(this.state, 'topics', this.reader.counts().topics);
     let batch: Array<() => Promise<void>> = [];
@@ -965,9 +928,6 @@ class ImportJob {
     this.info(`${this.state.stats.topics ?? 0} konu aktarıldı.`);
   }
 
-  // ---------- Mesajlar ----------
-
-  /** İşaretçileri çözer: alıntılar, bahsetmeler, eklentiler (satır içi kullanılmayanlar sona eklenir) */
   private async finalizeBody(body: string, attachments: SrcAttachment[], ownerId: number | null): Promise<string> {
     const used = new Set<string>();
     const byId = new Map(attachments.map((a) => [a.id, a]));
@@ -995,7 +955,6 @@ class ImportJob {
       return out;
     };
 
-    // Önce eklentiler (asenkron), sonra alıntı/bahsetme (eşzamanlı)
     const attachIds = [...body.matchAll(MARK_RE)].filter((m) => m[1] === 'a').map((m) => m[2]!);
     for (const id of attachIds) {
       const a = byId.get(id);
@@ -1009,7 +968,6 @@ class ImportJob {
         const u = this.users.get(src);
         return u ? `[mention=${u.id}]${u.name}[/mention]` : `@${name}`;
       })
-      // Alıntı işaretçileri mesaj eklenirken çözülür (resolveQuotes)
       .replace(MARK_RE, (m: string, kind: string, id: string) => (kind === 'a' ? (rendered.get(id) ?? '') : kind === 'p' ? m : ''));
     const rest = attachments.filter((a) => !used.has(a.id));
     if (rest.length) {
@@ -1020,7 +978,6 @@ class ImportJob {
     return out.trim() || '…';
   }
 
-  /** Alıntılanan mesaj kimlikleri (mesaj eklenirken çözülür; aynı partideki önceki mesajlar da bulunur) */
   private resolveQuotes(body: string): string {
     return body
       .replace(/ post=\u0001p:([^\u0002]+)\u0002/g, (_m, src: string) => {
@@ -1100,8 +1057,6 @@ class ImportJob {
     this.info(`${this.state.stats.posts ?? 0} mesaj aktarıldı${this.state.stats.images ? `, ${this.state.stats.images} görsel indirildi` : ''}.`);
   }
 
-  // ---------- Anketler ----------
-
   private async importPolls(): Promise<void> {
     this.d.phase(this.state, 'polls', this.reader.counts().polls);
     for (const p of this.reader.polls()) {
@@ -1149,8 +1104,6 @@ class ImportJob {
     this.info(`${this.state.stats.polls ?? 0} anket aktarıldı.`);
   }
 
-  // ---------- Özel mesajlar ----------
-
   private async importConversations(): Promise<void> {
     this.d.phase(this.state, 'conversations', this.reader.counts().conversations);
     for (const c of this.reader.conversations()) {
@@ -1196,8 +1149,6 @@ class ImportJob {
     this.info(`${this.state.stats.conversations ?? 0} özel mesaj konuşması aktarıldı.`);
   }
 
-  // ---------- Yasaklar ----------
-
   private async importBans(): Promise<void> {
     const list = this.reader.bans();
     this.d.phase(this.state, 'bans', list.length + this.bannedUsers.length);
@@ -1220,10 +1171,8 @@ class ImportJob {
         );
         this.d.stat(this.state, 'bans');
       } catch {
-        /* geçersiz kayıt */
       }
     }
-    // IP / e-posta yasakları: aynı gerekçe ve süredekiler tek yasakta toplanır
     const groups = new Map<string, typeof list>();
     for (const b of list) {
       const key = `${b.reason}|${b.expiresAt ?? 0}`;
@@ -1237,7 +1186,6 @@ class ImportJob {
           this.d.bans.normalizeTrigger({ type: b.kind, value: b.value });
           triggers.push({ type: b.kind, value: b.value });
         } catch {
-          /* desteklenmeyen desen */
         }
       }
       if (!triggers.length) continue;
@@ -1260,8 +1208,6 @@ class ImportJob {
     this.info(`${this.state.stats.bans ?? 0} yasak aktarıldı.`);
   }
 
-  // ---------- Sayaçlar ----------
-
   private async recount(): Promise<void> {
     this.d.phase(this.state, 'recount', 4);
     const visible = sql`p.deleted_at IS NULL AND p.is_approved = 1`;
@@ -1276,7 +1222,6 @@ class ImportJob {
           last_poster_id = COALESCE((SELECT p.user_id FROM posts p WHERE p.id = topics.last_post_id), topics.user_id),
           last_poster_name = COALESCE((SELECT p.author_name FROM posts p WHERE p.id = topics.last_post_id), topics.author_name)
         WHERE id >= ${this.firstTopicId}`.execute(this.q);
-      // Hiç mesajı kalmayan konular (ör. mesajları kaynakta silinmiş) kaldırılır
       await sql`DELETE FROM topics WHERE id >= ${this.firstTopicId} AND first_post_id IS NULL AND NOT EXISTS (SELECT 1 FROM polls WHERE polls.topic_id = topics.id)`.execute(this.q);
     }
     this.d.tick(this.state);
@@ -1293,8 +1238,6 @@ class ImportJob {
     this.d.tick(this.state);
     this.info('Sayaçlar ve rütbeler yeniden hesaplandı.');
   }
-
-  // ---------- Avatarlar ----------
 
   private async downloadAvatars(): Promise<void> {
     this.d.phase(this.state, 'avatars', this.avatars.length);

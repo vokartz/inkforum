@@ -1,7 +1,3 @@
-/**
- * Bildirim ve mesaj sesleri. Ses dosyası indirilmez; kısa, yumuşak tonlar Web Audio ile üretilir.
- * Tarayıcılar sesi ancak ilk tıklamadan sonra çalmaya izin verir; tercih bu cihazda saklanır.
- */
 const KEY = 'forum_sound';
 
 class Sounds {
@@ -13,7 +9,6 @@ class Sounds {
     try {
       this.enabled = localStorage.getItem(KEY) !== 'off';
     } catch {
-      /* depolama kapalı */
     }
     if (this.armed || typeof window === 'undefined') return;
     this.armed = true;
@@ -33,7 +28,6 @@ class Sounds {
     try {
       localStorage.setItem(KEY, on ? 'on' : 'off');
     } catch {
-      /* yoksay */
     }
     if (on) this.play('notification');
   }
@@ -48,7 +42,6 @@ class Sounds {
     return this.ctx;
   }
 
-  /** notification: iki notalı zil; message: yumuşak "pıt" sesi */
   play(kind: 'notification' | 'message'): void {
     if (!this.enabled) return;
     const ctx = this.context();

@@ -6,8 +6,6 @@ import { gzipSync } from 'node:zlib';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { adminAgent, createHarness, loginAgent, type Agent, type Harness } from '../testing/harness.js';
 
-// ---------- Sentetik döküm üretici (mysqldump biçimi) ----------
-
 type Value = string | number | null | Buffer;
 interface Table {
   name: string;
@@ -36,15 +34,12 @@ function dump(tables: Table[]): string {
 const sha1 = (s: string) => createHash('sha1').update(s, 'utf8').digest('hex');
 const md5 = (s: string) => createHash('md5').update(s, 'utf8').digest('hex');
 const T0 = 1_600_000_000;
-/** UTF-8 metnin latin1 tabloda saklanıp yeniden UTF-8 dökülmüş hâli ("dÃ¼nya") */
 const mojibake = (s: string) => Buffer.from(s, 'utf8').toString('latin1');
 
 async function bcrypt(password: string): Promise<string> {
   const { bcrypt: hash } = await import('hash-wasm');
   return (await hash({ password, salt: randomBytes(16), costFactor: 4, outputType: 'encoded' })).replace(/^\$2[ab]\$/, '$2y$');
 }
-
-// ---------- Test ----------
 
 describe('forum importer', () => {
   let h: Harness;
@@ -200,7 +195,6 @@ describe('forum importer', () => {
           [2, 1, null, null, '', '%@spam.test', 0, 0],
         ],
       },
-      // Aktarılmayan büyük tablo (ara depoya alınmamalı)
       { name: 'smf_log_search_words', columns: ['id_word', 'id_msg'], rows: [[1, 1]] },
     ]);
 
@@ -209,11 +203,9 @@ describe('forum importer', () => {
     expect(ready.analysis.counts).toMatchObject({ users: 4, topics: 3, posts: 5, polls: 1, conversations: 1, attachments: 1 });
     expect(done.stats).toMatchObject({ users: 3, usersMerged: 1, topics: 2, posts: 4, polls: 1, conversations: 1 });
 
-    // Önizleme: çift kodlama düzeltmesi
     const preview = await admin.get(`/api/admin/import/${done.id}/preview?charset=utf8&fix=1`);
-    expect(preview.status).toBe(400); // aktarma bittikten sonra önizleme yok
+    expect(preview.status).toBe(400);
 
-    // Konular ve mesajlar
     const topic = await topicByTitle('Merhaba dünya');
     expect(topic).toMatchObject({ is_pinned: 1, view_count: 120, reply_count: 2 });
     const posts = await postsOf(topic.id);
@@ -228,7 +220,6 @@ describe('forum importer', () => {
     expect(posts[2]).toMatchObject({ user_id: null, author_name: 'Misafir Kişi' });
     expect(await h.db.q.selectFrom('topics').select('id').where('title', 'like', 'TAŞINDI%').executeTakeFirst()).toBeUndefined();
 
-    // Üyeler, gruplar, rütbeler
     expect(ayse).toMatchObject({ display_name: 'Ayşe Yılmaz', custom_title: 'Kurucu', post_count: 1, status: 'active' });
     const vip = await h.db.q.selectFrom('member_groups').selectAll().where('name', '=', 'VIP Üyeler').executeTakeFirstOrThrow();
     expect(vip.color).toBe('#ff9900');
@@ -240,12 +231,10 @@ describe('forum importer', () => {
     ]);
     const profile = await h.db.q.selectFrom('user_profiles').selectAll().where('user_id', '=', ayse.id).executeTakeFirstOrThrow();
     expect(profile).toMatchObject({ signature: '[b]İmza[/b]', birthdate: '1990-05-17', website_url: 'https://ayse.test' });
-    // Aynı e-postalı eski yönetici mevcut yöneticiyle eşleşti
     const adminRow = await h.db.q.selectFrom('users').select('id').where('email', '=', 'admin@forum.test').executeTakeFirstOrThrow();
     const note = await topicByTitle('Yönetim notu');
     expect(note.user_id).toBe(adminRow.id);
 
-    // Bölüm erişimi
     const boards = await h.db.q
       .selectFrom('boards')
       .leftJoin('permission_profiles', 'permission_profiles.id', 'boards.permission_profile_id')
@@ -265,7 +254,6 @@ describe('forum importer', () => {
     const mods = await h.db.q.selectFrom('board_moderators').select('user_id').execute();
     expect(mods).toHaveLength(1);
 
-    // Anket ve özel mesaj
     const poll = await h.db.q.selectFrom('polls').selectAll().where('topic_id', '=', topic.id).executeTakeFirstOrThrow();
     expect(poll).toMatchObject({ question: 'Hangisi?', voter_count: 1, allow_change: 1 });
     expect(await h.db.q.selectFrom('poll_votes').select('user_id').where('poll_id', '=', poll.id).execute()).toEqual([{ user_id: ayse.id }]);
@@ -273,12 +261,10 @@ describe('forum importer', () => {
     expect(conv.message_count).toBe(2);
     expect(await h.db.q.selectFrom('conversation_participants').select('user_id').where('conversation_id', '=', conv.id).execute()).toHaveLength(2);
 
-    // Yasaklar: üye (is_activated > 10), IP ve e-posta
     const triggers = await h.db.q.selectFrom('ban_triggers').select(['type', 'value']).orderBy('id').execute();
     expect(triggers.map((t) => t.type)).toEqual(expect.arrayContaining(['user', 'ip', 'email']));
     expect(triggers.find((t) => t.type === 'email')?.value).toBe('*@spam.test');
 
-    // Eski şifrelerle giriş (SMF 2.0 sha1 ve 2.1 bcrypt); ilk girişte özet yenilenir
     await loginAgent(h, 'Ayşe', 'Parola123');
     await loginAgent(h, 'Mehmet', 'Gizli456');
     const wrong = await h.agent().post('/api/auth/login', { identifier: 'Ayşe', password: 'yanlis' });
@@ -286,7 +272,6 @@ describe('forum importer', () => {
     const rehashed = await h.db.q.selectFrom('users').select('password_hash').where('id', '=', ayse.id).executeTakeFirstOrThrow();
     expect(rehashed.password_hash).not.toMatch(/^\$legacy\$/);
 
-    // Eski adres yönlendirmesi
     const legacy = await h.agent().get('/api/import/legacy?kind=topic&id=1');
     expect(legacy.body.url).toBe(`/t/${topic.id}`);
     expect((await h.agent().get('/api/import/legacy?kind=topic&id=999')).status).toBe(404);
@@ -390,7 +375,6 @@ describe('forum importer', () => {
       ['Alt Sohbet', 'members_only'],
       ['Tasarım', 'Özel erişim: Tasarımcılar'],
     ]);
-    // Özel rütbe → grup üyeliği; mesaj rütbesi → post_count grubu
     const zeynep = await h.db.q.selectFrom('users').selectAll().where('username', '=', 'Zeynep').executeTakeFirstOrThrow();
     const groups = await h.db.q.selectFrom('group_members').innerJoin('member_groups', 'member_groups.id', 'group_members.group_id').select('member_groups.name').where('user_id', '=', zeynep.id).execute();
     expect(groups.map((g) => g.name).sort()).toEqual(['Efsane', 'Tasarımcılar']);

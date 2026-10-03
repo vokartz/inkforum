@@ -2,21 +2,17 @@ import { z } from 'zod';
 import type { UserSummary } from './dto.js';
 import { ICON_NAME, type IconNode } from './forum.js';
 
-/** Wiki: iç içe sayfalar. Adres = üst sayfaların kısa adları: /wiki/kurallar/rol-kurallari */
-
 export const WIKI_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export const wikiPageInput = z.object({
   title: z.string().trim().min(1, 'Başlık gerekli.').max(120),
   slug: z.string().trim().toLowerCase().min(1, 'Adres gerekli.').max(60).regex(WIKI_SLUG, 'Yalnızca küçük harf, rakam ve tire kullanın.'),
   parentId: z.number().int().positive().nullable().default(null),
-  /** Phosphor ikon adı (ör. book-open-text) */
   icon: z.string().trim().max(60).regex(ICON_NAME, 'Geçersiz ikon.').nullable().default(null),
   summary: z.string().trim().max(300).nullable().default(null),
   body: z.string().max(300_000, 'En fazla 300.000 karakter.').default(''),
   isPublished: z.boolean().default(true),
   isLocked: z.boolean().default(false),
-  /** Geçmişte görünen kısa değişiklik notu */
   note: z.string().trim().max(200).nullable().default(null),
 });
 export type WikiPageInput = z.output<typeof wikiPageInput>;
@@ -32,7 +28,6 @@ export interface WikiTreeNode {
   id: number;
   parentId: number | null;
   slug: string;
-  /** /wiki/… adresi (baştaki /wiki olmadan: "kurallar/rol-kurallari") */
   path: string;
   title: string;
   icon: string | null;
@@ -61,7 +56,6 @@ export interface WikiPageView {
   iconNodes: IconNode | null;
   summary: string | null;
   html: string;
-  /** Düzenleme için (yalnızca düzenleyebilenlere) */
   body: string | null;
   isPublished: boolean;
   isLocked: boolean;

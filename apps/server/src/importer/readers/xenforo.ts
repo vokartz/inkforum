@@ -1,7 +1,3 @@
-/**
- * XenForo 2.x okuyucusu (1.5 veritabanları da büyük ölçüde aynı tablolara sahiptir). Mesajlar BBCode olarak
- * saklanır; forum ağacı xf_node, şifreler xf_user_authenticate tablosundadır.
- */
 import { createHash } from 'node:crypto';
 import { legacyHash } from '../../security/legacy-password.js';
 import { xenforoToBBCode } from '../convert.js';
@@ -25,19 +21,15 @@ import type { SqlValue } from '../sql-dump.js';
 import type { StageRow, Stmt } from '../stage.js';
 import { BaseReader, baseFrom } from './base.js';
 
-/** XenForo varsayılan grupları: 1 misafir, 2 kayıtlı, 3 yönetici, 4 moderatör */
 const GUEST = '1';
 const REGISTERED = '2';
 const ADMIN = '3';
 const MODERATOR = '4';
 
-/** Forum dışı düğümler (sayfa, arama forumu) aktarılmaz */
 const BOARD_TYPES = new Set(['Forum', 'LinkForum', 'Category']);
 
-/** Root kategorisi olmayan forumlar için yapay kategori */
 const ROOT_CATEGORY = 'xf-root';
 
-/** PHP serialize / JSON kimlik doğrulama verisinden bir alanı okur */
 export function xfAuthField(data: string, key: string): string {
   const json = /^\s*\{/.test(data) ? (() => {
     try {
@@ -51,7 +43,6 @@ export function xfAuthField(data: string, key: string): string {
   return m?.[1] ?? '';
 }
 
-/** xf_user_authenticate satırı → users.password_hash biçimi ('' = şifre sıfırlama gerekir) */
 export function xfPasswordHash(scheme: string, data: string): string {
   const hash = xfAuthField(data, 'hash');
   if (!hash) return '';
@@ -65,7 +56,6 @@ export function xfPasswordHash(scheme: string, data: string): string {
       const fn = xfAuthField(data, 'hashFunc') === 'sha1' ? 'sha1' : 'sha256';
       return salt && /^[0-9a-f]{40,64}$/i.test(hash) ? legacyHash.xfcore(salt, hash, fn) : '';
     }
-    // Daha önce başka forumdan XenForo'ya aktarılmış ve hiç giriş yapmamış üyeler
     case 'XF:PhpBb3':
       return legacyHash.phpbb(hash);
     case 'XF:MyBb': {
@@ -124,8 +114,6 @@ export class XenforoReader extends BaseReader implements SourceReader {
     return baseFrom(this.option('boardUrl'), /\/$/);
   }
 
-  // ---------- Gruplar ve üyeler ----------
-
   groups(): SrcGroup[] {
     const out: SrcGroup[] = [];
     for (const r of this.stage.rows(this.t('user_group'), 'ORDER BY user_group_id')) {
@@ -143,7 +131,6 @@ export class XenforoReader extends BaseReader implements SourceReader {
         hidden: false,
       });
     }
-    // Kullanıcı unvanı merdiveni (varsayılan ölçüt mesaj sayısı)
     if (this.has('user_title_ladder')) {
       for (const r of this.stage.rows(this.t('user_title_ladder'), 'ORDER BY minimum_level')) {
         const level = this.n(r.minimum_level);
@@ -210,8 +197,6 @@ export class XenforoReader extends BaseReader implements SourceReader {
     }
   }
 
-  // ---------- Forum ağacı ----------
-
   private nodes(): StageRow[] {
     if (!this.nodesCache) this.nodesCache = this.stage.rows(this.t('node'), 'ORDER BY lft, display_order, node_id').filter((r) => BOARD_TYPES.has(this.s(r.node_type_id)));
     return this.nodesCache;
@@ -229,7 +214,6 @@ export class XenforoReader extends BaseReader implements SourceReader {
     return out;
   }
 
-  /** Görüntüleme izinleri: grup başına, kökten düğüme doğru miras alınan viewNode değeri */
   private accessFor(): (nodeId: string) => SrcAccess {
     const entries = new Map<string, Map<string, string>>();
     if (this.has('permission_entry_content')) {
@@ -244,7 +228,6 @@ export class XenforoReader extends BaseReader implements SourceReader {
     return (nodeId) => {
       const chain: string[] = [];
       for (let id: string | undefined = nodeId; id && id !== '0' && chain.length < 50; id = byId.has(id) ? this.id(byId.get(id)!.parent_node_id) : undefined) chain.unshift(id);
-      // Her grup için kökten yaprağa: reset/deny gizler, content_allow açar
       const allowed = new Map<string, boolean>();
       const groupsSeen = new Set<string>([GUEST, REGISTERED]);
       for (const id of chain) for (const g of entries.get(id)?.keys() ?? []) groupsSeen.add(g);
@@ -276,7 +259,6 @@ export class XenforoReader extends BaseReader implements SourceReader {
     for (const r of nodes) {
       if (this.isRootCategory(r)) continue;
       const id = this.id(r.node_id);
-      // Üst düğüm: kök kategori değilse bölüm; kategori kökü yukarı doğru aranır
       let parent = byId.get(this.id(r.parent_node_id));
       const parentId = parent && !this.isRootCategory(parent) ? this.id(parent.node_id) : null;
       let categoryId = ROOT_CATEGORY;
@@ -306,8 +288,6 @@ export class XenforoReader extends BaseReader implements SourceReader {
     if (!this.has('moderator_content')) return [];
     return this.stage.rows(this.t('moderator_content'), "WHERE content_type = 'node'").map((r) => ({ boardId: this.id(r.content_id), userId: this.id(r.user_id) }));
   }
-
-  // ---------- Konular ve mesajlar ----------
 
   *topics(): Iterable<SrcTopic> {
     for (const r of this.stage.scan(this.t('thread'), '*', "discussion_type <> 'redirect'")) {
@@ -377,7 +357,6 @@ export class XenforoReader extends BaseReader implements SourceReader {
         id,
         postId,
         name,
-        // Dosyalar internal_data altında saklanır; herkese açık adres yönlendiriciden geçer
         url: this.url(`index.php?attachments/${id}/`) ?? '',
         isImage: this.n(r.width) > 0,
         size: this.n(r.file_size),

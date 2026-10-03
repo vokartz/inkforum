@@ -1,0 +1,13 @@
+[data-ext-page='__ID__'] button {
+  border-radius: var(--radius);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  padding: 0.4rem 0.9rem;
+  font-weight: 600;
+}
+[data-ext-page='__ID__'] output {
+  display: block;
+  margin-top: 0.75rem;
+  font-family: ui-monospace, monospace;
+  font-size: 0.85rem;
+}

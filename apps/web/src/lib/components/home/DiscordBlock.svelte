@@ -7,7 +7,6 @@
   import { formatNumber } from '$lib/format';
   import { t } from '$lib/i18n.svelte';
 
-  /** Discord sunucusu: çevrimiçi sayısı, birkaç çevrimiçi üye ve katıl düğmesi */
   let { title = null }: { title?: string | null } = $props();
   let w = $state<DiscordWidget | null>(null);
   let loaded = $state(false);

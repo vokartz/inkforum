@@ -4,7 +4,6 @@ import { flag, helpers, intDefault, notNull, ref, textDefault } from './_helpers
 export async function up(db: Kysely<any>): Promise<void> {
   const h = helpers(db);
 
-  // ---------- Yasaklar ----------
   await h
     .table('bans')
     .addColumn('name', 'text', notNull)
@@ -53,7 +52,6 @@ export async function up(db: Kysely<any>): Promise<void> {
     .execute();
   await db.schema.createIndex('ban_log_created_idx').on('ban_log').column('created_at').execute();
 
-  // ---------- Uyarılar ----------
   await h
     .table('warning_templates')
     .addColumn('title', 'text', notNull)

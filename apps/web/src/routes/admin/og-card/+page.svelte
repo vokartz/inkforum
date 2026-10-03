@@ -27,7 +27,6 @@
   let sample = $state<'topic' | 'board' | 'site'>('topic');
   const ogOn = $derived(settings['seo.ogImages'] !== false);
 
-  // Canlı önizleme: sunucu kaydedilmemiş tasarımla PNG çizer (yazarken 350 ms bekler)
   let preview = $state<string | null>(null);
   let loading = $state(false);
   let timer: ReturnType<typeof setTimeout> | undefined;

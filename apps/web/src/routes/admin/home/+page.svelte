@@ -105,7 +105,6 @@
     snapshot = serialize();
   }
   sync();
-  // Sunucudan yeni veri gelince (kaydetme sonrası) yeniden kurulur; sync kendi okumalarını izlemez.
   $effect.pre(() => {
     void data.blocks;
     untrack(sync);
@@ -116,8 +115,6 @@
   function onZone(zone: HomePosition, e: CustomEvent<DndEvent<Block>>) {
     zones[zone] = e.detail.items;
   }
-
-  // ---------- Ekle / düzenle ----------
 
   function blank(kind: HomeBlockKind, position: HomePosition): Block {
     const base = { uid: uid(), id: 0, updatedAt: 0, position, title: null, visibility: 'all' as const, isEnabled: true, startsAt: null, endsAt: null };
@@ -141,7 +138,6 @@
   let edit = $state<Block | null>(null);
   let editIsNew = $state(false);
   let editIconNodes = $state<IconNode | null>(null);
-  /** Düzenleme başladığındaki bölge (konum değişirse blok taşınır) */
   let editOrigin: HomePosition = 'top';
 
   function openNew(kind: HomeBlockKind, position: HomePosition) {
@@ -185,11 +181,9 @@
     zones[b.position] = zones[b.position].filter((x) => x.uid !== b.uid);
   }
 
-  // Tarih alanları (datetime-local ↔ ms)
   const toLocal = (ms: number | null) => (ms ? new Date(ms - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '');
   const fromLocal = (v: string) => (v ? new Date(v).getTime() : null);
 
-  // ---------- Görsel kartlar ----------
   let uploading = $state<number | null>(null);
   async function uploadTile(i: number, ev: Event) {
     const input = ev.currentTarget as HTMLInputElement;
@@ -214,7 +208,6 @@
     [items[i], items[j]] = [items[j]!, items[i]!];
   }
 
-  // ---------- Kaydet ----------
   let saving = $state(false);
   async function save() {
     saving = true;
@@ -251,8 +244,8 @@
     }
   }
   const HTML_HINT =
-    'Betikler sayfanın güvenlik anahtarıyla çalışır; dış adresleri Yönetim → Özel kod → Güvenlik bölümünden izinli yapın. {{viewer.username}} gibi değişkenler kullanılabilir.';
-  const HTML_PLACEHOLDER = ['<div class="sunucu-durumu">…</div>', '<script>', '  // window.forum.viewer, window.forum.token()', '</' + 'script>'].join('\n');
+    'Betikler sayfanın güvenlik anahtarıyla çalışır; dış betik adreslerine kurulu bir eklenti izin verebilir (Yönetim → Eklentiler). {{viewer.username}} gibi değişkenler kullanılabilir.';
+  const HTML_PLACEHOLDER = ['<div class="sunucu-durumu">…</div>', '<script>', '  // window.forum.viewer', '</' + 'script>'].join('\n');
   const scheduled = (b: Block) => !!(b.startsAt || b.endsAt);
   const segBtn = 'flex flex-1 items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors';
 </script>

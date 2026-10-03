@@ -8,6 +8,54 @@ Each version section becomes the GitHub release note and the update note in the 
 
 ## [Unreleased]
 
+### Added
+
+- **Extension system.** Extensions are installed from *Admin → Extensions* as a `.zip` / `.tgz` upload, an npm package
+  name or a folder copied to `storage/extensions/<id>`. Before installing, the admin sees what the extension does
+  (server code, scripts on every page, external origins, permissions, menu links). An extension can add:
+  - forum pages at their own addresses, and pages that **replace forum pages** (`override: true` — home page,
+    members, profiles …; admin, login and API addresses are protected),
+  - admin pages (listed under *Extensions* in the admin menu) with an automatic settings form, and member settings
+    pages (*Settings → Extensions*),
+  - API routes under `/api/ext/<id>/…` with auth, permission, admin and rate-limit options,
+  - its own database tables through migrations (SQLite and PostgreSQL), a key-value store, and connections to any
+    other database or service (full Node.js),
+  - HTML in page slots: after header, before footer, home page top / sidebar, board top, topic top / bottom, under
+    every post, **buttons on every post** (e.g. a report system), profile cards and tabs,
+  - menu links, permissions (shown in *Admin → Permissions*), event listeners, queued jobs and scheduled tasks,
+    scripts and styles on every page.
+  Extensions can be enabled, disabled, reloaded, updated in place (settings and data are kept, new migrations run)
+  and uninstalled with or without their data. Server logs per extension are shown in the admin panel.
+  `INKFORUM_SAFE_MODE=1` (or a `storage/extensions/.safemode` file) starts the forum without any extension.
+- **Starter kit for extension developers**, downloaded from *Admin → Extensions → Develop* (no npm needed): a
+  working example extension, type definitions for the editor and the `inkforum-ext` tool (`validate`, `pack`,
+  `build`). The page also holds the full developer guide.
+- **Ready-made extensions** shipped with InkForum: *Game panel* (character applications) and *Complaint center*
+  (a "Report" button on every post, the member's complaints, a staff queue with internal notes, assignment and
+  status tracking). Install them with one click or download them as a starting point.
+- **Admin guide:** on the first visit to the admin panel a welcome screen and a step-by-step tour highlight the
+  menu; after an update a "What's new" window explains the changes. Both can be reopened from the help button.
+
+### Changed
+
+- **Simpler admin menu:** related pages are merged into tabs (Captcha under Security, Reactions with Emojis, Jobs
+  and System info under Maintenance), Policies moved to Forum, members and groups share one group, and extensions
+  have their own group. The embeds page is hidden from the menu; embeds keep working with their saved settings.
+- **Theme studio** opens full screen and draws the preview at a real screen width (1920 / 1440 / tablet / phone)
+  scaled to fit, so page width, sidebar and density options are visible in the preview. Width options show their
+  pixel size and a topic page can be previewed for the post layout option.
+
+### Removed
+
+- The *Custom code and integration* screen (HTML/CSS/JS snippets, custom CSS, external source allowlist and the
+  signed UCP member token, `window.forum.token()`). Extensions replace it. The custom code permission is now
+  "Code editing" and still controls HTML/CSS/JS in pages, themes, home blocks and the maintenance page.
+
+### Fixed
+
+- Saving the position of a profile cover photo did nothing.
+- Pages that render a custom page on the server (for example a landing page) could fail with an internal error.
+
 ## [1.5.0] - 2026-10-02
 
 ### Added

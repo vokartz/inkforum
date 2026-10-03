@@ -15,15 +15,8 @@ export interface ResolvedToken {
   scopes: string[];
 }
 
-/**
- * `Authorization: Bearer` belirteçlerini çözer:
- *  - `fat_…` OAuth erişim belirteci (uygulama + üye + izinler)
- *  - `fk_…`  API anahtarı (sunucudan sunucuya; bağlı olduğu hesap adına)
- * Belirteçler veritabanında yalnızca SHA-256 özetiyle tutulur.
- */
 @Injectable()
 export class TokenAuthService {
-  /** Son kullanım zamanını dakikada bir yaz (her istekte değil). */
   private readonly touched = new Map<string, number>();
 
   constructor(
@@ -80,18 +73,12 @@ export class TokenAuthService {
   }
 }
 
-/**
- * Belirteçle gelen istekte gereken izin. `deny`: belirteçle hiç kullanılamaz
- * (hesap ayarları, oturum işlemleri ve OAuth akışının kendisi).
- */
 export function requiredScope(method: string, path: string): string {
-  // Yol büyük/küçük harf ve sondaki eğik çizgiden bağımsız eşleşir (/api/Messages/ ≡ /api/messages)
   const p = path.toLowerCase().replace(/\/+$/, '').replace(/^\/api(?=\/|$)/, '') || '/';
   const read = method === 'GET' || method === 'HEAD';
   if (p === '/oauth/userinfo') return 'profile';
   if (p.startsWith('/oauth/') || p.startsWith('/auth/')) return 'deny';
   if (p === '/admin' || p.startsWith('/admin/')) return 'admin';
-  // Moderasyon işlemleri üçüncü taraf uygulamalara verilmez (yalnızca "admin" kapsamlı API anahtarı)
   if (p === '/mod' || p.startsWith('/mod/')) return 'admin';
   if (p.startsWith('/messages') || p === '/me/counters') return 'messages';
   if (p === '/me' || p.startsWith('/me/')) return read ? 'profile' : 'deny';

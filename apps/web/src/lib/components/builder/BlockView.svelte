@@ -34,7 +34,6 @@
 
   let { block: b, editing = false }: { block: ResolvedBlock; editing?: boolean } = $props();
 
-  // Koyu zeminli bölümlerde yazılar beyaz
   const heroDark = $derived(b.type === 'hero' && (b.background === 'none' || b.background === 'dark' || b.background === 'accent' || b.background === 'image' || !!b.image));
   const onDark = $derived(heroDark || b.background === 'accent' || b.background === 'dark' || b.background === 'image');
   const full = $derived(b.width === 'full');
@@ -61,7 +60,6 @@
   }
 
   let lightbox = $state<string | null>(null);
-  // Öğe bazında kaydırma animasyonu (blok ayarındaki türle)
   const rv = (delay: number) => (b.animation === 'none' ? (false as const) : { delay, type: b.animation });
   const heroH = $derived(b.type === 'hero' ? { sm: 'min-h-72', md: 'min-h-[26rem]', lg: 'min-h-[36rem]', screen: 'min-h-[calc(100svh-4rem)]' }[b.height] : '');
   const STATUS = { online: { l: 'Çevrimiçi', c: 'bg-success' }, maintenance: { l: 'Bakımda', c: 'bg-warning' }, soon: { l: 'Yakında', c: 'bg-primary' }, none: null } as const;

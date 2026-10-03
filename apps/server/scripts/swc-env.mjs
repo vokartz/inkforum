@@ -1,5 +1,3 @@
-// SWC'nin yerel (native) modül önbelleğini proje içine yönlendirir.
-// Bazı Windows kurulumlarında %LOCALAPPDATA%\swc klasörünün izinleri SWC'nin yüklenmesini engelliyor.
 import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';

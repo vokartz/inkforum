@@ -53,7 +53,6 @@
     refreshing = false;
   }
 
-  /** Destek talebi için özet (gizli bilgi içermez) */
   function reportLines(): string[] {
     if (!s) return [];
     return [
@@ -69,7 +68,6 @@
     await navigator.clipboard.writeText(reportLines().join('\n'));
     toast.success(t('Sistem özeti panoya kopyalandı.'));
   }
-  /** GitHub hata formunu sürüm ve sistem özetiyle doldurarak açar */
   const issueUrl = $derived(
     s
       ? `https://github.com/vokartz/inkforum/issues/new?${new URLSearchParams({ template: 'bug_report.yml', version: s.app.version, system: reportLines().join('\n') })}`

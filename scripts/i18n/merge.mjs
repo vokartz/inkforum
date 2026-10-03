@@ -1,15 +1,4 @@
 #!/usr/bin/env node
-/**
- * Çeviri parçalarını doğrulayıp dil kataloglarına (packages/shared/i18n/<dil>.json) işler.
- *
- *   node scripts/i18n/merge.mjs <klasör> [--dry]
- *
- * <klasör>/<dil>/*.json dosyaları { "Türkçe kaynak": "çeviri" } nesneleridir. Yalnızca katalogda bulunan anahtarlar alınır.
- * Bir çeviri şu durumlarda reddedilir (katalogda boş kalır, arayüz Türkçeye döner):
- *   - boş ya da metin değil
- *   - {ad} yer tutucuları kaynaktakiyle aynı değil (ICU çoğul biçimi serbest)
- *   - {{değişken}}, HTML etiketleri veya BBCode etiketleri kaynaktakiyle aynı değil
- */
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
@@ -22,7 +11,6 @@ if (!dir) {
 const dry = flags.includes('--dry');
 const catalogDir = join(root, 'packages/shared/i18n');
 
-/** Üst düzey yer tutucu adları ({n}, {0}, {n, plural, …}) — {{…}} hariç */
 function placeholders(s) {
   const names = new Set();
   const src = s.replace(/\{\{\s*[\w.]+\s*\}\}/g, '');
@@ -46,7 +34,6 @@ const bbcode = (s) => bag(s, /\[\/?(?:b|i|u|s|url|img|quote|code|list|\*|color|s
 
 function check(source, value) {
   if (typeof value !== 'string' || !value.trim()) return 'boş';
-  // Çevrilmemiş ya da yarı çevrilmiş metin (Türkçeye özgü harfler kalmış)
   const plain = (x) => x.replace(/\{[^{}]*\}|<[^>]*>|\[[^\]]*\]|https?:\/\/\S+|GERİ YÜKLE/g, ' ');
   if (/[ğışĞİŞ]/.test(plain(value))) return 'Türkçe kalmış';
   if (value === source && /[a-zçğıöşü]{2,}/i.test(plain(source)) && /[çğıöşüÇĞİÖŞÜ]|\b(ve|bir|için|ile|bu|olarak)\b/.test(plain(source))) return 'çevrilmemiş';
@@ -54,16 +41,11 @@ function check(source, value) {
   if (mustache(source) !== mustache(value)) return '{{değişken}}';
   if (html(source) !== html(value)) return 'HTML';
   if (bbcode(source) !== bbcode(value)) return 'BBCode';
-  // Kaynakta olmayan yeni kıvırcık parantez dengesizliği
   const bal = (x) => [...x].reduce((n, c) => n + (c === '{' ? 1 : c === '}' ? -1 : 0), 0);
   if (bal(value) !== 0) return 'parantez dengesi';
   return null;
 }
 
-/**
- * Kaçırılmamış iç tırnakları ("…" alıntıları) onarır: bir tırnak, ardından anahtar için `:`,
- * değer için `,"` / `}` gelmiyorsa dizenin parçası sayılır ve kaçırılır.
- */
 function repairJson(text) {
   let out = '';
   let inString = false;
@@ -101,12 +83,10 @@ function readChunk(path) {
   try {
     return JSON.parse(text);
   } catch {
-    /* onarmayı dene */
   }
   try {
     return repairJson(text);
   } catch {
-    // Yarım kalmış dosya: son tam "anahtar":"değer" çiftinden sonrası atılır
     const cut = text.lastIndexOf('","');
     const tail = text.slice(0, cut + 1).replace(/,\s*"[^"]*"\s*:\s*"(?:[^"\\]|\\.)*$/, '');
     return repairJson(`${tail}}`);

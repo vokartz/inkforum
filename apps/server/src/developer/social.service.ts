@@ -98,7 +98,6 @@ interface SignupCookie extends ExternalProfile {
   e: number;
 }
 
-/** Discord / Google / GitHub ile giriş, kayıt ve hesap bağlama. */
 @Injectable()
 export class SocialService {
   private readonly logger = new Logger('Social');
@@ -127,8 +126,6 @@ export class SocialService {
     return SOCIAL_PROVIDERS.filter((p) => this.conf(p.key)).map((p) => ({ key: p.key, label: p.label }));
   }
 
-  // ---------- Yönetim ----------
-
   admin(): AdminSocialProvider[] {
     const all = this.settings.get('social.providers');
     return SOCIAL_PROVIDERS.map((p) => ({
@@ -153,8 +150,6 @@ export class SocialService {
     await this.audit.log({ type: 'admin', action: 'social.providers', actorId: viewer.user!.id, ip: viewer.ip, data: { enabled: Object.entries(next).filter(([, v]) => v.enabled).map(([k]) => k) } });
   }
 
-  // ---------- Akış ----------
-
   private setCookie(res: Response, name: string, value: unknown, maxAgeMs: number, path: string): void {
     res.cookie(name, this.crypto.encrypt(JSON.stringify(value)), { httpOnly: true, sameSite: 'lax', secure: this.config.secureCookies, path, maxAge: maxAgeMs });
   }
@@ -170,13 +165,11 @@ export class SocialService {
     }
   }
 
-  /** Sağlayıcıya yönlendirme adresi (durum çerezi ile CSRF korumalı). */
   start(p: SocialProvider, mode: 'login' | 'link', next: string, viewer: RequestViewer, res: Response): string {
     const conf = this.conf(p);
     if (!conf) throw Errors.notFound('Bu giriş yöntemi etkin değil.');
     if (mode === 'link' && !viewer.user) throw Errors.unauthenticated();
     const state = this.crypto.token(24);
-    // Yalnızca site içi yol: "//evil", "/\evil" ve kontrol karakterleri tarayıcıda başka siteye yönlendirir
     const safeNext = /^\/(?![\\/])[^\s\\]*$/.test(next) && ![...next].some((c) => c.charCodeAt(0) < 0x20 || c.charCodeAt(0) === 0x7f) ? next.slice(0, 300) : '/';
     this.setCookie(res, STATE_COOKIE, { s: state, p, m: mode, n: safeNext, u: viewer.user?.id ?? null, e: this.clock.now() + 10 * MINUTE } satisfies StateCookie, 10 * MINUTE, '/api/auth/social');
     const url = new URL(PROVIDERS[p].authorize);
@@ -202,7 +195,6 @@ export class SocialService {
     return PROVIDERS[p].profile(body.access_token);
   }
 
-  /** Sağlayıcıdan dönüş: giriş, bağlama ya da kayıt adımına yönlendirir. Dönen değer tarayıcının gideceği adrestir. */
   async callback(p: SocialProvider, query: Record<string, unknown>, req: Request, res: Response, viewer: RequestViewer): Promise<string> {
     const st = this.readCookie<StateCookie>(req, STATE_COOKIE);
     res.clearCookie(STATE_COOKIE, { path: '/api/auth/social' });
@@ -249,7 +241,6 @@ export class SocialService {
       return st.n;
     }
 
-    // Bağlı hesap yok: aynı e-postayla kayıtlı üye varsa otomatik bağlanmaz (hesap ele geçirme riski).
     if (profile.email && (await this.users.isEmailTaken(profile.email))) return fail('email_taken');
     if (this.settings.get('registration.mode') === 'closed') return fail('registration_closed');
     this.setCookie(res, SIGNUP_COOKIE, { ...profile, p, e: now + 30 * MINUTE } satisfies SignupCookie, 30 * MINUTE, '/');
@@ -279,8 +270,6 @@ export class SocialService {
     res.clearCookie(SIGNUP_COOKIE, { path: '/' });
     return { status: result.status };
   }
-
-  // ---------- Üye ayarları ----------
 
   async identities(userId: number): Promise<LinkedIdentity[]> {
     const rows = await this.db.q.selectFrom('user_identities').selectAll().where('user_id', '=', userId).orderBy('created_at').execute();

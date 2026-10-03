@@ -6,7 +6,6 @@ import { applyPendingRestore } from './maintenance/restore.js';
 
 async function main(): Promise<void> {
   const config = loadConfig();
-  // Yönetim panelinden istenen yedek geri yüklemesi: veritabanı açılmadan önce uygulanır
   await applyPendingRestore(config);
   const app = await createApp(config, { mountWeb: true });
   await app.listen(config.port, config.host);

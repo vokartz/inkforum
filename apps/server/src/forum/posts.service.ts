@@ -46,10 +46,8 @@ interface InsertPostInput {
   at: number;
 }
 
-/** Konu açma, yanıt, düzenleme, silme ve onay işlemleri. */
 @Injectable()
 export class PostsService {
-  /** Kullanıcı başına son mesaj zamanı (flood koruması, process başına). */
   private readonly lastPostAt = new Map<number, number>();
 
   constructor(
@@ -69,9 +67,6 @@ export class PostsService {
     private readonly extras: TopicExtrasService,
   ) {}
 
-  // ---------- Kontroller ----------
-
-  /** Kullanıcının genel olarak mesaj yazıp yazamayacağı; engel varsa nedeni. */
   async postingBlockReason(viewer: RequestViewer): Promise<string | null> {
     if (!viewer.user) return 'Mesaj yazmak için giriş yapmalısınız.';
     const now = this.clock.now();
@@ -102,7 +97,6 @@ export class PostsService {
     return moderated || (kind === 'topic' ? board.require_approval_topics === 1 : board.require_approval_posts === 1);
   }
 
-  /** Gövdeyi doğrular ve işler. */
   private prepareBody(body: string): { body: string; html: string; mentions: number[]; quotedPosts: number[] } {
     const text = body.replace(/\r\n?/g, '\n').replace(/\s+$/, '');
     const max = this.settings.get('forum.postMaxLength');
@@ -114,10 +108,6 @@ export class PostsService {
     return { body: text, html: rendered.html, mentions: rendered.mentions, quotedPosts: rendered.quotedPosts };
   }
 
-  /**
-   * Konu şablonu: yanıtları doğrular; başlığı (başlık şablonu varsa) ve soru–yanıt biçimli mesajı üretir.
-   * Üyenin yazdığı serbest mesaj (izin verildiyse) yanıtların altına eklenir.
-   */
   private applyTemplate(tpl: TopicTemplate, answers: Record<string, string | string[]>, title: string, body: string, displayName: string): { title: string; body: string } {
     const values = new Map<string, string>();
     const blocks: string[] = [];
@@ -167,8 +157,6 @@ export class PostsService {
     if (!allowed.some((p) => p.id === prefixId)) throw Errors.field('prefixId', 'Bu önek bu bölümde kullanılamaz.');
     return prefixId;
   }
-
-  // ---------- Ekleme ----------
 
   private async insertPost(i: InsertPostInput): Promise<number> {
     const row = await this.db.q
@@ -220,9 +208,6 @@ export class PostsService {
       .execute();
   }
 
-  /**
-   * Konu + ilk mesajı ekler (yetki kontrolü yapmaz; seed ve iç kullanım için).
-   */
   async insertTopic(input: {
     board: CachedBoard;
     userId: number | null;
@@ -253,7 +238,6 @@ export class PostsService {
           is_pinned: !!input.pinned,
           is_locked: !!input.locked,
           is_approved: input.approved,
-          // "Konular gizli" bölümlerinde her konu yalnızca yazarına ve yetkililere görünür
           is_hidden: input.board.private_topics === 1,
           created_at: now,
           updated_at: now,
@@ -329,7 +313,6 @@ export class PostsService {
       if (input.subscribe) await this.extras.setSubscribed(user.id, topicId, true);
     });
     this.lastPostAt.set(user.id, this.clock.now());
-    // Gizli konular dışarıya (bahsetme bildirimleri, webhook'lar) duyurulmaz
     if (approved && access.board.private_topics !== 1) {
       this.db.afterCommit(() => this.notifyPost(viewer, postId, topicId, title, access.board, body, []));
       this.events.emit('topic.created', { topicId, postId, userId: user.id, boardId: access.board.id });
@@ -395,8 +378,6 @@ export class PostsService {
     return { postId, approved };
   }
 
-  // ---------- Düzenleme ----------
-
   private canEdit(viewer: RequestViewer, access: BoardAccess, topic: Row<'topics'>, post: Row<'posts'>): boolean {
     if (!viewer.user || post.deleted_at) return false;
     if (access.perms.has('mod.post.edit')) return true;
@@ -439,19 +420,16 @@ export class PostsService {
     const own = !!viewer.user && topic.user_id === viewer.user.id;
     if (topic.deleted_at && !access.can.viewDeleted) throw Errors.notFound('Konu bulunamadı.');
     if (!topic.is_approved && !own && !access.can.approve) throw Errors.notFound('Konu bulunamadı.');
-    // Gizli konu: yazarı, onay yetkisi olanlar ve yetkililerin konuya eklediği üyeler görür
     if (topic.is_hidden && !own && !access.can.approve && !(viewer.user && (await this.isTopicMember(topic.id, viewer.user.id)))) {
       throw Errors.notFound('Konu bulunamadı.');
     }
   }
 
-  /** Yetkililerin gizli konuya eklediği üye mi? */
   async isTopicMember(topicId: number, userId: number): Promise<boolean> {
     const row = await this.db.q.selectFrom('topic_members').select('user_id').where('topic_id', '=', topicId).where('user_id', '=', userId).executeTakeFirst();
     return !!row;
   }
 
-  /** Görüntüleyenin görebildiği mesaj (yoksa 404). */
   async loadVisiblePost(viewer: RequestViewer, postId: number) {
     const post = await this.db.q.selectFrom('posts').selectAll().where('id', '=', postId).executeTakeFirst();
     if (!post) throw Errors.notFound('Mesaj bulunamadı.');
@@ -471,7 +449,6 @@ export class PostsService {
     return { bbcode: post.body_bbcode, title: isFirst ? topic.title : null, prefixId: isFirst ? topic.prefix_id : null, isFirst };
   }
 
-  /** Alıntı için BBCode: iç içe alıntılar çıkarılır. */
   async quote(viewer: RequestViewer, postId: number): Promise<{ bbcode: string }> {
     const { post } = await this.loadVisiblePost(viewer, postId);
     if (post.deleted_at) throw Errors.notFound('Mesaj bulunamadı.');
@@ -567,8 +544,6 @@ export class PostsService {
     }));
   }
 
-  // ---------- Silme / geri getirme / onay ----------
-
   async delete(viewer: RequestViewer, postId: number, reason = ''): Promise<{ topicDeleted: boolean }> {
     const { post, topic, access } = await this.loadVisiblePost(viewer, postId);
     if (!this.canDelete(viewer, access, topic, post)) throw Errors.forbidden('Bu mesajı silemezsiniz.');
@@ -590,7 +565,6 @@ export class PostsService {
     return { topicDeleted: false };
   }
 
-  /** Konuyu (tüm mesajlarıyla) çöp kutusuna taşır. */
   async deleteTopicInternal(topic: Row<'topics'>, actorId: number): Promise<void> {
     const board = await this.forum.board(topic.board_id);
     await this.db.tx(async () => {
@@ -609,7 +583,6 @@ export class PostsService {
     });
   }
 
-  /** Konudaki görünür mesajların yazarlarının mesaj sayılarını topluca değiştirir. */
   async adjustTopicAuthors(topicId: number, board: Pick<CachedBoard, 'count_posts'>, sign: 1 | -1): Promise<void> {
     if (!board.count_posts) return;
     const rows = await this.db.q
@@ -658,12 +631,6 @@ export class PostsService {
     );
   }
 
-  // ---------- Bildirimler ----------
-
-  /**
-   * Alıntılanan mesajların yazarlarına ve bahsedilen üyelere bildirim gönderir.
-   * `skip`: daha önce bildirilmiş olanlar (düzenlemede tekrar bildirilmez). Negatif değerler mesaj kimliğidir.
-   */
   private async notifyPost(
     viewer: RequestViewer,
     postId: number,
@@ -697,7 +664,6 @@ export class PostsService {
     return notified;
   }
 
-  /** Konuyu takip edenlere yeni yanıt bildirimi (alıntı / bahsetme ile zaten bildirilenler hariç). */
   private async notifySubscribers(viewer: RequestViewer, postId: number, topic: Row<'topics'>, board: CachedBoard, already: Set<number>): Promise<void> {
     const actorId = viewer.user?.id ?? 0;
     const data = { postId, topicId: topic.id, topicTitle: topic.title, actorName: viewer.user?.display_name ?? '' };
@@ -707,7 +673,6 @@ export class PostsService {
     }
   }
 
-  /** Bildirim alacak üye konuyu görebiliyor mu (bölüm yetkisi; gizli konuda yazar / yetkili / eklenen üye) */
   async userCanSeeTopic(userId: number, board: CachedBoard, topicId: number): Promise<boolean> {
     const user = await this.db.q.selectFrom('users').selectAll().where('id', '=', userId).where('deleted_at', 'is', null).executeTakeFirst();
     if (!user || user.status !== 'active') return false;
@@ -725,7 +690,6 @@ export class PostsService {
     }
   }
 
-  /** Flood tablosunu küçük tutar. */
   pruneFlood(): void {
     const cutoff = this.clock.now() - DAY;
     for (const [k, t] of this.lastPostAt) if (t < cutoff) this.lastPostAt.delete(k);

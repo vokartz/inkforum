@@ -16,14 +16,12 @@
   interface Props {
     loggedIn: boolean;
     timezone: string;
-    /** icon: yalnızca ikon düğmesi; text: alt bilgideki "Tema" bağlantısı */
     variant?: 'icon' | 'text';
     class?: string;
   }
   let { loggedIn, timezone, variant = 'icon', class: className }: Props = $props();
 
   async function choose(pref: ThemePreference) {
-    // Renk geçişi yumuşak olsun (View Transitions destekleniyorsa).
     const doc = document as Document & { startViewTransition?: (cb: () => void) => unknown };
     const apply = () => theme.set(pref);
     if (doc.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) doc.startViewTransition(apply);
@@ -32,12 +30,10 @@
       try {
         await api.put('/api/me/preferences', { theme: pref, timezone });
       } catch {
-        /* tercih kaydedilemese de yerel tema uygulanır */
       }
     }
   }
 
-  // Etkin tema tek bir renk modu kullanıyorsa seçici gizlenir
   const locked = $derived(themeOptions(page.data.viewer?.settings)?.mode.toggle === false);
   const defaultLabel = $derived(theme.forumDefault === 'dark' ? t('Koyu') : theme.forumDefault === 'light' ? t('Açık') : t('Cihaz'));
   const options = $derived<Array<{ value: ThemePreference; label: string; icon: typeof SunIcon }>>([

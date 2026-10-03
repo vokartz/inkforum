@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, Query, UploadedFile } from '@nestjs/common';
 import { z } from 'zod';
-import { GLOBAL_PERMISSIONS, PERMISSION_CATEGORIES, idParam, pagination } from '@forum/shared';
+import { EXTENSION_PERMISSION_CATEGORY, PERMISSION_CATEGORIES, allGlobalPermissions, idParam, pagination } from '@forum/shared';
 import { ZodPipe, parse } from '../common/validation.js';
 import { AdminEndpoint } from '../common/decorators.js';
 import { CurrentViewer, type RequestViewer } from '../common/request-context.js';
@@ -156,16 +156,14 @@ export class AdminGroupsController {
     return { ok: true };
   }
 
-  // ----- Yetki matrisi -----
-
   @Get('permissions')
   @AdminEndpoint('admin.permissions.manage')
   async matrix() {
     const groups = await this.cache.all();
     const table = await this.permissions.table();
     return {
-      categories: PERMISSION_CATEGORIES.filter((c) => GLOBAL_PERMISSIONS.some((p) => p.category === c.key)),
-      permissions: GLOBAL_PERMISSIONS.map((p) => ({
+      categories: [...PERMISSION_CATEGORIES, EXTENSION_PERMISSION_CATEGORY].filter((c) => allGlobalPermissions().some((p) => p.category === c.key)),
+      permissions: allGlobalPermissions().map((p) => ({
         key: p.key,
         scope: p.scope,
         category: p.category,

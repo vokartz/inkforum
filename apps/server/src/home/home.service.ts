@@ -16,7 +16,6 @@ import { can, type RequestViewer } from '../common/request-context.js';
 const NS = 'home';
 type BlockRow = Row<'home_blocks'>;
 
-/** İlk kurulumda yan sütuna eklenen bileşenler (önceki sabit yerleşimle aynı). */
 const DEFAULT_BLOCKS: Array<Pick<HomeBlockInput, 'kind' | 'position'>> = [
   { kind: 'recent', position: 'sidebar' },
   { kind: 'stats', position: 'sidebar' },
@@ -33,7 +32,6 @@ function parseConfig(json: string): Record<string, unknown> {
   }
 }
 
-/** Kartlardaki yüklenmiş görsel adresleri (silinen kartların dosyalarını temizlemek için). */
 function imagesOf(kind: string, config: Record<string, unknown>): string[] {
   if (kind !== 'tiles') return [];
   const items = Array.isArray(config.items) ? (config.items as Array<{ image?: string | null }>) : [];
@@ -42,7 +40,6 @@ function imagesOf(kind: string, config: Record<string, unknown>): string[] {
 
 @Injectable()
 export class HomeService {
-  /** Oluşturulan HTML, blok güncellenene kadar saklanır. */
   private readonly rendered = new Map<string, string>();
 
   constructor(
@@ -59,7 +56,6 @@ export class HomeService {
     return this.cache.wrap(NS, 'rows', () => this.db.q.selectFrom('home_blocks').selectAll().orderBy('sort_order').orderBy('id').execute());
   }
 
-  /** Eklenti açılınca bloğu (yoksa) verilen konuma ekler */
   async ensureBlock(kind: 'discord', position: 'top' | 'sidebar' | 'bottom', actorId: number): Promise<void> {
     const exists = await this.db.q.selectFrom('home_blocks').select('id').where('kind', '=', kind).executeTakeFirst();
     if (exists) return;
@@ -133,8 +129,6 @@ export class HomeService {
       case 'text':
         return { ...base, kind: 'text', html: this.html(r, String(c.body ?? ''), true), boxed: c.boxed !== false };
       case 'html':
-        // Özel kod kapalıyken (acil durum anahtarı) ham HTML blokları gönderilmez.
-        if (!this.settings.get('custom.enabled')) return null;
         return { ...base, kind: 'html', html: String(c.html ?? ''), boxed: c.boxed !== false };
       case 'recent':
         return { ...base, kind: 'recent', limit: Number(c.limit ?? 5) };
@@ -143,7 +137,6 @@ export class HomeService {
       case 'birthdays':
         return { ...base, kind: r.kind };
       case 'discord':
-        // Eklenti kapalıysa blok gösterilmez (yerleşimde kalır, açılınca geri gelir)
         if (!this.settings.plugin(r.kind)) return null;
         return { ...base, kind: r.kind };
       default:
@@ -151,7 +144,6 @@ export class HomeService {
     }
   }
 
-  /** Ziyaretçiye göre ana sayfa yerleşimi. */
   async layout(viewer: RequestViewer): Promise<HomeLayout> {
     const now = this.clock.now();
     const out: HomeLayout = { top: [], sidebar: [], bottom: [] };
@@ -165,7 +157,6 @@ export class HomeService {
   }
 
   async adminList(): Promise<AdminHomeBlock[]> {
-    // Kaldırılan eklentilerin blokları (sohbet kutusu, oyun sunucusu) listede gösterilmez
     return (await this.rows()).filter((r) => (HOME_BLOCK_KINDS as readonly string[]).includes(r.kind)).map(
       (r) =>
         ({
@@ -183,7 +174,6 @@ export class HomeService {
     );
   }
 
-  /** Tüm yerleşimi kaydeder (sıra gönderilen diziye göre; listede olmayan bloklar silinir). */
   async save(viewer: RequestViewer, input: HomeLayoutInput): Promise<void> {
     const fields: Record<string, string> = {};
     input.blocks.forEach((b, i) => {
@@ -195,14 +185,13 @@ export class HomeService {
     const existing = await this.db.q.selectFrom('home_blocks').selectAll().execute();
     const byId = new Map(existing.map((r) => [r.id, r]));
 
-    // Ham HTML blokları eklemek ya da kodunu değiştirmek "Özel kod" yetkisi ister (silmek ve taşımak serbest).
     if (!can(viewer, 'admin.customCode')) {
       const touched = input.blocks.some((b) => {
         if (b.kind !== 'html') return false;
         const prev = b.id ? byId.get(b.id) : undefined;
         return !prev || prev.kind !== 'html' || JSON.stringify(parseConfig(prev.config_json)) !== JSON.stringify(b.config);
       });
-      if (touched) throw Errors.forbidden('Özel HTML blokları için "Özel kod" yetkisi gerekir.');
+      if (touched) throw Errors.forbidden('Özel HTML blokları için "Kod düzenleme" yetkisi gerekir.');
     }
     const oldImages = new Set(existing.flatMap((r) => imagesOf(r.kind, parseConfig(r.config_json))));
     const newImages = new Set(input.blocks.flatMap((b) => imagesOf(b.kind, b.config as Record<string, unknown>)));
@@ -225,7 +214,6 @@ export class HomeService {
         const prev = b.id ? byId.get(b.id) : undefined;
         if (prev) {
           keep.add(prev.id);
-          // İçerik değişmediyse güncellenme zamanı korunur (kapatılan duyurular yeniden çıkmasın).
           const changed =
             prev.kind !== values.kind || prev.title !== values.title || prev.config_json !== values.config_json || prev.starts_at !== values.starts_at || prev.ends_at !== values.ends_at;
           await this.db.q

@@ -9,7 +9,6 @@
     stars?: boolean;
     href?: string | null;
     class?: string;
-    /** Rütbe görseli yüksekliği (px) */
     bannerHeight?: number;
   }
   let { group, stars = true, href = null, class: className, bannerHeight = 26 }: Props = $props();

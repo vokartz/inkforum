@@ -33,7 +33,6 @@ const JOB = 'mail.send';
 type Driver = 'log' | 'smtp' | 'sendmail';
 type StoredTransport = { driver: 'env' | Driver; host: string; port: number; security: 'starttls' | 'tls' | 'none'; user: string; passwordEnc: string; allowSelfSigned: boolean };
 
-/** nodemailer hata kodları → anlaşılır Türkçe açıklama */
 export function explainMailError(err: unknown): { code: string | null; message: string } {
   const e = err as { code?: string; responseCode?: number; message?: string };
   const raw = e?.message ?? String(err);
@@ -58,7 +57,6 @@ export class MailService implements OnModuleInit {
   private readonly logger = new Logger('Mail');
   private transporter: Transporter | null = null;
   private transporterKey = '';
-  /** log sürücüsünde son gönderilenler (testler ve admin paneli için). */
   readonly outbox: Array<OutgoingMail & { sentAt: number }> = [];
 
   constructor(
@@ -83,12 +81,10 @@ export class MailService implements OnModuleInit {
     return `${this.config.appUrl}${path.startsWith('/') ? '' : '/'}${path}`;
   }
 
-  /** Kuyruğa ekler (transaction içindeyse commit sonrası gönderilir). */
   async send(to: string, content: MailContent): Promise<void> {
     await this.jobs.enqueue(JOB, { to, ...content }, { priority: 10, maxAttempts: 6 });
   }
 
-  /** Doğrudan gönderir (admin test e-postası). */
   async deliver(mail: OutgoingMail): Promise<void> {
     const from = `"${this.settings.get('email.fromName').replace(/"/g, '')}" <${this.settings.get('email.fromAddress')}>`;
 
@@ -113,13 +109,10 @@ export class MailService implements OnModuleInit {
     await transporter.sendMail({ from, to: mail.to, subject: mail.subject, text: mail.text, html: mail.html });
   }
 
-  // ---------- Gönderim ayarları (Yönetim → E-posta → Gönderim; "env" ise .env dosyası) ----------
-
   private stored(): StoredTransport {
     return this.settings.get('mail.transport') as StoredTransport;
   }
 
-  /** Şu an kullanılan sürücü */
   driver(): Driver {
     const t = this.stored();
     return t.driver === 'env' ? this.config.mail.driver : t.driver;
@@ -184,8 +177,6 @@ export class MailService implements OnModuleInit {
 
   private merge(input: MailTransportInput): StoredTransport {
     const prev = this.stored();
-    // Yeni şifre yazılmadıysa kayıtlı olan yalnızca aynı sunucu, port ve kullanıcı için korunur;
-    // aksi hâlde kayıtlı şifre başka bir sunucuya gönderilebilirdi (kimlik bilgisi sızıntısı).
     const same = prev.host === input.host && prev.port === input.port && prev.user === input.user;
     const passwordEnc = input.password?.trim() ? this.crypto.encrypt(input.password.trim()) : input.user && same ? prev.passwordEnc : '';
     return { driver: input.driver, host: input.host, port: input.port, security: input.security, user: input.user, passwordEnc, allowSelfSigned: input.allowSelfSigned };
@@ -196,7 +187,6 @@ export class MailService implements OnModuleInit {
     return this.adminTransport();
   }
 
-  /** Kaydetmeden bağlantıyı dener (SMTP oturum açma dahil). */
   async verify(input: MailTransportInput): Promise<MailVerifyResult> {
     const t = this.merge(input);
     const started = Date.now();
@@ -215,8 +205,6 @@ export class MailService implements OnModuleInit {
     }
   }
 
-  // ---------- Düzenlenebilir şablonlar ----------
-
   private overrides(): Promise<Map<string, { subject: string; body: string; updated_at: number }>> {
     return this.cache.wrap(MAIL_NS, 'templates', async () => {
       const rows = await this.db.q.selectFrom('mail_templates').selectAll().execute();
@@ -225,7 +213,6 @@ export class MailService implements OnModuleInit {
   }
 
   private composeContext(): ComposeContext {
-    // E-posta açık zeminlidir: açık mod logosu (yoksa ana logo) kullanılır
     const logo = this.settings.get('appearance.logoLightUrl') || this.settings.get('appearance.logoUrl');
     return {
       ...this.context(),
@@ -234,20 +221,17 @@ export class MailService implements OnModuleInit {
     };
   }
 
-  /** Şablondan e-posta içeriği (yönetimde değiştirildiyse o sürüm). */
   async compose(key: MailTemplateKey, vars: Record<string, string | number | null | undefined>, locale?: Locale | string | null): Promise<MailContent> {
     const def = MAIL_TEMPLATE_MAP.get(key);
     if (!def) throw new Error(`Bilinmeyen e-posta şablonu: ${key}`);
     const custom = (await this.overrides()).get(key);
     const values = Object.fromEntries(Object.entries(vars).map(([k, v]) => [k, v === null || v === undefined ? '' : String(v)]));
-    // Alıcının dili: yönetimde özelleştirilmemiş şablonlar çevrilir
     const lang = this.i18n.resolve({ preference: locale });
     const subject = custom?.subject ?? this.i18n.t(lang, def.subject);
     const body = custom?.body ?? this.i18n.html(lang, def.body);
     return composeMail({ ...this.composeContext(), lang, footer: this.i18n.t(lang, 'Bu e-posta {forum} tarafından otomatik gönderildi.') }, subject, body, values);
   }
 
-  /** Yönetim listesi: özelleştirilmemiş şablonlar yöneticinin dilinde gösterilir */
   async adminTemplates(locale?: Locale | null): Promise<AdminMailTemplate[]> {
     const custom = await this.overrides();
     const lang = this.i18n.resolve({ preference: locale });
@@ -274,10 +258,8 @@ export class MailService implements OnModuleInit {
     await this.cache.invalidate(MAIL_NS);
   }
 
-  /** Yönetim önizlemesi: örnek değerlerle. */
   preview(key: MailTemplateKey, subject: string, body: string, recipientName: string): MailContent {
     const def = MAIL_TEMPLATE_MAP.get(key)!;
-    // Örnek bağlantılar forumun kendi adresiyle gösterilir
     const sample = Object.fromEntries([...MAIL_COMMON_VARS, ...def.vars].map((v) => [v.key, v.sample.replace('https://forum.ornek.com', this.config.appUrl)]));
     return composeMail(this.composeContext(), subject, body, { ...sample, forumName: String(this.settings.get('general.forumName')), name: recipientName });
   }

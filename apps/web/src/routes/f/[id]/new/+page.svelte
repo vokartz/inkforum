@@ -49,13 +49,11 @@
   let editor = $state<ReturnType<typeof Editor> | null>(null);
   let answers = $state<Record<string, string | string[]>>({});
   const form = createForm();
-  // Konu şablonu: sorular sorulur; başlık şablonu varsa başlık da yanıtlardan oluşur
   const tpl = $derived(ctx.template);
   const useTpl = $derived(tpl.enabled && tpl.fields.length > 0);
   const needsTitle = $derived(!useTpl || !tpl.titleTemplate);
   const showBody = $derived(!useTpl || tpl.allowMessage);
 
-  // Başlık, etiket ve anket taslağı da (mesaj gövdesi editörün kendi taslağında) tarayıcıda saklanır.
   const metaKey = $derived(`forum:new-topic-meta:${ctx.board.id}`);
   let restored = false;
   $effect(() => {
@@ -73,7 +71,6 @@
         withPoll = true;
       }
     } catch {
-      /* taslak okunamadı */
     }
   });
   $effect(() => {
@@ -83,7 +80,6 @@
         if (title || tags.length || withPoll) localStorage.setItem(metaKey, snapshot);
         else localStorage.removeItem(metaKey);
       } catch {
-        /* depolama kapalı */
       }
     }, 400);
     return () => clearTimeout(t);
@@ -121,7 +117,6 @@
     try {
       localStorage.removeItem(metaKey);
     } catch {
-      /* yok */
     }
     if (!res.approved) toast.info(t('Konunuz moderatör onayından sonra yayınlanacak.'));
     else if (ctx.privateTopics) toast.success(t('Konunuz açıldı; yalnızca siz ve yetkililer görebilir.'));

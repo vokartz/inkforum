@@ -19,7 +19,6 @@ beforeAll(async () => {
 
   const pub = await member.post(`/api/boards/${boards['Genel Sohbet']}/topics`, { title: 'Herkese açık <b>konu</b> & paylaşım', body: '[b]Kalın[/b] ilk mesaj içeriği burada.' });
   publicTopic = pub.body.topicId;
-  // "Tanışma" bölümünü yalnızca üyelere aç
   const profile = await h.db.q.selectFrom('permission_profiles').select('id').where('key', '=', 'members_only').executeTakeFirstOrThrow();
   await h.db.q.updateTable('boards').set({ permission_profile_id: profile.id }).where('id', '=', boards['Tanışma']!).execute();
   await h.app.get(ForumCacheService).invalidate();
@@ -74,7 +73,6 @@ describe('seo', () => {
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ version: '1.0', type: 'rich', width: 400, provider_url: ORIGIN });
     expect(res.body.html).toContain(`src="${ORIGIN}/embed/t/${publicTopic}"`);
-    // Başlıktaki HTML iframe özniteliğini bozamaz
     expect(res.body.html).toContain('title="Herkese açık &lt;b>konu&lt;/b> &amp; paylaşım"');
 
     const card = await h.agent().get(`/api/embed/topics/${publicTopic}`);

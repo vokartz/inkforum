@@ -20,7 +20,6 @@ import {
 import { CONFIG, type AppConfig } from '../config/config.js';
 import { SettingsService } from '../settings/settings.service.js';
 
-/** Çerez başlığından tek bir değeri okur */
 function cookieValue(header: string | undefined, name: string): string | null {
   if (!header) return null;
   for (const part of header.split(';')) {
@@ -30,10 +29,6 @@ function cookieValue(header: string | undefined, name: string): string | null {
   return null;
 }
 
-/**
- * Sunucu tarafı çeviri: API hata mesajları, e-postalar, doğrulama sayfası, kurulum denetimleri.
- * Kataloglar `packages/shared/i18n/*.json` (kaynak kod) ya da sürüm paketinde `i18n/*.json`.
- */
 @Injectable()
 export class I18nService {
   private readonly logger = new Logger('i18n');
@@ -53,7 +48,6 @@ export class I18nService {
       }
       return undefined;
     };
-    // Çevrilmemiş metinler Türkçe yerine İngilizce görünür
     const fallback = read(FALLBACK_LOCALE);
     for (const l of LOCALES) {
       if (l === SOURCE_LOCALE) continue;
@@ -71,14 +65,12 @@ export class I18nService {
     return list.length ? list : [...LOCALES];
   }
 
-  /** Forum varsayılanı; kurulumdan önce (ayar kaydedilmemişken) DEFAULT_LOCALE ortam değişkeni */
   defaultLocale(): Locale {
     if (this.config.defaultLocale && !this.settings.isStored('i18n.defaultLocale')) return this.config.defaultLocale;
     const d = this.settings.get('i18n.defaultLocale') as Locale;
     return isLocale(d) ? d : SOURCE_LOCALE;
   }
 
-  /** Üye tercihi → dil çerezi → tarayıcı dili → forum varsayılanı */
   resolve(opts: { preference?: string | null; cookie?: string | null; acceptLanguage?: string | null }): Locale {
     const enabled = this.enabled();
     if (isLocale(opts.preference) && enabled.includes(opts.preference)) return opts.preference;
@@ -95,10 +87,6 @@ export class I18nService {
     return translate(this.catalogs.get(locale), locale, source, params);
   }
 
-  /**
-   * Yönetimde değiştirilmemiş (varsayılan Türkçe) metin ayarlarını ziyaretçinin diline çevirir:
-   * bakım mesajı, çerez bildirimi, karşılama metni vb. Yönetici değiştirdiyse olduğu gibi kalır.
-   */
   localizeSettings<T extends Record<string, unknown>>(values: T, locale: Locale): T {
     if (locale === SOURCE_LOCALE) return values;
     const out: Record<string, unknown> = { ...values };
@@ -109,7 +97,6 @@ export class I18nService {
     return out as T;
   }
 
-  /** HTML içindeki metin parçalarını (etiketler arası) tek tek çevirir; etiketler ve {{değişkenler}} korunur */
   html(locale: Locale, html: string): string {
     if (locale === SOURCE_LOCALE) return html;
     return html.replace(/(^|>)([^<]+)(?=<|$)/g, (_m, pre: string, text: string) => {
@@ -121,7 +108,6 @@ export class I18nService {
     });
   }
 
-  /** Önceden doldurulmuş Türkçe bir metni (hata mesajı vb.) hedef dile çevirir */
   message(locale: Locale, text: string): string {
     if (locale === SOURCE_LOCALE || !text) return text;
     let fn = this.messageTranslators.get(locale);

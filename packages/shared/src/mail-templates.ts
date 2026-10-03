@@ -1,10 +1,5 @@
 import { z } from 'zod';
 
-/**
- * Yönetimden düzenlenebilen e-posta şablonları. Gövde HTML'dir; `{{degisken}}` yer tutucuları
- * gönderimde (HTML kaçışlı) doldurulur. `<a class="button" href="…">` bağlantıları düğme olarak biçimlenir.
- */
-
 export interface MailTemplateVar {
   key: string;
   label: string;
@@ -37,7 +32,6 @@ export const MAIL_TEMPLATE_KEYS = [
 ] as const;
 export type MailTemplateKey = (typeof MAIL_TEMPLATE_KEYS)[number];
 
-/** Her şablonda kullanılabilen ortak değişkenler. */
 export const MAIL_COMMON_VARS: MailTemplateVar[] = [
   { key: 'forumName', label: 'Forum adı', sample: 'Forum' },
   { key: 'forumUrl', label: 'Forum adresi', sample: 'https://forum.ornek.com' },
@@ -198,22 +192,18 @@ export const mailTemplateSchema = z.object({
 });
 
 export interface AdminMailTemplate extends MailTemplateDef {
-  /** Yönetimde değiştirilmiş mi */
   isCustom: boolean;
   defaultSubject: string;
   defaultBody: string;
   updatedAt: number | null;
 }
 
-/** Üyenin e-postayla da almak isteyebileceği bildirim türleri ve varsayılanları. */
 export const EMAIL_NOTIFICATION_DEFAULTS: Record<string, boolean> = {
   'forum.quote': true,
   'forum.mention': true,
   'forum.reply': true,
   'message.new': true,
 };
-
-// ---------- Gönderim (SMTP) ayarları ----------
 
 export const MAIL_DRIVERS = ['env', 'smtp', 'sendmail', 'log'] as const;
 export type MailDriverChoice = (typeof MAIL_DRIVERS)[number];
@@ -226,7 +216,6 @@ export const mailTransportInput = z
     port: z.number().int().min(1, 'Geçersiz port.').max(65535, 'Geçersiz port.').default(587),
     security: z.enum(SMTP_SECURITY).default('starttls'),
     user: z.string().trim().max(200).default(''),
-    /** Boş bırakılırsa kayıtlı şifre korunur */
     password: z.string().max(500).optional(),
     allowSelfSigned: z.boolean().default(false),
   })
@@ -243,16 +232,13 @@ export interface AdminMailTransport {
   user: string;
   hasPassword: boolean;
   allowSelfSigned: boolean;
-  /** .env dosyasındaki sürücü (driver = env iken kullanılır) */
   envDriver: 'log' | 'smtp' | 'sendmail';
-  /** Şu an gerçekten kullanılan sürücü */
   effectiveDriver: 'log' | 'smtp' | 'sendmail';
 }
 
 export interface MailVerifyResult {
   ok: boolean;
   message: string;
-  /** Hata kodu (EAUTH, ETIMEDOUT…) */
   code: string | null;
   ms: number;
 }

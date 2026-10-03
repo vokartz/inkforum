@@ -28,7 +28,6 @@ const toParams = (q: z.output<typeof authorizeQuery>): AuthorizeParams => ({
   codeChallengeMethod: q.code_challenge_method ?? null,
 });
 
-/** OAuth 2.0 sağlayıcı uç noktaları (Authorization Code + PKCE, yenileme belirteci). */
 @Controller()
 export class OAuthController {
   constructor(private readonly oauth: OAuthService) {}
@@ -38,14 +37,12 @@ export class OAuthController {
     return this.oauth.metadata();
   }
 
-  /** Onay ekranı için uygulama ve izin bilgisi. */
   @Get('oauth/authorize')
   @RequireAuth()
   info(@Query() q: unknown, @CurrentViewer() v: RequestViewer) {
     return this.oauth.authorizeInfo(v, toParams(parse(authorizeQuery, q)));
   }
 
-  /** Üyenin kararı: uygulamanın yönlendirme adresi (kod ya da hata ile) döner. */
   @Post('oauth/authorize')
   @HttpCode(200)
   @RequireAuth()
@@ -88,8 +85,6 @@ export class OAuthController {
   userinfo(@CurrentViewer() v: RequestViewer) {
     return this.oauth.userinfo(v);
   }
-
-  // ---------- Üyenin bağlı uygulamaları ----------
 
   @Get('me/apps')
   @RequireAuth()

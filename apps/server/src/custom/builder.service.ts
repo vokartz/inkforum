@@ -5,20 +5,16 @@ import { iconNode } from '../common/icons.js';
 import { PostRenderService } from '../forum/post-render.service.js';
 import { ForumService } from '../forum/forum.service.js';
 import { GroupsService } from '../groups/groups.service.js';
-import { SettingsService } from '../settings/settings.service.js';
 import type { RequestViewer } from '../common/request-context.js';
 
-/** Sürükle-bırak sayfaların doğrulanması ve ziyaretçi için çözümlenmesi. */
 @Injectable()
 export class BuilderService {
   constructor(
     private readonly render: PostRenderService,
     private readonly forum: ForumService,
     private readonly groups: GroupsService,
-    private readonly settings: SettingsService,
   ) {}
 
-  /** Kaydetmeden önce: JSON + şema doğrulaması. HTML blokları "Özel kod" yetkisi ister. */
   parse(body: string, canCode: boolean, prevHadHtml: boolean): BuilderDoc {
     let json: unknown;
     try {
@@ -33,7 +29,7 @@ export class BuilderService {
       throw Errors.field('body', `${typeof idx === 'number' ? `${idx + 1}. blok: ` : ''}${issue.message}`);
     }
     const hasCode = res.data.blocks.some((b) => b.type === 'html' && b.html.trim()) || !!res.data.css.trim();
-    if ((hasCode || prevHadHtml) && !canCode) throw Errors.forbidden('Özel HTML blokları ve sayfa CSS kodu için "Özel kod" yetkisi gerekir.');
+    if ((hasCode || prevHadHtml) && !canCode) throw Errors.forbidden('Özel HTML blokları ve sayfa CSS kodu için "Kod düzenleme" yetkisi gerekir.');
     return res.data;
   }
 
@@ -46,9 +42,7 @@ export class BuilderService {
     }
   }
 
-  /** Sayfa CSS'i (özel kod kapalıyken boş); `</style` kaçışı engellenir */
   css(body: string): string {
-    if (!this.settings.get('custom.enabled')) return '';
     try {
       const css = String((JSON.parse(body) as { css?: unknown }).css ?? '');
       return css.replace(/<\/?(style|script)/gi, '');
@@ -57,7 +51,6 @@ export class BuilderService {
     }
   }
 
-  /** Ziyaretçiye göre: görünürlük, metinlerin HTML'i ve dinamik veriler. */
   async resolve(viewer: RequestViewer, body: string): Promise<ResolvedBlock[]> {
     let doc: BuilderDoc;
     try {
@@ -65,12 +58,8 @@ export class BuilderService {
     } catch {
       return [];
     }
-    const customOn = this.settings.get('custom.enabled');
-    const blocks = doc.blocks.filter(
-      (b) => (b.visibility === 'all' || (b.visibility === 'members') === !!viewer.user) && (b.type !== 'html' || customOn),
-    );
+    const blocks = doc.blocks.filter((b) => b.visibility === 'all' || (b.visibility === 'members') === !!viewer.user);
 
-    // Dinamik veriler tek sefer alınır
     const needIndex = blocks.some((b) => b.type === 'stats' || b.type === 'boards');
     const latestLimit = Math.max(0, ...blocks.map((b) => (b.type === 'latest' ? b.limit : 0)));
     const [index, latest] = await Promise.all([

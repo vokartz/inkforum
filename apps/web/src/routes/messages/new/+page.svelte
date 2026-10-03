@@ -23,7 +23,6 @@
   import { cn } from '$lib/utils';
   import { t, tc } from '$lib/i18n.svelte';
 
-  /** Yeni özel mesaj: konu açma ekranıyla aynı düzen (başlık, alıcılar, editör, yan bilgi) */
   let { data } = $props();
   const s = $derived(data.viewer.settings);
   const maxRecipients = $derived(Number(s['messages.maxRecipients'] ?? 10));

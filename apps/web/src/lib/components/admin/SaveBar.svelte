@@ -8,17 +8,14 @@
   import { t } from '$lib/i18n.svelte';
 
   interface Props {
-    /** Kaydedilmemiş değişiklik var mı */
     dirty: boolean;
     saving?: boolean;
-    /** Değişen alan sayısı (isteğe bağlı) */
     count?: number | null;
     onsave: () => void | Promise<void>;
     onreset?: () => void;
   }
   let { dirty, saving = false, count = null, onsave, onreset }: Props = $props();
 
-  // Kaydedilmemiş değişiklikle sayfadan çıkarken sor.
   guardUnsaved(() => dirty && !saving);
 
   function onKey(e: KeyboardEvent) {

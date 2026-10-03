@@ -8,7 +8,6 @@
 
   interface Props {
     moderators: BoardModerators;
-    /** Satır içi küçük yazı (bölüm listesi) */
     compact?: boolean;
     class?: string;
   }

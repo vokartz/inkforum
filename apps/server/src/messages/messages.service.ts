@@ -27,7 +27,6 @@ const MESSAGES_PER_PAGE = 25;
 
 @Injectable()
 export class MessagesService {
-  /** Üye başına son mesaj zamanı (sel koruması; bellekte). */
   private readonly lastSentAt = new Map<number, number>();
 
   constructor(
@@ -41,12 +40,10 @@ export class MessagesService {
     private readonly realtime: RealtimeService,
   ) {}
 
-  /** Yönetim ve moderatörler sınırlara ve "mesaj kabul etmiyorum" ayarına takılmaz. */
   private isStaff(viewer: RequestViewer): boolean {
     return viewer.isAdmin || can(viewer, 'mod.warnings.issue');
   }
 
-  /** Yazma engeli (kapalı sistem, yetki, susturma, yasak). */
   async blockReason(viewer: RequestViewer): Promise<string | null> {
     if (!viewer.user) return 'Özel mesaj için giriş yapmalısınız.';
     if (!this.settings.get('messages.enabled') && !this.isStaff(viewer)) return 'Özel mesajlar şu anda kapalı.';
@@ -68,7 +65,6 @@ export class MessagesService {
     return viewer.user!;
   }
 
-  /** Alıcıların mesaj kabul edip etmediğini denetler; kabul etmeyenlerin adlarını döner. */
   private async checkRecipients(viewer: RequestViewer, ids: number[]): Promise<void> {
     const rows = await this.db.q
       .selectFrom('users')
@@ -108,7 +104,6 @@ export class MessagesService {
     return msg.id;
   }
 
-  /** Yeni konuşma başlatır. */
   async create(viewer: RequestViewer, input: NewConversationInput): Promise<{ id: number }> {
     const user = await this.assertCanWrite(viewer, input.body);
     const recipients = [...new Set(input.recipientIds)].filter((id) => id !== user.id);
@@ -147,7 +142,6 @@ export class MessagesService {
     return { id };
   }
 
-  /** Özel mesaj e-postası (üye tercihine bağlı). */
   private async emailRecipients(userIds: number[], actorName: string, title: string | null, conversationId: number): Promise<void> {
     for (const uid of userIds) {
       await this.notifications.emailOnly(uid, 'message.new', { actorName, title: title ?? 'Yeni konuşma', conversationId });
@@ -175,7 +169,6 @@ export class MessagesService {
       .where('user_id', '!=', user.id)
       .execute();
     if (!others.length) throw Errors.badRequest('Konuşmada sizden başka katılımcı kalmadı.');
-    // Konuşmayı okumuş (güncel) katılımcılara e-posta; okunmamış mesajı olanlara tekrar gönderilmez.
     const caughtUp = await this.db.q
       .selectFrom('conversation_participants')
       .select('user_id')
@@ -193,7 +186,6 @@ export class MessagesService {
     return { messageId };
   }
 
-  /** Alıcıların açık sekmelerine anlık mesaj bildirimi (ses, açılır uyarı, açık konuşmanın yenilenmesi) */
   private async push(userIds: number[], conversationId: number, messageId: number, title: string | null, user: Row<'users'>, body: string): Promise<void> {
     if (!userIds.length) return;
     const me = (await this.users.summaries([user.id])).get(user.id);
@@ -207,7 +199,6 @@ export class MessagesService {
     });
   }
 
-  /** Gelen kutusu: son mesaja göre. */
   async list(viewer: RequestViewer, page: number): Promise<Paginated<ConversationListItem>> {
     if (!viewer.user) throw Errors.unauthenticated();
     const uid = viewer.user.id;
@@ -258,7 +249,6 @@ export class MessagesService {
     };
   }
 
-  /** Konuşma ayrıntısı; varsayılan olarak son sayfa. Görüntülenince okundu sayılır. */
   async detail(viewer: RequestViewer, id: number, pageInput: number | 'last'): Promise<ConversationDetail> {
     const { conv } = await this.participant(viewer, id);
     const uid = viewer.user!.id;
@@ -287,7 +277,6 @@ export class MessagesService {
         .where('conversation_id', '=', id)
         .where('user_id', '=', uid)
         .execute();
-      // Diğer sekmeler sayaçları, diğer katılımcılar "görüldü" bilgisini günceller
       this.realtime.publish(uid, { type: 'counters' });
       this.realtime.publish(
         parts.filter((p) => p.user_id !== uid && !p.left_at).map((p) => p.user_id),
@@ -305,7 +294,6 @@ export class MessagesService {
       createdAt: r.created_at,
       isMine: r.user_id === uid,
     }));
-    // Katılımcıların okuduğu son mesajın zamanı ("Okudu: 5 dk önce")
     const readIds = [...new Set(parts.map((p) => (p.user_id === uid ? (conv.last_message_id ?? 0) : p.last_read_message_id)).filter((x) => x > 0))];
     const readAt = new Map(
       readIds.length
@@ -328,7 +316,6 @@ export class MessagesService {
     };
   }
 
-  /** Konuşmaya üye ekler (yalnız başlatan). Ayrılmış üye yeniden eklenebilir. */
   async invite(viewer: RequestViewer, id: number, userIds: number[]): Promise<void> {
     const { conv } = await this.participant(viewer, id);
     if (conv.created_by !== viewer.user!.id) throw Errors.forbidden('Yalnızca konuşmayı başlatan üye katılımcı ekleyebilir.');
@@ -354,7 +341,6 @@ export class MessagesService {
     });
   }
 
-  /** Konuşmadan ayrıl; herkes ayrıldıysa konuşma silinir. */
   async leave(viewer: RequestViewer, id: number): Promise<void> {
     await this.participant(viewer, id);
     await this.db.tx(async () => {
@@ -378,7 +364,6 @@ export class MessagesService {
     });
   }
 
-  /** Okunmamış konuşma sayısı. */
   unreadCount(userId: number): Promise<number> {
     return unreadConversationCount(this.db, userId);
   }

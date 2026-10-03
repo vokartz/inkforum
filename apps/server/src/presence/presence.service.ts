@@ -5,10 +5,6 @@ import { Clock, MINUTE } from '../common/clock.js';
 const GUEST_WINDOW_MS = 15 * MINUTE;
 const MAX_GUESTS = 20_000;
 
-/**
- * Çevrimiçi misafir sayacı (bellek içi, IP + tarayıcı özeti). Üyelerin çevrimiçi bilgisi
- * `users.last_active_at` üzerinden hesaplanır; burada yalnızca misafirler tutulur.
- */
 @Injectable()
 export class PresenceService {
   private readonly guests = new Map<string, number>();
@@ -17,7 +13,6 @@ export class PresenceService {
 
   touchGuest(ip: string | null, userAgent: string | null): void {
     if (!ip) return;
-    // Arama motoru botları misafir sayısına eklenmez.
     if (userAgent && /bot|crawl|spider|slurp|preview/i.test(userAgent)) return;
     const key = createHash('sha1').update(`${ip}|${userAgent ?? ''}`).digest('base64url').slice(0, 16);
     const now = this.clock.now();

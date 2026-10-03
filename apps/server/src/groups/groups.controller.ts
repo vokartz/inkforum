@@ -58,8 +58,6 @@ export class GroupsController {
     return { ok: true };
   }
 
-  // ----- Grup liderleri -----
-
   @Get(':id/requests')
   @RequireAuth()
   async requests(@Param('id', new ZodPipe(idParam)) id: number, @CurrentViewer() viewer: RequestViewer) {

@@ -1,8 +1,3 @@
-/**
- * Yedekten geri yükleme — uygulama açılırken, veritabanı bağlantısı kurulmadan ÖNCE çalışır
- * (bkz. main.ts). Yönetim panelinden istenen geri yükleme storage/restore/pending.json dosyasına yazılır,
- * uygulama yeniden başlar, burada uygulanır ve sonuç storage/restore/last.json dosyasına kaydedilir.
- */
 import { spawn } from 'node:child_process';
 import { copyFileSync, createReadStream, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -34,7 +29,6 @@ const openSqlite = (path: string): SqliteDb => {
   return new mod.DatabaseSync(path);
 };
 
-/** SQLite dosyasını yerine koyar (WAL/SHM artıkları temizlenir) */
 function replaceSqliteFile(config: AppConfig, source: string): void {
   const target = config.db.sqlitePath;
   mkdirSync(join(target, '..'), { recursive: true });
@@ -44,7 +38,6 @@ function replaceSqliteFile(config: AppConfig, source: string): void {
   renameSync(tmp, target);
 }
 
-/** .sql.gz dökümünü deyim deyim (tırnak içi ; güvenli) yeni bir SQLite dosyasına uygular */
 async function sqliteFromDump(config: AppConfig, dump: string): Promise<void> {
   const tmp = `${config.db.sqlitePath}.restore-new`;
   rmSync(tmp, { force: true });
@@ -87,7 +80,6 @@ function run(cmd: string, args: string[], input?: string): Promise<void> {
   });
 }
 
-/** PostgreSQL: şema sıfırlanır ve pg_dump çıktısı psql ile uygulanır */
 async function postgresFromDump(config: AppConfig, dump: string): Promise<void> {
   const url = config.db.postgresUrl;
   if (!url) throw new Error('DATABASE_URL ayarlı değil.');
@@ -123,7 +115,6 @@ export async function applyPendingRestore(config: AppConfig, log: (m: string) =>
     rmSync(pendingFile, { force: true });
     return null;
   }
-  // Başarısız olsa bile tekrar tekrar denenmesin
   rmSync(pendingFile, { force: true });
   log(`[geri yükleme] ${p.name} uygulanıyor…`);
   const result: RestoreResult = { ok: false, name: p.name, at: Date.now(), message: '', safety: p.safety ?? null };

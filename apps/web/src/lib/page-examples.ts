@@ -1,7 +1,3 @@
-/**
- * Özel sayfa düzenleyicisindeki hazır örnekler. Kod örnekleri çevrilmez (yorumlar Türkçe),
- * yalnızca başlık ve açıklamalar arayüz dilinde gösterilir.
- */
 export interface PageExample {
   key: string;
   title: string;
@@ -102,19 +98,6 @@ async function handle(req) {
     },
   });
   return json({ gonderildi: res.ok });
-}
-`,
-  },
-  {
-    key: 'ucp-sso',
-    title: 'UCP: tek oturumla yönlendirme',
-    description: '/ucp açılınca üye imzalı bir belirteçle kendi UCP sitenize yönlendirilir; misafir giriş sayfasına gider.',
-    server: `// /ucp → https://ucp.sunucum.com/sso?token=... (sunucu tarafında yönlendirme)
-// UCP tarafında belirteci Özel kod → Entegrasyon bölümündeki gizli anahtarla doğrulayın.
-async function handle(req) {
-  if (!req.user) return redirect('/login?next=' + encodeURIComponent(req.page.url));
-  const token = await forum.token();
-  return redirect('https://ucp.sunucum.com/sso?token=' + encodeURIComponent(token));
 }
 `,
   },

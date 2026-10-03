@@ -22,7 +22,6 @@ export interface NotificationItem {
   createdAt: number;
 }
 
-/** Bildirimi okunur metne ve bağlantıya çevirir. */
 export function describeNotification(n: NotificationItem): { text: string; href: string | null } {
   const d = n.data as Record<string, string | number | null | undefined>;
   switch (n.type) {
@@ -120,7 +119,6 @@ export function describeNotification(n: NotificationItem): { text: string; href:
   }
 }
 
-/** Bildirim türüne göre ikon ve renk (liste ve açılır pencerede). */
 export function notificationVisual(n: NotificationItem): { icon: IconComponent; color: string } {
   const t = n.type;
   if (t.startsWith('warning.')) return { icon: WarningIcon, color: 'var(--destructive)' };

@@ -14,21 +14,17 @@ const MIME: Record<ImageType, string> = {
   webp: 'image/webp',
 };
 
-/** Dosyanın gerçek türünü sihirli baytlardan tespit eder ve boyutlarını okur (SVG vb. reddedilir). */
 export function sniffImage(buf: Buffer): ImageInfo | null {
   if (buf.length < 24) return null;
 
-  // PNG
   if (buf[0] === 0x89 && buf.toString('ascii', 1, 4) === 'PNG') {
     return { type: 'png', mime: MIME.png, width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) };
   }
 
-  // GIF
   if (buf.toString('ascii', 0, 4) === 'GIF8') {
     return { type: 'gif', mime: MIME.gif, width: buf.readUInt16LE(6), height: buf.readUInt16LE(8) };
   }
 
-  // WEBP
   if (buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WEBP') {
     const chunk = buf.toString('ascii', 12, 16);
     if (chunk === 'VP8 ' && buf.length >= 30) {
@@ -52,7 +48,6 @@ export function sniffImage(buf: Buffer): ImageInfo | null {
     return null;
   }
 
-  // JPEG
   if (buf[0] === 0xff && buf[1] === 0xd8) {
     let offset = 2;
     while (offset + 9 < buf.length) {

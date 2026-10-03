@@ -1,10 +1,6 @@
 import type { Kysely } from 'kysely';
 import { flag, helpers, intDefault, notNull, ref, textDefault } from './_helpers.js';
 
-/**
- * Geliştirici platformu: OAuth 2.0 sağlayıcı (uygulamalar, yetkilendirme kodları, erişim belirteçleri,
- * onaylar), sunucudan sunucuya API anahtarları, webhook'lar ve sosyal giriş kimlikleri.
- */
 export async function up(db: Kysely<any>): Promise<void> {
   const h = helpers(db);
 

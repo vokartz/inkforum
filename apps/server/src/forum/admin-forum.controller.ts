@@ -56,8 +56,6 @@ export class AdminForumController {
     return { ok: true };
   }
 
-  // ----- Tepkiler -----
-
   @Get('reactions')
   @AdminEndpoint('admin.forum.manage')
   async reactionList() {
@@ -70,8 +68,6 @@ export class AdminForumController {
     await this.reactions.save(v, body);
     return { ok: true };
   }
-
-  // ----- Kategoriler -----
 
   @Post('categories')
   @HttpCode(201)
@@ -113,8 +109,6 @@ export class AdminForumController {
     await this.admin.deleteCategory(v, id);
     return { ok: true };
   }
-
-  // ----- Bölümler -----
 
   @Post('boards')
   @HttpCode(201)
@@ -177,8 +171,6 @@ export class AdminForumController {
     return { ok: true };
   }
 
-  // ----- Önekler -----
-
   @Post('prefixes')
   @HttpCode(201)
   @AdminEndpoint('admin.forum.manage')
@@ -203,8 +195,6 @@ export class AdminForumController {
     await this.admin.deletePrefix(v, id);
     return { ok: true };
   }
-
-  // ----- Yetki profilleri -----
 
   @Get('profiles')
   @AdminEndpoint('admin.permissions.manage')

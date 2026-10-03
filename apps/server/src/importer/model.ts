@@ -1,14 +1,4 @@
 /* eslint-disable no-control-regex -- işaretçiler bilerek kontrol karakterleriyle yazılır */
-/**
- * Kaynak forumdan bağımsız ara model. Her okuyucu (SMF, phpBB, IPS, MyBB, XenForo) ara depodaki tabloları bu biçime
- * çevirir; içe aktarma servisi yalnızca bu modeli bilir.
- *
- * Mesaj gövdeleri InkForum BBCode'udur. Henüz yeni kimliği bilinmeyen başvurular işaretçiyle yazılır ve
- * aktarım sırasında çözülür:
- *   ␁p:123␂  → alıntılanan mesaj (kaynak kimliği)
- *   ␁u:42␂   → bahsedilen üye
- *   ␁a:7␂    → eklenti (dosya) yerleşimi
- */
 import type { SqlValue } from './sql-dump.js';
 import type { SourceCharset } from './text.js';
 
@@ -34,11 +24,9 @@ export interface SrcGroup {
   name: string;
   description: string;
   color: string | null;
-  /** Rütbe görseli (eski forumdaki tam adres) */
   iconUrl: string | null;
   iconCount: number;
   role: GroupRole;
-  /** Mesaj sayısı rütbesi (SMF sayı grupları, phpBB rütbeleri, MyBB kullanıcı başlıkları) */
   minPosts: number | null;
   hidden: boolean;
 }
@@ -48,7 +36,6 @@ export interface SrcUser {
   username: string;
   displayName: string;
   email: string;
-  /** users.password_hash biçiminde eski özet ($legacy$…, $2y$…, $H$…) ya da '' (şifre sıfırlama gerekir) */
   passwordHash: string;
   registeredAt: number;
   lastActiveAt: number | null;
@@ -63,7 +50,6 @@ export interface SrcUser {
   location: string;
   website: string;
   status: 'active' | 'pending_email' | 'pending_approval';
-  /** Yasaklıysa bitiş zamanı (0 = süresiz) */
   bannedUntil: number | null;
   banReason?: string;
 }
@@ -170,21 +156,16 @@ export interface SourceCounts {
 }
 
 export interface ReaderContext {
-  /** Ara depodaki değer → metin (seçilen karakter seti + çift kodlama düzeltmesi) */
   text: (v: SqlValue | undefined) => string;
-  /** Eski forumun adresi (görseller, rütbe resimleri, eklentiler için); sonunda / yok */
   baseUrl: string;
   charset: SourceCharset;
 }
 
-/** Okuyucu arayüzü. Büyük tablolar (üyeler, konular, mesajlar) üreteçle, sayfa sayfa okunur. */
 export interface SourceReader {
   readonly platform: Platform;
   version(): string;
   counts(): SourceCounts;
-  /** Karakter seti önizlemesi için örnek dizeler (üye adları, konu başlıkları) */
   samples(): SqlValue[];
-  /** Ayarlardan bulunan eski forum adresi */
   guessBaseUrl(): string | null;
   groups(): SrcGroup[];
   users(): Iterable<SrcUser>;
@@ -192,7 +173,6 @@ export interface SourceReader {
   boards(): SrcBoard[];
   moderators(): SrcModerator[];
   topics(): Iterable<SrcTopic>;
-  /** Mesajlar kaynak kimliğe göre artan sırada (alıntıların önceki mesajlara çözülebilmesi için) */
   posts(): Iterable<SrcPost>;
   attachments(postId: string): SrcAttachment[];
   polls(): Iterable<SrcPoll>;

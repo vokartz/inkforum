@@ -9,7 +9,6 @@ import { ForumCacheService } from './forum-cache.service.js';
 import { PostRenderService } from './post-render.service.js';
 import { PostsService } from './posts.service.js';
 
-/** İlk kurulumda örnek kategori/bölüm yapısını ve hoş geldin konusunu oluşturur. */
 @Injectable()
 export class ForumSeedService {
   private readonly logger = new Logger('ForumSeed');
@@ -24,7 +23,6 @@ export class ForumSeedService {
     private readonly posts: PostsService,
   ) {}
 
-  /** `tr`: örnek içeriği kurulum dilinde oluşturmak için çeviri işlevi */
   async seed(tr: (text: string) => string = (x) => x): Promise<void> {
     const existing = await this.db.q.selectFrom('forum_categories').select('id').executeTakeFirst();
     if (existing) return;

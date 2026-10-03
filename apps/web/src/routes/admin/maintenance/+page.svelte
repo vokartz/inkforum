@@ -58,13 +58,11 @@
     if (l.startsWith('pre-update')) return t('Güncelleme öncesi ({version})', { version: l.replace('pre-update-', 'v').replace(/-/g, '.') });
     return l;
   }
-  // Geri yükleme onayı için yazılacak sözcük (ziyaretçinin dilinde)
   const confirmWord = $derived(t('GERİ YÜKLE'));
 
   const last = $derived(b?.items[0] ?? null);
   const total = $derived((b?.items ?? []).reduce((s, x) => s + x.size, 0));
 
-  // ----- Yedek alma -----
   let creating = $state<BackupKind | null>(null);
   async function create(kind: BackupKind) {
     creating = kind;
@@ -89,7 +87,6 @@
     }
   }
 
-  // ----- Yükleme (büyük dosyalar için ilerlemeli) -----
   let uploadPct = $state<number | null>(null);
   let dragging = $state(false);
   function upload(file: File) {
@@ -129,7 +126,6 @@
     (e.currentTarget as HTMLInputElement).value = '';
   }
 
-  // ----- Geri yükleme -----
   let restoreTarget = $state<BackupItem | null>(null);
   let confirmText = $state('');
   let restoring = $state(false);
@@ -141,14 +137,12 @@
       await api.post(`/api/admin/backups/${encodeURIComponent(restoreTarget.name)}/restore`, { confirm: 'GERİ YÜKLE' });
       restoreTarget = null;
       restarting = true;
-      // Uygulama yeniden başlıyor: sağlık denetimi yanıt verene kadar bekle
       await new Promise((r) => setTimeout(r, 2500));
       for (let i = 0; i < 120; i++) {
         try {
           const r = await fetch('/api/health', { cache: 'no-store' });
           if (r.ok) break;
         } catch {
-          /* henüz açılmadı */
         }
         await new Promise((r) => setTimeout(r, 1500));
       }
@@ -160,7 +154,6 @@
     }
   }
 
-  // ----- Otomatik yedek ayarları -----
   let autoBackup = $state(untrack(() => data.backups?.autoBackup ?? true));
   let keep = $state(untrack(() => data.backups?.keep ?? 7));
   let hour = $state(untrack(() => data.backups?.hour ?? 3));
@@ -179,7 +172,6 @@
     }
   }
 
-  // ----- Bakım modu -----
   const settings = $derived(page.data.viewer?.settings ?? {});
   let maintenanceOn = $state(untrack(() => page.data.viewer?.settings['general.maintenanceMode'] === true));
   let maintenanceMsg = $state(untrack(() => String(page.data.viewer?.settings['general.maintenanceMessage'] ?? '')));
@@ -198,7 +190,6 @@
     }
   }
 
-  // ----- Araçlar -----
   const tasks = [
     { key: 'clear_cache', title: 'Önbelleği temizle', description: 'Ayar, grup, yetki ve diğer önbellekler.', icon: BroomIcon },
     { key: 'recount_groups', title: 'Grup üye sayıları', description: 'Grup listesindeki sayıları düzeltir.', icon: UsersIcon },

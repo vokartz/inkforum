@@ -1,17 +1,8 @@
-/**
- * BBCode etiket kayıt defteri. Ayrıştırıcı, HTML çıktısı, düz metin çıktısı ve editör köprüsü bu listeyi kullanır.
- *
- *  - inline: satır içi biçim (kalın, renk, bağlantı…)
- *  - block : blok eleman (alıntı, liste, hizalama…). Çevresindeki tek satır sonları yutulur.
- *  - raw   : içerik ayrıştırılmaz, olduğu gibi alınır (kod, görsel adresi…)
- *  - void  : kapanış etiketi yoktur ([hr])
- */
 export type TagKind = 'inline' | 'block' | 'raw-inline' | 'raw-block' | 'void';
 
 export interface TagDef {
   name: string;
   kind: TagKind;
-  /** Yalnızca bu etiketlerin doğrudan çocuğu olabilir. */
   parents?: string[];
 }
 
@@ -48,7 +39,6 @@ const defs: TagDef[] = [
   { name: 'right', kind: 'block' },
   { name: 'justify', kind: 'block' },
   { name: 'hr', kind: 'void' },
-  // Başlıklar (wiki, politika ve sayfalarda içindekiler tablosu için bağlantı kimliği alır)
   { name: 'h2', kind: 'block' },
   { name: 'h3', kind: 'block' },
   { name: 'h4', kind: 'block' },
@@ -64,7 +54,6 @@ export function isBlockTag(name: string): boolean {
 export const ALIGN_TAGS = ['left', 'center', 'right', 'justify'] as const;
 export type AlignTag = (typeof ALIGN_TAGS)[number];
 
-/** Editör ve `[font]` için izin verilen yazı tipleri. */
 export const BB_FONTS = [
   'Arial',
   'Verdana',
@@ -77,7 +66,6 @@ export const BB_FONTS = [
   'Comic Sans MS',
 ] as const;
 
-/** `[size=1..7]` → piksel. */
 export const BB_SIZES: Record<string, number> = { '1': 10, '2': 12, '3': 14, '4': 16, '5': 20, '6': 24, '7': 32 };
 
 const NAMED_COLORS = new Set([
@@ -93,7 +81,6 @@ export function safeColor(v: string | null | undefined): string | null {
   return null;
 }
 
-/** Yazı boyutu → piksel (1–7 ölçeği, px veya pt). */
 export function safeSize(v: string | null | undefined): number | null {
   if (!v) return null;
   const s = v.trim().toLowerCase();
@@ -112,7 +99,6 @@ export function safeFont(v: string | null | undefined): string | null {
   return BB_FONTS.find((f) => f.toLowerCase() === s.toLowerCase()) ?? null;
 }
 
-/** Bağlantı adresi: http(s), mailto, site içi mutlak yol veya çapa. Şemasız alan adına https eklenir. */
 export function safeUrl(v: string | null | undefined, opts: { allowMailto?: boolean } = {}): string | null {
   if (!v) return null;
   const s = v.trim();
@@ -124,7 +110,6 @@ export function safeUrl(v: string | null | undefined, opts: { allowMailto?: bool
   return null;
 }
 
-/** Görsel adresi: yalnızca http(s) veya site içi yükleme yolu. */
 export function safeImageUrl(v: string | null | undefined): string | null {
   const u = safeUrl(v);
   if (!u || u.startsWith('#')) return null;

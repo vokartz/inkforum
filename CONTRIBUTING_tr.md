@@ -34,7 +34,7 @@ Redis / S3 / arama servisi gerekmez.
 | **Eklentiler** | Açılış sayfası, Wiki, Başvurular, Destek talepleri — Yönetim → Eklentiler'den açılıp kapatılır |
 | **SEO ve paylaşım** | Dinamik robots.txt, bölümlü sitemap, Open Graph / X kartları, JSON-LD, otomatik paylaşım görselleri, oEmbed ve gömülebilir konu kartları, PWA bildirimi |
 | **Güvenlik** | Yerleşik WAF (saldırı kalıpları, hız sınırı, bot engeli, Turnstile / hCaptcha / yerleşik doğrulama), argon2id, CSP nonce, CSRF, SSRF korumalı webhook'lar, yönetimde yeniden doğrulama |
-| **Entegrasyon** | OAuth 2.0 sağlayıcı (PKCE), kapsamlı REST API, API anahtarları, imzalı webhook'lar, sosyal giriş, UCP için imzalı üye belirteci |
+| **Entegrasyon** | OAuth 2.0 sağlayıcı (PKCE), kapsamlı REST API, API anahtarları, imzalı webhook'lar, sosyal giriş, kurulabilir eklentiler (.zip/.tgz yükleme ya da npm paketi; sayfa, yönetim sayfası, API yolu, veritabanı tablosu, menü bağlantısı, sayfa yuvası, olay/iş işleyicisi), `packages/sdk` içinde başlangıç paketi ve `inkforum-ext` aracı (şablon `starter/`, hazır eklentiler `examples/`), yönetim panelinden indirilir |
 | **İşletim** | Kurulum sihirbazı, GitHub üzerinden sürüm denetimi ve tek tıkla / otomatik güncelleme, günlük yedek, sistem durumu ve bakım araçları |
 
 Kullanıcıya dönük tam özellik listesi ve kurulum belgesi: [README_tr.md](README_tr.md).

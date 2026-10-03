@@ -12,7 +12,6 @@ import { GroupsService } from '../groups/groups.service.js';
 import type { RequestViewer } from '../common/request-context.js';
 import type { Bridge } from './sandbox.js';
 
-/** Bir istekte forum verisine en fazla bu kadar çağrı yapılabilir */
 const MAX_CALLS = 40;
 const clamp = (v: unknown, min: number, max: number, d: number) => {
   const n = Number(v);
@@ -28,12 +27,10 @@ const arg = (v: unknown): Record<string, unknown> => {
   }
 };
 
-/** Sunucu koduna verilen sade üye biçimi */
 export interface PageUser {
   id: number;
   username: string;
   name: string;
-  /** name ile aynı (eski kodlarla uyum) */
   displayName: string;
   url: string;
   avatarUrl: string | null;
@@ -42,11 +39,6 @@ export interface PageUser {
   group: { id: number; name: string; color: string | null } | null;
 }
 
-/**
- * Özel sayfaların sunucu kodu için forum verisi (salt okunur). Her çağrı, sayfayı açan ziyaretçinin
- * yetkileriyle yapılır: görmediği bölüm, gizli konu ya da gizli profil bilgisi buradan da görünmez.
- * Başka üyelerin e-posta ve IP adresleri hiçbir zaman verilmez.
- */
 @Injectable()
 export class PageForumApi {
   constructor(
@@ -80,7 +72,6 @@ export class PageForumApi {
     };
   }
 
-  /** forum.site: eşzamanlı, her istekte hazır */
   site() {
     return {
       name: String(this.settings.get('general.forumName') ?? ''),
@@ -93,7 +84,6 @@ export class PageForumApi {
     };
   }
 
-  /** req.user: sayfayı açan üye (misafirse null). Yalnızca kendi e-postası bulunur. */
   async viewerInfo(viewer: RequestViewer) {
     const u = viewer.user;
     if (!u) return null;
@@ -107,7 +97,6 @@ export class PageForumApi {
       name: u.display_name,
       email: u.email,
       emailVerified: u.email_verified_at != null,
-      // groups / primaryGroup: kimlikler (önceki sürümlerle uyumlu); ayrıntı groupList ve group alanlarında
       groups: [...viewer.groupIds],
       groupList: groups.filter((g) => mine.has(g.id)).map((g) => ({ id: g.id, name: g.name, color: g.color ?? null })),
       primaryGroup: u.primary_group_id,
@@ -124,7 +113,6 @@ export class PageForumApi {
     };
   }
 
-  /** Sandbox köprüleri: her biri JSON metni döner; bulunamayan / görülemeyen kayıt için null */
   bridges(viewer: RequestViewer): Record<string, Bridge> {
     let calls = 0;
     const wrap =
@@ -304,7 +292,6 @@ export class PageForumApi {
     };
   }
 
-  /** Kimlik ya da kullanıcı adı → üye kimliği */
   private async resolveUser(v: unknown): Promise<number | null> {
     if (typeof v === 'number' || /^\d+$/.test(String(v))) {
       const n = Number(v);

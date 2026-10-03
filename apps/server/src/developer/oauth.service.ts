@@ -27,7 +27,6 @@ type ClientRow = Row<'oauth_clients'>;
 const rand = (bytes = 30) => randomBytes(bytes).toString('base64url');
 const CODE_TTL = 10 * MINUTE;
 
-/** OAuth hata yanıtı (RFC 6749 §5.2 biçiminde döner). */
 export class OAuthError extends Error {
   constructor(
     readonly error: string,
@@ -65,8 +64,6 @@ export class OAuthService {
     private readonly groups: GroupCacheService,
     @Inject(CONFIG) private readonly config: AppConfig,
   ) {}
-
-  // ---------- Yönetim: uygulamalar ----------
 
   private toAdmin(r: ClientRow, activeUsers: number): AdminOAuthClient {
     return {
@@ -140,7 +137,6 @@ export class OAuthService {
         redirect_uris_json: toJson(input.redirectUris),
         scopes_json: toJson(this.cleanScopes(input.scopes)),
         is_confidential: input.isConfidential ? 1 : 0,
-        // Genel (public) istemciye geçince gizli anahtar anlamsızlaşır.
         secret_hash: input.isConfidential ? prev.secret_hash : null,
         is_trusted: input.isTrusted ? 1 : 0,
         is_enabled: input.isEnabled ? 1 : 0,
@@ -173,13 +169,10 @@ export class OAuthService {
     await this.audit.log({ type: 'admin', action: 'oauth.client.delete', actorId: viewer.user!.id, ip: viewer.ip, data: { id, name: prev.name } });
   }
 
-  // ---------- Yetkilendirme (onay ekranı) ----------
-
   private async validateAuthorize(p: AuthorizeParams): Promise<{ client: ClientRow; scopes: ApiScope[] }> {
     const client = await this.db.q.selectFrom('oauth_clients').selectAll().where('client_id', '=', p.clientId).executeTakeFirst();
     if (!client || client.is_enabled !== 1) throw Errors.badRequest('Uygulama bulunamadı ya da devre dışı.');
     const uris = fromJson<string[]>(client.redirect_uris_json, []);
-    // Yönlendirme adresi kayıtlı adreslerden biriyle birebir eşleşmeli (açık yönlendirme koruması).
     if (!uris.includes(p.redirectUri)) throw Errors.badRequest('Yönlendirme adresi bu uygulama için kayıtlı değil.');
     if (p.responseType !== 'code') throw Errors.badRequest('Yalnızca "code" yanıt türü desteklenir.');
     const allowed = fromJson<ApiScope[]>(client.scopes_json, []);
@@ -213,7 +206,6 @@ export class OAuthService {
     };
   }
 
-  /** Üye onayladı ya da reddetti: uygulamaya dönülecek adres. */
   async decide(viewer: RequestViewer, p: AuthorizeParams, approve: boolean): Promise<{ redirect: string }> {
     const { client, scopes } = await this.validateAuthorize(p);
     const url = new URL(p.redirectUri);
@@ -244,16 +236,12 @@ export class OAuthService {
       const merged = [...new Set([...(prev ? fromJson<string[]>(prev.scopes_json, []) : []), ...scopes])];
       if (prev) await this.db.q.updateTable('oauth_consents').set({ scopes_json: toJson(merged), updated_at: now }).where('client_id', '=', client.id).where('user_id', '=', viewer.user!.id).execute();
       else await this.db.q.insertInto('oauth_consents').values({ client_id: client.id, user_id: viewer.user!.id, scopes_json: toJson(merged), created_at: now, updated_at: now }).execute();
-      // Süresi geçmiş kodları temizle
       await this.db.q.deleteFrom('oauth_codes').where('expires_at', '<', now).execute();
     });
     url.searchParams.set('code', code);
     return { redirect: url.toString() };
   }
 
-  // ---------- Token uç noktası ----------
-
-  /** İstemci kimliği: HTTP Basic ya da gövdedeki client_id / client_secret. */
   private async authenticateClient(basic: string | undefined, body: Record<string, unknown>): Promise<ClientRow> {
     let id = typeof body.client_id === 'string' ? body.client_id : '';
     let secret = typeof body.client_secret === 'string' ? body.client_secret : '';
@@ -301,7 +289,6 @@ export class OAuthService {
     if (grant === 'authorization_code') {
       const code = String(body.code ?? '');
       const row = code ? await this.db.q.selectFrom('oauth_codes').selectAll().where('code_hash', '=', sha256(code)).executeTakeFirst() : undefined;
-      // Kod tek kullanımlıktır: silmeyi başaran istek kazanır (aynı anda iki istek kodu iki kez kullanamaz).
       const claimed = row ? Number((await this.db.q.deleteFrom('oauth_codes').where('code_hash', '=', row.code_hash).executeTakeFirst()).numDeletedRows) > 0 : false;
       if (!row || !claimed || row.client_id !== client.id || row.expires_at <= now) throw new OAuthError('invalid_grant', 'Kod geçersiz ya da süresi dolmuş.');
       if (String(body.redirect_uri ?? '') !== row.redirect_uri) throw new OAuthError('invalid_grant', 'redirect_uri yetkilendirmedekiyle aynı olmalı.');
@@ -321,14 +308,12 @@ export class OAuthService {
       const had = fromJson<string[]>(row.scopes_json, []);
       const wanted = typeof body.scope === 'string' && body.scope.trim() ? body.scope.trim().split(/\s+/) : had;
       if (wanted.some((s) => !had.includes(s))) throw new OAuthError('invalid_scope', 'Yenilemede yeni izin istenemez.');
-      // Döndürme: eski belirteç çifti iptal edilir.
       await this.db.q.updateTable('oauth_tokens').set({ revoked_at: now }).where('id', '=', row.id).execute();
       return this.issue(client.id, row.user_id, wanted);
     }
     throw new OAuthError('unsupported_grant_type', 'Desteklenen türler: authorization_code, refresh_token.');
   }
 
-  /** RFC 7009: belirteç iptali (bilinmeyen belirteç de başarılı sayılır). */
   async revoke(basic: string | undefined, body: Record<string, unknown>): Promise<void> {
     const client = await this.authenticateClient(basic, body);
     const token = String(body.token ?? '');
@@ -363,7 +348,6 @@ export class OAuthService {
     };
   }
 
-  /** Sunucu meta verisi (RFC 8414 benzeri; istemci kütüphanelerinin kendini ayarlaması için). */
   metadata() {
     const base = this.config.appUrl;
     return {
@@ -380,8 +364,6 @@ export class OAuthService {
       service_documentation: `${base}/developers`,
     };
   }
-
-  // ---------- Üyenin bağlı uygulamaları ----------
 
   async userApps(userId: number): Promise<AuthorizedApp[]> {
     const rows = await this.db.q
@@ -418,8 +400,6 @@ export class OAuthService {
     });
   }
 
-  // ---------- API anahtarları ----------
-
   async adminKeys(): Promise<AdminApiKey[]> {
     const rows = await this.db.q.selectFrom('api_keys').selectAll().orderBy('created_at', 'desc').execute();
     const users = await this.users.summaries(rows.map((r) => r.user_id));
@@ -445,7 +425,6 @@ export class OAuthService {
     const user = await this.db.q.selectFrom('users').select(['id', 'status']).where('id', '=', userId).where('deleted_at', 'is', null).executeTakeFirst();
     if (!user) throw Errors.field('userId', 'Üye bulunamadı.');
     if (input.expiresAt !== null && input.expiresAt <= this.clock.now()) throw Errors.field('expiresAt', 'Bitiş tarihi gelecekte olmalı.');
-    // Yetki yükseltmeyi önle: başkası adına anahtar yalnızca yöneticiler, "admin" kapsamı yalnızca yöneticinin kendi anahtarında
     const self = userId === viewer.user!.id;
     if (!self && !viewer.isAdmin) throw Errors.forbidden('Başka bir üye adına anahtar yalnızca yöneticiler oluşturabilir.');
     if (input.scopes.includes('admin') && (!self || !viewer.isAdmin)) throw Errors.field('scopes', '"admin" izni yalnızca yöneticinin kendi anahtarına verilebilir.');

@@ -8,10 +8,6 @@
   import PageHeader from '$lib/components/PageHeader.svelte';
   import { t } from '$lib/i18n.svelte';
 
-  /**
-   * Özel sayfa geliştirme belgesi: HTML, f-* arayüz takımı, forum-* bileşenleri, CSS, tarayıcı API\'si,
-   * sunucu kodu (handle, fetch, kv, secrets, token) ve tarifler. Kod örnekleri çevrilmez.
-   */
   const toc = [
     ['overview', 'Genel bakış'],
     ['addresses', 'Adresler ve görünürlük'],
@@ -27,7 +23,7 @@
     ['responses', 'Yanıtlar'],
     ['fetch', 'Dış servis çağrıları (fetch)'],
     ['kv', 'Veri saklama (kv)'],
-    ['secrets', 'Gizli değerler ve kimlik belirteci'],
+    ['secrets', 'Gizli değerler'],
     ['api', 'Alt adresler ve sayfa API\'si'],
     ['recipes', 'Tarifler'],
     ['limits', 'Sınırlar ve güvenlik'],
@@ -110,7 +106,6 @@
     ['await forum.topic(kimlik)', 'Konu: başlık, adres, bölüm, yazar, yanıt ve görüntülenme sayısı, ilk mesajın html ve düz metni'],
     ['await forum.userTopics(kimlik ya da ad, limit)', 'Bir üyenin açtığı konular'],
     ['await forum.search(sorgu, { board, titleOnly, limit })', 'Konu araması'],
-    ['await forum.token()', 'Giriş yapan üye için imzalı kimlik belirteci (aşağıda)'],
   ];
 
   const RES: Array<[string, string]> = [
@@ -156,9 +151,6 @@ if (!forum.viewer.isGuest) console.log(forum.viewer.displayName);
 // Sayfanın sunucu koduna istek (POST, gövde JSON)
 const sonuc = await forum.api('/oy', { body: { secim: 'a' } });
 
-// Dış sisteminiz için imzalı kimlik belirteci (JWT)
-const belirtec = await forum.token();
-
 // Forum içinde sayfa değişince (sayfa yeniden yüklenmez)
 forum.onNavigate((url) => console.log('yeni adres', url.pathname));`,
     server: `async function handle(req) {
@@ -183,20 +175,6 @@ await kv.set('oturum:' + req.user.id, { a: 1 }, 3600); // 1 saat sonra silinir
 const n = await kv.get('sayac');              // yoksa null
 await kv.delete('sayac');
 const liste = await kv.list('oturum:');       // [{ key, value, expiresAt }]`,
-    ssoRedirect: `// /ucp → kendi UCP sitenize tek oturumla geçiş
-async function handle(req) {
-  if (!req.user) return redirect('/login?next=' + encodeURIComponent(req.page.url));
-  return redirect('https://ucp.sunucum.com/sso?token=' + encodeURIComponent(await forum.token()));
-}`,
-    verifyNode: `// UCP tarafı (Node.js): belirteci Özel kod → Entegrasyon'daki gizli anahtarla doğrulayın
-import { createHmac, timingSafeEqual } from 'node:crypto';
-function dogrula(token, secret) {
-  const [h, p, s] = token.split('.');
-  const beklenen = createHmac('sha256', secret).update(h + '.' + p).digest('base64url');
-  if (!timingSafeEqual(Buffer.from(s), Buffer.from(beklenen))) return null;
-  const veri = JSON.parse(Buffer.from(p, 'base64url').toString());
-  return veri.exp * 1000 > Date.now() ? veri : null; // { sub: üye no, username, name, groups, … }
-}`,
     apiJs: `forum.api('/karakterler').then((liste) => {
   document.getElementById('liste').innerHTML = liste
     .map((k) => '<div class="f-card"><b>' + k.ad + '</b></div>')
@@ -301,7 +279,7 @@ function dogrula(token, secret) {
         [...TEMPLATE_VARIABLES.filter((v) => v.scope === 'all').map((v) => [`{{${v.key}}}`, v.label] as [string, string]), ['{{data.alan}}', 'Sayfanın sunucu kodunun json() ile döndürdüğü veri (3 düzeye kadar: {{data.oyuncu.ad}})']],
         [t('Değişken'), t('Değer')],
       )}
-      <p>{t('HTML içindeki <script> etiketleri de çalışır, ancak sayfaya özel kodu JavaScript sekmesine yazmanız önerilir. Dış betikler (CDN) için adresi Özel kod → Güvenlik bölümünde izinli kaynaklara ekleyin.')}</p>
+      <p>{t('HTML içindeki <script> etiketleri de çalışır, ancak sayfaya özel kodu JavaScript sekmesine yazmanız önerilir. Dış betikler (CDN) yalnızca kurulu bir eklentinin csp listesindeki kaynaklardan yüklenebilir (Yönetim → Eklentiler).')}</p>
     </section>
 
     <section id="kit">
@@ -384,10 +362,8 @@ function dogrula(token, secret) {
     </section>
 
     <section id="secrets">
-      <h2>{t('Gizli değerler ve kimlik belirteci')}</h2>
+      <h2>{t('Gizli değerler')}</h2>
       <p>{t('API anahtarı gibi değerleri Sunucu → Gizli değerler bölümüne ekleyin; kodda secrets.AD ile okunur. Değerler veritabanında şifreli saklanır, yönetim ekranında bile yeniden gösterilmez ve tarayıcıya hiç gönderilmez.')}</p>
-      <p>{t('forum.token() giriş yapan üye için kısa ömürlü, imzalı bir kimlik belirteci (JWT, HS256) üretir. Dış sisteminiz belirteci Özel kod → Entegrasyon bölümündeki gizli anahtarla doğrulayıp üyenin kim olduğunu bilir; şifre paylaşmaya gerek kalmaz. Misafirde boş metin döner.')}</p>
-      {@render code(SNIPPETS.verifyNode, 'js')}
     </section>
 
     <section id="api">
@@ -400,9 +376,6 @@ function dogrula(token, secret) {
 
     <section id="recipes">
       <h2>{t('Tarifler')}</h2>
-      <h3>{t('UCP: /ucp adresinden kendi UCP sitenize tek oturumla geçiş')}</h3>
-      <p>{t('Kök adresi "ucp" olan bir sayfa oluşturun, sunucu kodunu açıp şunu yazın. Misafir giriş sayfasına, üye imzalı belirteçle UCP\'nize gider; UCP tarafında belirteci yukarıdaki gibi doğrulayın.')}</p>
-      {@render code(SNIPPETS.ssoRedirect, 'js')}
       <h3>{t('UCP: forumun içinde panel')}</h3>
       <p>{t('UCP\'nizin API\'sini sunucu kodundan, gizli anahtarla çağırın; sayfanın JavaScript\'i forum.api() ile sonucu alıp f-* kartlarıyla çizsin. Hazır hâli: Yeni sayfa → Örnekler → "UCP: forum içinde panel".')}</p>
       <h3>{t('Yalnızca belirli gruplara açık sayfa')}</h3>
@@ -415,8 +388,8 @@ function dogrula(token, secret) {
         <li>{t('Sunucu kodu QuickJS adlı yalıtılmış bir JavaScript motorunda çalışır; forum sunucusuna, dosyalara, veritabanına ve ağa doğrudan erişemez. Yalnızca bu belgede anlatılan köprüleri kullanabilir.')}</li>
         <li>{t('İstek başına sınırlar: 1 saniye işlemci süresi, 10 saniye toplam süre (fetch beklemeleri dahil), 32 MB bellek, 10 fetch. Sonsuz döngü kesilir ve hata olarak gösterilir.')}</li>
         <li>{t('Sayfa API\'si IP başına dakikada 120 istekle sınırlıdır.')}</li>
-        <li>{t('HTML, CSS, JavaScript ve sunucu kodunu yalnızca "Özel kod" yetkisi olan yöneticiler değiştirebilir.')}</li>
-        <li>{t('Özel kod Yönetim → Özel kod bölümünden kapatılırsa sayfaların HTML, CSS, JavaScript ve sunucu kodu hemen devre dışı kalır. Adrese ?safemode=1 eklemek de yalnızca sizin için özel kodu kapatır.')}</li>
+        <li>{t('HTML, CSS, JavaScript ve sunucu kodunu yalnızca "Kod düzenleme" yetkisi olan yöneticiler değiştirebilir.')}</li>
+        <li>{t('Adrese ?safemode=1 eklemek (güvenli mod) o tarayıcı oturumu boyunca sayfaların kodunu kapatır.')}</li>
         <li>{t('Sunucu kodundaki hatalar ziyaretçiye ayrıntı vermez (500); ayrıntıyı "Dene" kutusunda ve sunucu günlüğünde görürsünüz.')}</li>
       </ul>
     </section>

@@ -8,14 +8,12 @@
   import { i18n, t } from '$lib/i18n.svelte';
   import { cn } from '$lib/utils';
 
-  /** Dil seçici: misafirlerde çerez, üyelerde profil tercihi. Seçim sonrası sayfa yeni dille yeniden yüklenir. */
   let { variant = 'text', class: className }: { variant?: 'text' | 'icon'; class?: string } = $props();
 
   const settings = $derived(page.data.viewer?.settings ?? {});
   const enabled = $derived(((settings['i18n.enabledLocales'] as Locale[] | undefined)?.length ? (settings['i18n.enabledLocales'] as Locale[]) : [...LOCALES]).filter((l) => LOCALES.includes(l)));
   const loggedIn = $derived(!!page.data.viewer?.user);
 
-  /** Windows bayrak emojilerini harf olarak gösterir; bayraklar yerel Twemoji görselleriyle çizilir */
   const flagSrc = (l: Locale) => `/emoji/${[...LOCALE_INFO[l].flag].map((c) => c.codePointAt(0)!.toString(16)).join('-')}.svg`;
 
   async function choose(locale: Locale) {

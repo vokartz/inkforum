@@ -12,7 +12,7 @@ describe('page sandbox', () => {
 
   it('has no access to node', async () => {
     const r = await runHandler(`function handle() { return { r: typeof require, p: typeof process, g: typeof globalThis.process, i: typeof import.meta }; }`, { req }, {});
-    expect(r.ok).toBe(false); // import.meta bir betikte sözdizimi hatası
+    expect(r.ok).toBe(false);
     const r2 = await runHandler(`function handle() { return { r: typeof require, p: typeof process, f: typeof setTimeout }; }`, { req }, {});
     expect(r2.value).toEqual({ r: 'undefined', p: 'undefined', f: 'undefined' });
   });

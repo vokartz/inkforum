@@ -6,7 +6,6 @@ export function can(viewer: Viewer | null | undefined, permission: string): bool
   return viewer.isAdmin || viewer.permissions.includes(permission);
 }
 
-/** Kök düzen verisinden (layout) mevcut ziyaretçi. */
 export function currentViewer(): Viewer {
   return page.data.viewer as Viewer;
 }

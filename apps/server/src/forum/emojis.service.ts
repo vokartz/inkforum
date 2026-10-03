@@ -14,10 +14,6 @@ import { RENDER_VERSION_STALE, RERENDER_JOB } from './render-jobs.js';
 type EmojiRow = Row<'custom_emojis'>;
 const MAX_EMOJIS = 2000;
 
-/**
- * Yöneticinin yüklediği özel emojiler. Etkin olanlar bellekte tutulur; mesaj işleyici `:kisaad:`
- * yazılarını bu tablodan görsele çevirir. Değişiklikte ilgili mesajlar arka planda yeniden işlenir.
- */
 @Injectable()
 export class EmojisService implements OnApplicationBootstrap {
   private map = new Map<string, { url: string; name: string }>();
@@ -31,7 +27,6 @@ export class EmojisService implements OnApplicationBootstrap {
     private readonly jobs: JobsService,
   ) {}
 
-  // Tüm modüller (ve migration'lar) hazır olduktan sonra yüklenir.
   async onApplicationBootstrap(): Promise<void> {
     await this.reload();
   }
@@ -42,7 +37,6 @@ export class EmojisService implements OnApplicationBootstrap {
     this.list = rows.map((r) => ({ id: r.id, shortcode: r.shortcode, name: r.name, category: r.category, url: r.url }));
   }
 
-  /** Mesaj işleyici için arama. */
   lookup = (code: string) => this.map.get(code);
 
   enabled(): CustomEmoji[] {
@@ -58,7 +52,6 @@ export class EmojisService implements OnApplicationBootstrap {
     return rows.map((r) => this.toAdmin(r));
   }
 
-  /** Bu kısa adı içeren mesajları yeniden işlenecek olarak işaretler. */
   private async rerender(codes: string[]): Promise<void> {
     for (const code of codes) {
       await this.db.q
@@ -83,7 +76,6 @@ export class EmojisService implements OnApplicationBootstrap {
     const shortcode = (input.shortcode?.trim().toLowerCase().replace(/^:|:$/g, '') || shortcodeFromFilename(original)).slice(0, 32);
     await this.assertFree(shortcode, null);
     const category = (input.category?.trim() || 'Özel').slice(0, 40);
-    // Animasyon korunur (yeniden boyutlandırma yok); görünümde küçük gösterilir.
     const saved = await this.storage.saveImage(file.buffer, { purpose: 'emoji', ownerUserId: viewer.user!.id, maxBytes: 512 * 1024, maxDimension: 512 });
     const url = this.storage.publicUrl(saved)!;
     const row = await this.db.q

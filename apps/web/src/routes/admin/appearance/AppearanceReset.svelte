@@ -24,7 +24,6 @@
     try {
       await api.post('/api/admin/appearance/reset', { parts: picked });
       toast.success(t('Görünüm varsayılana döndürüldü.'));
-      // Sayfadaki tüm alanlar yeni değerlerle yeniden kurulsun
       setTimeout(() => window.location.reload(), 400);
     } catch (e) {
       toast.error(errorMessage(e));

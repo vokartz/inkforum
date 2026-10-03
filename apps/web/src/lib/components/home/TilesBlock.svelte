@@ -12,7 +12,6 @@
     4: 'grid-cols-2 lg:grid-cols-4',
   };
   const HEIGHT = { sm: 'h-32', md: 'h-44', lg: 'h-60' } as const;
-  // Yan sütunda her zaman tek sütun
   const cols = $derived(compact ? 'grid-cols-1' : (COLS[block.columns] ?? COLS[3]));
 </script>
 

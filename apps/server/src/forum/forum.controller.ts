@@ -42,7 +42,6 @@ export class ForumController {
 
   @Get('forum/recent')
   recent(@CurrentViewer() v: RequestViewer, @Query('limit') limit?: string) {
-    // Kaç konu gösterileceği ana sayfa bloğunun ayarındadır.
     const n = Number(limit ?? 5);
     return this.forum.recent(v, Number.isFinite(n) ? Math.min(Math.max(0, n), 20) : 5);
   }
@@ -90,7 +89,6 @@ export class ForumController {
     return this.forum.newTopicContext(v, id);
   }
 
-  /** Bağlantı bölümü: tıklamayı sayar ve hedef adresi döner. */
   @Get('boards/:id/go')
   follow(@Param('id', new ZodPipe(idParam)) id: number, @CurrentViewer() v: RequestViewer) {
     return this.forum.follow(v, id);
@@ -134,7 +132,6 @@ export class ForumController {
     return { ...res, location: await this.forum.locate(v, res.postId) };
   }
 
-  /** Tepki ver (aynı tepki tekrar gönderilirse kaldırılır). */
   @Put('posts/:id/reaction')
   @RequireAuth()
   @RateLimit({ limit: 60, windowMs: MINUTE, by: 'user' })
@@ -207,7 +204,6 @@ export class ForumController {
     return this.posts.revisions(v, id);
   }
 
-  /** Editör önizlemesi. */
   @Post('bbcode/preview')
   @HttpCode(200)
   @RequireAuth()
@@ -216,7 +212,6 @@ export class ForumController {
     return { html: body.kind === 'short' ? this.render.short(body.bbcode) : this.render.post(body.bbcode).html };
   }
 
-  /** Mesaj görseli yükleme (editör). */
   @Post('forum/images')
   @HttpCode(201)
   @RequireAuth()

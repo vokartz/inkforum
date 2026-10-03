@@ -22,7 +22,6 @@
 
   interface Props {
     block: HomeBlock;
-    /** Yan sütunda mı (dar yerleşim) */
     compact?: boolean;
     forum: ForumIndex;
     recent: RecentTopicItem[];

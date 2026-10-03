@@ -53,7 +53,6 @@
     }
   }
 
-  // ----- Genel -----
   const general = createForm();
   let email = $state('');
   let status = $state('active');
@@ -66,7 +65,6 @@
   let username = $state('');
   let displayName = $state('');
 
-  // SSR sırasında da dolu gelmesi için hemen çalıştırılır; veri değişince yeniden eşitlenir.
   function syncState1() {
     if (!data.detail) return;
     email = d.email;
@@ -135,14 +133,12 @@
     }
   }
 
-  // ----- Profil -----
   const profileForm = createForm();
   let bio = $state('');
   let location = $state('');
   let websiteUrl = $state('');
   let birthdate = $state('');
   let signature = $state('');
-  // SSR sırasında da dolu gelmesi için hemen çalıştırılır; veri değişince yeniden eşitlenir.
   function syncState2() {
     if (!data.detail) return;
     bio = d.profile.bio;
@@ -163,13 +159,11 @@
     if (ok) await api.put(`/api/admin/users/${d.summary.id}/signature`, { signature }).catch(() => undefined);
   }
 
-  // ----- Gruplar -----
   const assignable = $derived(data.groups.filter((g) => g.kind === 'regular' && !['guest', 'member', 'moderator'].includes(g.systemKey ?? '')));
   let primaryId = $state('');
   let primaryExpires = $state('');
   let additional = $state<Array<{ groupId: number; expires: string }>>([]);
   let addGroupId = $state('');
-  // SSR sırasında da dolu gelmesi için hemen çalıştırılır; veri değişince yeniden eşitlenir.
   function syncState3() {
     if (!data.detail) return;
     primaryId = d.memberships.primary ? String(d.memberships.primary.id) : '';
@@ -192,7 +186,6 @@
     );
   }
 
-  // ----- Uyarılar / yasaklar / başarılar -----
   let warnOpen = $state(false);
   let banOpen = $state(false);
 
@@ -217,7 +210,6 @@
     awardReason = '';
   }
 
-  // ----- Notlar -----
   let note = $state('');
   async function addNote() {
     if (!note.trim()) return;

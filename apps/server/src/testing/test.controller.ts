@@ -5,7 +5,6 @@ import { MailService } from '../mail/mail.service.js';
 import { JobsService } from '../jobs/jobs.service.js';
 import { Errors } from '../common/errors.js';
 
-/** Yalnızca NODE_ENV=test iken yüklenir (e2e testleri için yardımcılar). */
 @Controller('_test')
 @AllowIncomplete()
 export class TestController {

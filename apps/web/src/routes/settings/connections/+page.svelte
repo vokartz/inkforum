@@ -19,7 +19,6 @@
 
   let { data } = $props();
   const linked = $derived(new Map(data.identities.map((i) => [i.provider, i])));
-  // Etkin sağlayıcılar + (sonradan kapatılmış olsa da) bağlı olanlar
   const rows = $derived(SOCIAL_PROVIDERS.filter((p) => data.providers.some((x) => x.key === p.key) || linked.has(p.key)));
   const linkedMsg = $derived(page.url.searchParams.get('linked'));
   const errorMsg = $derived.by(() => {

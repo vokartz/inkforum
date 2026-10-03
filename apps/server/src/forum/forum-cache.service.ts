@@ -25,13 +25,11 @@ export type CachedCategory = Row<'forum_categories'> & { bgUrl: string | null };
 
 export interface ForumStructure {
   categories: CachedCategory[];
-  /** Kategori + sıra düzeninde. Sayaç alanları güncel değildir; sayaçlar ayrıca okunur. */
   boards: CachedBoard[];
   byId: Map<number, CachedBoard>;
   prefixes: CachedPrefix[];
 }
 
-/** Forum yapısı (kategoriler, bölümler, moderatörler, önekler) küçüktür; bellekte tutulur. */
 @Injectable()
 export class ForumCacheService {
   constructor(
@@ -112,7 +110,6 @@ export class ForumCacheService {
     };
   }
 
-  /** Bölümün üst zinciri (kendisi dahil, kökten başlayarak). */
   async ancestry(boardId: number): Promise<CachedBoard[]> {
     const { byId } = await this.structure();
     const out: CachedBoard[] = [];

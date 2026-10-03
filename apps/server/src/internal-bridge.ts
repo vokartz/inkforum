@@ -19,12 +19,6 @@ export interface BridgeResponse {
   rawPayload: Buffer;
 }
 
-/**
- * SvelteKit SSR'ın API'yi aynı process içinde çağırması için köprü.
- * Aynı Express uygulaması ek olarak yerel bir sokette (Unix socket / Windows named pipe) dinler;
- * TCP portu gerekmez, bu yüzden Passenger gibi portu kendisi yöneten ortamlarda da çalışır.
- * İstemcinin gerçek IP'si, yalnızca bu process'in bildiği rastgele bir anahtarla birlikte iletilir.
- */
 export async function startInternalBridge(listener: RequestListener): Promise<{
   inject: (opts: BridgeRequest) => Promise<BridgeResponse>;
   close: () => Promise<void>;
@@ -68,7 +62,6 @@ export async function startInternalBridge(listener: RequestListener): Promise<{
           try {
             unlinkSync(socketPath);
           } catch {
-            /* zaten silinmiş */
           }
         }
         resolve();

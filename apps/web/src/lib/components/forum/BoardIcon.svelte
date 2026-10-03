@@ -15,10 +15,8 @@
   }
   let { icon, unread = false, redirect = false, size = 48, class: className }: Props = $props();
 
-  // Tek tonlu: okunmamış içerik varsa vurgu (ya da bölümün kendi) rengi, yoksa sakin gri.
   const tint = $derived(icon.color ?? 'var(--primary)');
   const glyph = $derived(Math.round(size * 0.54));
-  // Görsel ikonlarda zemin yok; okunmamışta vurgu tonu, aksi halde sınıftaki gri zemin.
   const bg = $derived(icon.kind === 'image' && icon.url ? 'transparent' : unread ? 'color-mix(in oklch, var(--board-icon) 14%, transparent)' : '');
 </script>
 

@@ -28,9 +28,7 @@ async function parse<T>(res: Response): Promise<T> {
   }
   if (!res.ok) {
     if (isApiErrorBody(body)) {
-      // Güvenlik duvarı doğrulama istiyor (ör. doğrulama süresi doldu): sayfa yenilenince doğrulama sayfası açılır
       if (body.error.code === 'WAF_CHALLENGE' && typeof window !== 'undefined') window.location.reload();
-      // Kurulum tamamlanmamış: sihirbaza git
       if (body.error.code === 'INSTALL_REQUIRED' && typeof window !== 'undefined' && !window.location.pathname.startsWith('/install')) window.location.href = '/install';
       throw new ApiError(res.status, body.error.code, body.error.message, body.error.fields ?? {}, body.error.details ?? {});
     }
@@ -54,9 +52,6 @@ export async function request<T>(fetchFn: Fetch, path: string, init: RequestInit
   return parse<T>(res);
 }
 
-/**
- * Sayfa yükleyicileri için: API hatalarını SvelteKit hatalarına/yönlendirmelerine çevirir.
- */
 export async function load<T>(fetchFn: Fetch, path: string, url?: URL): Promise<T> {
   try {
     return await request<T>(fetchFn, path);
@@ -73,7 +68,6 @@ export async function load<T>(fetchFn: Fetch, path: string, url?: URL): Promise<
   }
 }
 
-/** Tarayıcıda yapılan değişiklik istekleri (giriş, kayıt, kaydetme…). */
 export const api = {
   get: <T = unknown>(path: string) => request<T>(fetch, path),
   post: <T = unknown>(path: string, body: unknown = {}) => request<T>(fetch, path, { method: 'POST', body: JSON.stringify(body) }),

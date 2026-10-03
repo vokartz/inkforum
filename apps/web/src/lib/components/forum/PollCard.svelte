@@ -25,11 +25,9 @@
   import { t } from '$lib/i18n.svelte';
 
   let { poll: initial, topicId, ondelete }: { poll: PollView; topicId: number; ondelete?: () => void } = $props();
-  // Sunucudan yeni veri gelene kadar yerel olarak güncellenebilir.
   let poll = $derived(initial);
 
   let changing = $state(false);
-  // Oy değiştirirken mevcut seçimle başlar; yerel olarak değiştirilebilir.
   let selected = $derived<number[]>(changing ? [...poll.myVotes] : []);
   let peek = $state(false);
   let busy = $state(false);

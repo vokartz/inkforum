@@ -32,7 +32,6 @@ describe('waf', () => {
     const saved = await admin.put('/api/admin/waf', base);
     expect(saved.status).toBe(200);
 
-    // Misafir: API isteği doğrulama ister, sayfa kapısı doğrulama sayfası döner
     const blocked = await raw().get('/api/forum').set('user-agent', UA);
     expect(blocked.status).toBe(403);
     expect(blocked.body.error.code).toBe('WAF_CHALLENGE');
@@ -40,10 +39,8 @@ describe('waf', () => {
     expect(gate.body.action).toBe('challenge');
     expect(gate.body.html).toContain('Bağlantınız kontrol ediliyor');
 
-    // Giriş yapmış yönetici etkilenmez
     expect((await admin.get('/api/forum')).status).toBe(200);
 
-    // Yerleşik doğrulamayı çöz
     const pow = JSON.parse(/const P=(\{[^;]+\});/.exec(gate.body.html)![1]!) as { c: string; d: number; exp: number; sig: string };
     let n = 0;
     while (!createHash('sha256').update(`${pow.c}:${n}`).digest('hex').startsWith('0'.repeat(pow.d))) n++;
@@ -53,7 +50,6 @@ describe('waf', () => {
     expect(ok.status).toBe(200);
     const cookie = (ok.headers['set-cookie'] as unknown as string[]).find((c) => c.startsWith('forum_waf='))!.split(';')[0]!;
     expect((await raw().get('/api/forum').set('user-agent', UA).set('cookie', cookie)).status).toBe(200);
-    // Çerez başka tarayıcıya taşınamaz, çözüm yeniden kullanılamaz
     expect((await raw().get('/api/forum').set('user-agent', 'Other/1.0').set('cookie', cookie)).status).toBe(403);
     const replay = await raw().post('/api/waf/verify').set('user-agent', UA).set('origin', ORIGIN).send({ kind: 'pow', c: pow.c, n: String(n), exp: pow.exp, sig: pow.sig });
     expect(replay.status).toBe(403);

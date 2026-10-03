@@ -55,7 +55,6 @@
     }),
   );
 
-  // ---------- Hızlı yasak ----------
   let qType = $state('ip');
   let qValue = $state('');
   let qDays = $state('0');

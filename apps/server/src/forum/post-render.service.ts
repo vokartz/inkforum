@@ -8,7 +8,6 @@ import { JobsService } from '../jobs/jobs.service.js';
 import { RERENDER_JOB } from './render-jobs.js';
 import { EmojisService } from './emojis.service.js';
 
-/** BBCode kuralları değiştiğinde artırılır; eski mesajlar arka planda yeniden işlenir. */
 export const RENDER_VERSION = 2;
 const BATCH = 200;
 
@@ -31,7 +30,6 @@ export class PostRenderService implements OnModuleInit, OnApplicationBootstrap {
     this.jobs.register<{ afterId?: number }>(RERENDER_JOB, (p) => this.rerenderBatch(p.afterId ?? 0));
   }
 
-  /** Yeni sürümde BBCode kuralları değiştiyse eski mesajları arka planda yeniden işle. */
   async onApplicationBootstrap(): Promise<void> {
     if (this.config.isTest) return;
     const pending = await this.db.q
@@ -43,7 +41,6 @@ export class PostRenderService implements OnModuleInit, OnApplicationBootstrap {
     if (!pending) await this.scheduleRerenderIfNeeded();
   }
 
-  /** Gömülü içerik sağlayıcı ayarları. */
   embedOptions(): EmbedOptions {
     return {
       host: new URL(this.config.appUrl).hostname,
@@ -52,12 +49,10 @@ export class PostRenderService implements OnModuleInit, OnApplicationBootstrap {
     };
   }
 
-  /** Twemoji + özel emojiler. */
   private emojiOpts(): EmojiRenderOptions {
     return { ...emojiOptions, custom: this.emojis.lookup };
   }
 
-  /** Mesaj gövdesi. */
   post(bbcode: string, embeds: EmbedOptions = this.embedOptions()): BBRenderResult {
     return renderBBCode(bbcode, {
       media: this.settings.get('embeds.enabled'),
@@ -71,18 +66,15 @@ export class PostRenderService implements OnModuleInit, OnApplicationBootstrap {
     });
   }
 
-  /** İmza / hakkımda gibi kısa metinler: bloklar serbest, video yok. */
   short(bbcode: string, opts: { images?: boolean } = {}): string {
     return renderBBCode(bbcode, { media: false, images: opts.images ?? true, maxQuoteDepth: 1, profileHref, postHref, emoji: this.emojiOpts() }).html;
   }
 
-  /** Tüm mesajları yeniden işlenmek üzere işaretler (gömülü içerik ayarları değişince). */
   async invalidateAll(): Promise<void> {
     await this.db.q.updateTable('posts').set({ render_version: 0 }).execute();
     await this.jobs.enqueue(RERENDER_JOB, { afterId: 0 });
   }
 
-  /** Eski sürümle işlenmiş mesaj varsa yeniden işleme işini başlatır. */
   async scheduleRerenderIfNeeded(): Promise<void> {
     const stale = await this.db.q.selectFrom('posts').select('id').where('render_version', '<', RENDER_VERSION).limit(1).executeTakeFirst();
     if (stale) await this.jobs.enqueue(RERENDER_JOB, { afterId: 0 });

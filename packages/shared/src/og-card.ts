@@ -1,9 +1,5 @@
 import { z } from 'zod';
 
-/**
- * Paylaşım kartı (Open Graph görseli) tasarımı: Discord, X, WhatsApp… bağlantı önizlemelerinde görünen
- * 1200×630 görsel. Yönetim → SEO → Paylaşım kartı ekranından düzenlenir; görsel sunucuda çizilir.
- */
 export const OG_LAYOUTS = ['classic', 'centered', 'split', 'minimal'] as const;
 export const OG_BACKGROUNDS = ['dark', 'light', 'color', 'gradient', 'image'] as const;
 export const OG_PATTERNS = ['none', 'dots', 'grid', 'lines'] as const;
@@ -20,12 +16,10 @@ export const ogCardSchema = z.object({
       from: hex.default('#1e1b4b'),
       to: hex.default('#0f766e'),
       angle: z.number().int().min(0).max(360).default(135),
-      /** Yalnızca bu forumun yüklemeleri (/uploads/…) */
       image: z.string().trim().max(500).regex(/^(\/uploads\/[\w./-]+|)$/, 'Görsel bu foruma yüklenmiş olmalı.').default(''),
       dim: z.number().int().min(0).max(90).default(55),
     })
     .prefault({}),
-  /** Boş = forumun vurgu rengi */
   accent: z.union([hex, z.literal('')]).default(''),
   text: z.enum(['auto', 'light', 'dark']).default('auto'),
   font: z.enum(OG_FONTS).default('sans'),
@@ -34,9 +28,7 @@ export const ogCardSchema = z.object({
   logo: z.boolean().default(true),
   kicker: z.boolean().default(true),
   meta: z.boolean().default(true),
-  /** Alt satır (boş = forum adı) */
   footer: z.string().trim().max(60).default(''),
-  /** Discord'daki önizleme kenarlığı (theme-color); boş = vurgu rengi */
   embedColor: z.union([hex, z.literal('')]).default(''),
 });
 export type OgCard = z.output<typeof ogCardSchema>;

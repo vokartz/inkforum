@@ -1,30 +1,18 @@
 import { newQuickJSWASMModuleFromVariant, shouldInterruptAfterDeadline, type QuickJSContext, type QuickJSHandle, type QuickJSWASMModule } from 'quickjs-emscripten-core';
 import variant from '@jitl/quickjs-singlefile-mjs-release-sync';
 
-/**
- * Özel sayfaların sunucu kodu için yalıtılmış JavaScript ortamı (QuickJS, WebAssembly).
- *
- * Kod Node.js'e hiç dokunamaz: `require`, `process`, dosya sistemi, ağ yoktur. Dış dünyaya yalnızca
- * burada verilen köprüler açılır (fetch, kv, secrets…); her biri sunucu tarafında denetlenir.
- * Her istek yeni bir çalışma ortamında, bellek, işlemci süresi ve toplam süre sınırıyla çalışır.
- */
-
 export interface SandboxLimits {
-  /** İşlemci süresi (ms) — sonsuz döngüleri keser */
   cpuMs: number;
-  /** Toplam süre (ms) — bekleyen fetch'ler dahil */
   totalMs: number;
   memoryBytes: number;
 }
 
 export const DEFAULT_LIMITS: SandboxLimits = { cpuMs: 1000, totalMs: 10_000, memoryBytes: 32 * 1024 * 1024 };
 
-/** Köprü işlevi: JSON alır, JSON (ya da Promise) döner */
 export type Bridge = (...args: unknown[]) => unknown;
 
 export interface SandboxResult {
   ok: boolean;
-  /** handle() dönüş değeri (JSON'a çevrilebilir) */
   value?: unknown;
   error?: string;
   logs: string[];
@@ -37,7 +25,6 @@ function quickjs(): Promise<QuickJSWASMModule> {
   return modulePromise;
 }
 
-/** Kodun başına eklenen yardımcılar: yanıt kurucular ve fetch/kv sarmalayıcıları */
 const PRELUDE = `
 const json = (data, status = 200, headers = {}) => ({ type: 'json', status, headers, body: data });
 const text = (body, status = 200, headers = {}) => ({ type: 'text', status, headers, body: String(body) });
@@ -59,7 +46,6 @@ const kv = {
 const __call = async (name, ...args) => JSON.parse(await __bridge[name](...args));
 const forum = {
   site: typeof __site === 'undefined' ? null : __site,
-  token: async (audience) => __bridge.token(audience ? String(audience) : ''),
   stats: () => __call('fStats'),
   online: () => __call('fOnline'),
   user: (idOrName) => __call('fUser', typeof idOrName === 'number' ? idOrName : String(idOrName ?? '')),
@@ -76,10 +62,6 @@ const console = { log: (...a) => __bridge.log(a.map((x) => typeof x === 'string'
 console.error = console.log; console.warn = console.log; console.info = console.log;
 `;
 
-/**
- * `code` içinde tanımlı `handle(req)` işlevini çalıştırır.
- * `bridges`: fetch, kvGet, kvSet, kvDelete, kvList, token, user (async olabilir); `globals`: req, secrets…
- */
 export async function runHandler(code: string, globals: Record<string, unknown>, bridges: Record<string, Bridge>, limits: SandboxLimits = DEFAULT_LIMITS): Promise<SandboxResult> {
   const started = Date.now();
   const logs: string[] = [];
@@ -90,7 +72,6 @@ export async function runHandler(code: string, globals: Record<string, unknown>,
   const ctx = rt.newContext();
   const pending = new Set<Promise<unknown>>();
   let cpuUsed = 0;
-  // İşlemci süresi yalnızca kod çalışırken sayılır (bekleyen fetch'ler sayılmaz)
   const runTimed = <T>(fn: () => T): T => {
     const t0 = Date.now();
     rt.setInterruptHandler(shouldInterruptAfterDeadline(t0 + Math.max(10, limits.cpuMs - cpuUsed)));
@@ -155,7 +136,6 @@ export async function runHandler(code: string, globals: Record<string, unknown>,
     const promise = evaluated.value;
     let state = ctx.getPromiseState(promise);
     const deadline = started + limits.totalMs;
-    // Bekleyen işler bitene ya da süre dolana kadar VM'in iş kuyruğu çalıştırılır
     while (state.type === 'pending') {
       const jobs = runTimed(() => rt.executePendingJobs());
       if (jobs.error) {
@@ -198,7 +178,6 @@ export async function runHandler(code: string, globals: Record<string, unknown>,
       ctx.dispose();
       rt.dispose();
     } catch {
-      /* bellek sınırında kalan tutamaçlar: çalışma ortamı zaten atılıyor */
     }
   }
 }
@@ -209,7 +188,6 @@ function toHandle(ctx: QuickJSContext, v: unknown): QuickJSHandle {
   if (typeof v === 'string') return ctx.newString(v);
   if (typeof v === 'number') return ctx.newNumber(v);
   if (typeof v === 'boolean') return v ? ctx.true : ctx.false;
-  // Nesneler kopyalanır (sunucu nesnelerine başvuru sızmaz); JSON'a çevrilemeyenler atlanır
   if (Array.isArray(v)) {
     const arr = ctx.newArray();
     v.forEach((item, i) => {
@@ -237,7 +215,6 @@ function describe(err: unknown): string {
     const e = err as { name?: string; message?: string; stack?: string };
     if (e.message === 'interrupted') return 'İşlemci süresi sınırı aşıldı.';
     const where = /page-handler\.js:(\d+)/.exec(e.stack ?? '')?.[1];
-    // Satır numarası kullanıcının kodundaki satıra çevrilir (başa eklenen yardımcılar düşülür)
     const line = where ? Number(where) - PRELUDE.split('\n').length : null;
     return `${e.name ?? 'Error'}: ${e.message ?? String(err)}${line && line > 0 ? ` (satır ${line})` : ''}`;
   }

@@ -18,7 +18,6 @@
   import MobileNav from '../MobileNav.svelte';
   import SiteBanner from '../SiteBanner.svelte';
 
-  /** Ortalanmış üst alan: logo (ya da banner) ortada, altında ortalanmış menü; hesap işlemleri menü çubuğunun sağında */
   let { viewer, nav, onsearch }: { viewer: Viewer; nav: NavEntry[]; onsearch: () => void } = $props();
 
   const s = $derived(viewer.settings);

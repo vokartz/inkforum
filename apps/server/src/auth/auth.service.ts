@@ -78,8 +78,6 @@ export class AuthService {
     private readonly profileFields: ProfileFieldsService,
   ) {}
 
-  // ---------- Doğrulama yardımcıları ----------
-
   passwordRules() {
     return {
       minLength: this.settings.get('security.passwordMinLength'),
@@ -101,7 +99,6 @@ export class AuthService {
     });
   }
 
-  /** Kullanıcı adı/görünen ad kurallarını ve benzersizliğini kontrol eder; alan hataları döner. */
   async validateNames(username: string, displayName: string, excludeUserId?: number, checkReserved = true) {
     const fields: Record<string, string> = {};
     const rules = {
@@ -122,13 +119,10 @@ export class AuthService {
     return fields;
   }
 
-  // ---------- Kayıt ----------
-
   async register(data: RegisterData, client: ClientInfo, res: Response): Promise<RegisterResult> {
     const mode = this.settings.get('registration.mode');
     if (mode === 'closed') throw Errors.code(ErrorCode.REGISTRATION_CLOSED, 'Yeni üye kayıtları şu anda kapalı.', 403);
 
-    // Bot korumaları
     if (data.website) throw Errors.badRequest('Kayıt tamamlanamadı.');
     const minSeconds = this.settings.get('registration.minSubmitSeconds');
     if (minSeconds > 0 && data.formStartedAt && this.clock.now() - data.formStartedAt < minSeconds * 1000) {
@@ -229,7 +223,6 @@ export class AuthService {
     return { status, userId: user.id };
   }
 
-  /** Hesap etkinleşince hoş geldin e-postası (ayar açıksa). */
   async sendWelcome(user: Pick<Row<'users'>, 'email' | 'display_name' | 'locale'>): Promise<void> {
     if (!this.settings.get('email.welcome')) return;
     await this.mail.send(user.email, await this.mail.compose('welcome', { name: user.display_name, url: this.mail.url('/') }, user.locale));
@@ -247,8 +240,6 @@ export class AuthService {
       }, user.locale),
     );
   }
-
-  // ---------- E-posta doğrulama ----------
 
   async verifyEmail(token: string, client: ClientInfo, res: Response): Promise<{ status: 'active' | 'pending_approval' }> {
     const result = await this.db.tx(async () => {
@@ -280,12 +271,10 @@ export class AuthService {
     if ((await this.rateLimit.failures('verify_resend', { identifier: key }, HOUR)) >= 3) throw Errors.rateLimited(3600);
     await this.rateLimit.record('verify_resend', key, client.ip, false);
     const user = await this.users.findByEmail(email);
-    if (!user || user.status !== 'pending_email') return; // bilgi sızdırma
+    if (!user || user.status !== 'pending_email') return;
     const mode = this.settings.get('registration.mode');
     await this.db.tx(() => this.sendVerification(user, client.ip, mode === 'email_approval' || mode === 'approval'));
   }
-
-  // ---------- Giriş ----------
 
   private lockoutWindow(): number {
     return this.settings.get('security.loginLockoutMinutes') * MINUTE;
@@ -355,7 +344,6 @@ export class AuthService {
     if (!row || row.expires_at <= this.clock.now() || row.attempts >= CHALLENGE_MAX_ATTEMPTS) {
       throw Errors.code(ErrorCode.TOKEN_INVALID, 'Doğrulama süresi doldu. Lütfen yeniden giriş yapın.', 400);
     }
-    // Hesap başına deneme sınırı: yeni oturum açıp yeni doğrulama isteği alarak kod tahmini yapılamaz
     if ((await this.rateLimit.failuresSinceSuccess('2fa', String(row.user_id), 15 * MINUTE)) >= 10) {
       throw Errors.code(ErrorCode.RATE_LIMITED, 'Çok fazla hatalı doğrulama kodu girildi. 15 dakika sonra yeniden deneyin.', 429);
     }
@@ -378,10 +366,6 @@ export class AuthService {
     return { status: 'ok' };
   }
 
-  /**
-   * Dış sağlayıcıyla (Discord, Google…) doğrulanmış üyenin girişi: şifre dışındaki tüm kontroller
-   * (hesap durumu, yasak, iki adımlı doğrulama) normal girişle aynıdır.
-   */
   async loginExternal(user: Row<'users'>, client: ClientInfo, res: Response): Promise<LoginResult> {
     this.assertCanLogin(user);
     const ban = await this.bans.check('login', { userId: user.id, ip: client.ip, email: user.email, username: user.username });
@@ -398,10 +382,6 @@ export class AuthService {
     return { status: 'ok' };
   }
 
-  /**
-   * Dış sağlayıcıyla kayıt: şifresiz hesap (sonradan "şifremi unuttum" ile şifre belirlenebilir).
-   * Sağlayıcı e-postayı doğruladıysa e-posta doğrulaması atlanır.
-   */
   async registerExternal(
     data: { username: string; email: string; emailVerified: boolean; acceptedPolicyVersionIds: number[] },
     client: ClientInfo,
@@ -422,7 +402,6 @@ export class AuthService {
     const ban = await this.bans.check('register', { ip: client.ip, email: data.email, username });
     if (ban) throw Errors.code(ErrorCode.BANNED, ban.reason ?? 'Bu bilgilerle kayıt olmanız engellenmiş.', 403);
 
-    // Şifresiz hesap: tahmin edilemez, doğrulanamaz bir özet ("!" ile başlayan değer hiçbir şifreyle eşleşmez).
     const passwordHash = `!external:${this.crypto.token(24)}`;
     const verified = data.emailVerified;
     const status = mode === 'approval' ? 'pending_approval' : mode === 'open' || verified ? 'active' : 'pending_email';
@@ -464,7 +443,6 @@ export class AuthService {
     this.events.emit('user.loggedIn', { userId: user.id });
   }
 
-  /** Kullanıcı yokken de benzer süre harcanması için (kullanıcı adı tahminini zorlaştırır). */
   private async fakeVerify(password: string): Promise<false> {
     this.dummyHash ??= await this.hasher.hash('forum-dummy-password');
     await this.hasher.verify(this.dummyHash, password);
@@ -475,8 +453,6 @@ export class AuthService {
     if (viewer.session) await this.sessions.revoke(viewer.session.id);
     this.sessions.clearCookie(res);
   }
-
-  // ---------- Şifre ----------
 
   async forgotPassword(email: string, client: ClientInfo): Promise<void> {
     const key = email.trim().toLowerCase();
@@ -514,7 +490,6 @@ export class AuthService {
     await this.db.tx(async () => {
       await this.tokens.consume('password_reset', token);
       const now = this.clock.now();
-      // Sıfırlama bağlantısı e-posta sahipliğini de kanıtlar.
       const mode = this.settings.get('registration.mode');
       const status = user.status === 'pending_email' ? (mode === 'email_approval' ? 'pending_approval' : 'active') : user.status;
       await this.users.update(user.id, {
@@ -534,7 +509,6 @@ export class AuthService {
   async changePassword(viewer: RequestViewer, current: string, next: string): Promise<void> {
     const user = viewer.user!;
     const forced = user.must_change_password === 1;
-    // Sosyal girişle açılmış (şifresiz) hesaplar ilk şifrelerini mevcut şifre sormadan belirler.
     if ((!forced || current) && !user.password_hash.startsWith('!external')) {
       if (!current || !(await this.hasher.verify(user.password_hash, current))) {
         throw Errors.field('currentPassword', 'Mevcut şifreniz hatalı.');
@@ -553,8 +527,6 @@ export class AuthService {
       await this.audit.log({ type: 'security', action: 'password.changed', actorId: user.id, targetType: 'user', targetId: user.id, ip: viewer.ip });
     });
   }
-
-  // ---------- Yeniden doğrulama (yönetim paneli) ----------
 
   async elevate(viewer: RequestViewer, password: string | undefined, code: string | undefined): Promise<number> {
     const user = viewer.user!;

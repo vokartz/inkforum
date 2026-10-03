@@ -11,7 +11,6 @@ import { SocialService } from './social.service.js';
 const providerParam = z.enum(['discord', 'google', 'github']);
 const startQuery = z.object({ mode: z.enum(['login', 'link']).default('login'), next: z.string().max(300).default('/') });
 
-/** Sosyal giriş: sağlayıcıya yönlendirme, dönüş, şifresiz kayıt ve hesap bağlama. */
 @Controller()
 @AllowIncomplete()
 export class SocialController {

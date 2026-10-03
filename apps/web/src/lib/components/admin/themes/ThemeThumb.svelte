@@ -1,7 +1,6 @@
 <script lang="ts">
   import { effectivePalette, themeConfigSchema, type ThemeConfig } from '@forum/shared';
 
-  /** Temanın küçük, canlı önizlemesi (gerçek sayfayı yüklemeden; paletten çizilir) */
   let { config, mode = null }: { config: ThemeConfig; mode?: 'light' | 'dark' | null } = $props();
   const c = $derived(themeConfigSchema.parse(config));
   const m = $derived(mode ?? (c.mode.default === 'light' ? 'light' : 'dark'));

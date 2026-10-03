@@ -11,14 +11,12 @@
 
   interface Props {
     nodes: WikiTreeNode[];
-    /** Açık sayfanın yolu */
     current?: string | null;
     depth?: number;
     onnavigate?: () => void;
   }
   let { nodes, current = null, depth = 0, onnavigate }: Props = $props();
 
-  // Açık sayfanın üst dalları kendiliğinden açık
   const isAncestor = (n: WikiTreeNode) => !!current && (current === n.path || current.startsWith(`${n.path}/`));
   let toggled = $state<Record<number, boolean>>({});
   const open = (n: WikiTreeNode) => toggled[n.id] ?? isAncestor(n);

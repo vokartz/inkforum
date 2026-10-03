@@ -15,7 +15,6 @@ afterEach(async () => {
   database = undefined;
 });
 
-// PGlite (WebAssembly PostgreSQL) tüm migration'ları birkaç saniyede uygular; yük altında 5 sn yetmez
 describe.each(['sqlite', 'pglite'] as const)('migrations (%s)', { timeout: 30_000 }, (driver) => {
   it('applies all migrations and can roll them back', async () => {
     const { db } = await freshDb(driver);
@@ -29,7 +28,6 @@ describe.each(['sqlite', 'pglite'] as const)('migrations (%s)', { timeout: 30_00
       expect(down.error).toBeUndefined();
     }
     expect(await pendingMigrations(db)).toEqual(Object.keys(migrations));
-    // PGlite (WebAssembly) 20+ migration'ı ileri-geri uygularken yavaş makinelerde 5 sn'yi aşabilir
   }, 60_000);
 
   it('converts booleans to integers and enforces foreign keys', async () => {

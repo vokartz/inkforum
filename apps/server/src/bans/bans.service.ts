@@ -157,7 +157,6 @@ export class BansService {
     }
   }
 
-  /** Bağlama uygun ilk yasağı döner (kayıt tutar). */
   async check(context: BanContext, subject: BanSubject): Promise<BanMatch | null> {
     const all = await this.matchAll(subject);
     const now = this.clock.now();
@@ -167,7 +166,6 @@ export class BansService {
     return this.toMatch(hit);
   }
 
-  /** Kullanıcıyı etkileyen (erişimi engellemeyen) kısıtlamalar dahil tüm aktif yasaklar. */
   async activeFor(subject: BanSubject): Promise<ViewerBan | null> {
     const all = await this.matchAll(subject);
     const now = this.clock.now();
@@ -244,8 +242,6 @@ export class BansService {
       .where('id', '=', t.id)
       .execute();
   }
-
-  // ---------- Yönetim ----------
 
   normalizeTrigger(input: TriggerInput): { type: BanTriggerType; value: string; ip_low: string | null; ip_high: string | null; user_id: number | null } {
     const raw = input.value.trim();
@@ -439,7 +435,6 @@ export class BansService {
     return { items: rows, total: Number(total?.n ?? 0), page, perPage };
   }
 
-  /** Yasak ekranı özeti: aktif yasaklar, yakında bitenler, engellenen denemeler ve en çok engelleyen tetikleyiciler. */
   async stats() {
     const now = this.clock.now();
     const DAY_MS = 86_400_000;
@@ -472,7 +467,6 @@ export class BansService {
     };
   }
 
-  /** Belirli bir üyeye doğrudan uygulanan aktif yasaklar (admin üye sayfası için). */
   async forUser(userId: number) {
     const triggerRows = await this.db.q.selectFrom('ban_triggers').select('ban_id').where('user_id', '=', userId).execute();
     if (!triggerRows.length) return [];

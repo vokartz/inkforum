@@ -1,7 +1,6 @@
 import type { Kysely } from 'kysely';
 import { helpers, intDefault, notNull, ref } from './_helpers.js';
 
-/** Özel mesajlar: konuşmalar, katılımcılar ve mesajlar. */
 export async function up(db: Kysely<any>): Promise<void> {
   const h = helpers(db);
 

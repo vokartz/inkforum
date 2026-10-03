@@ -1,6 +1,5 @@
 import { t } from '$lib/i18n.svelte';
 
-/** Yönetim kayıtlarındaki işlem adlarının Türkçe karşılıkları (pano ve kayıtlar sayfası). */
 const LABELS: Record<string, string> = {
   'achievement.award': 'başarı verdi',
   'achievement.revoke': 'başarı geri aldı',
@@ -57,15 +56,15 @@ const LABELS: Record<string, string> = {
   'webhook.secret': 'webhook anahtarını yeniledi',
   'webhook.delete': 'webhook sildi',
   'social.providers': 'sosyal giriş ayarlarını değiştirdi',
-  'custom.snippet.create': 'özel kod parçacığı ekledi',
-  'custom.snippet.update': 'özel kod parçacığını düzenledi',
-  'custom.snippet.delete': 'özel kod parçacığını sildi',
-  'custom.settings': 'özel kod ayarlarını değiştirdi',
-  'custom.secret.rotate': 'entegrasyon anahtarını yeniledi',
-  'custom.secret.remove': 'entegrasyon anahtarını kaldırdı',
   'custom.page.create': 'özel sayfa oluşturdu',
   'custom.page.update': 'özel sayfayı düzenledi',
   'custom.page.delete': 'özel sayfayı sildi',
+  'extension.install': 'eklenti kurdu',
+  'extension.update': 'eklentiyi güncelledi',
+  'extension.enable': 'eklentiyi açtı',
+  'extension.disable': 'eklentiyi kapattı',
+  'extension.uninstall': 'eklentiyi kaldırdı',
+  'extension.settings': 'eklenti ayarlarını değiştirdi',
   'notification.broadcast': 'toplu bildirim gönderdi',
   'permissions.update': 'yetkileri değiştirdi',
   'permissions.copy': 'yetkileri kopyaladı',

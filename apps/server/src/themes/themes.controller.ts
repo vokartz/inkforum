@@ -10,11 +10,9 @@ const createSchema = z.object({
   name: z.string().trim().min(1, 'Tema adı gerekli.').max(60),
   preset: z.string().trim().max(40).nullable().default(null),
   copyOf: z.number().int().positive().nullable().default(null),
-  /** İçe aktarılan tema (dışa aktarılan JSON) */
   data: themeInput.nullable().default(null),
 });
 
-/** Yönetim → Temalar (tema stüdyosu) */
 @Controller('admin/themes')
 export class ThemesController {
   constructor(private readonly themes: ThemesService) {}

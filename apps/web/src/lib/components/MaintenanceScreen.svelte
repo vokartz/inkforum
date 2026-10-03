@@ -10,10 +10,6 @@
   import { cn } from '$lib/utils';
   import { t } from '$lib/i18n.svelte';
 
-  /**
-   * Bakım modu ekranı. Ziyaretçilere ve Yönetim → Bakım sayfası önizlemesinde aynı bileşen çizilir.
-   * `preview`: çerçeve içinde (tam ekran değil), betikler ve otomatik yenileme çalışmaz.
-   */
   interface Props {
     cfg: MaintenancePage;
     forumName: string;
@@ -30,7 +26,6 @@
   const title = $derived(cfg.title.trim() || t('{name} bakımda', { name: forumName }));
   const bg = $derived(cfg.background);
 
-  /** Arka plan katmanı (theme = sitenin kendi zemini) */
   const bgStyle = $derived(
     bg.kind === 'color'
       ? `background:${bg.color}`
@@ -40,13 +35,10 @@
           ? `background:#0b0b0f url("${bg.image.replace(/["\\]/g, '')}") center/cover no-repeat`
           : '',
   );
-  // Yazı rengi: koyu zeminlerde açık, sitenin zemininde temaya göre
   const light = $derived(cfg.text === 'light' || (cfg.text === 'auto' && bg.kind !== 'theme'));
   const dark = $derived(cfg.text === 'dark');
-  /** Bölünmüş düzende zemin sol panelde, içerik sitenin zemininde */
   const split = $derived(cfg.layout === 'split');
 
-  // Geri sayım
   let now = $state(Date.now());
   const left = $derived(cfg.endsAt ? Math.max(0, cfg.endsAt - now) : 0);
   const parts = $derived([
@@ -58,7 +50,6 @@
   onMount(() => {
     const timer = setInterval(() => {
       now = Date.now();
-      // Süre dolunca site açılmış olabilir: sayfa bir kez yenilenir
       if (!preview && cfg.endsAt && now >= cfg.endsAt + 3000 && now - cfg.endsAt < 60_000) location.reload();
     }, 1000);
     return () => clearInterval(timer);

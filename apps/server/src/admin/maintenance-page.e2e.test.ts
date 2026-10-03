@@ -33,7 +33,6 @@ describe('maintenance page', () => {
     const page = h.settings.get('general.maintenancePage');
     expect(page).toMatchObject({ title: 'Birazdan döneceğiz', layout: 'split', progress: 40, icon: 'wrench' });
     expect(page.background).toMatchObject({ kind: 'gradient', from: '#111111', angle: 135 });
-    // Ziyaretçi API'si kapalı, ama site ayarları (sayfayı çizmek için) açık
     expect((await ali.get('/api/forum')).status).toBe(503);
     const viewer = await h.agent().get('/api/auth/me');
     expect(viewer.body.settings['general.maintenancePage'].title).toBe('Birazdan döneceğiz');

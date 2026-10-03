@@ -73,8 +73,6 @@
   };
   const allBoards = $derived(tree ? tree.categories.flatMap((c) => c.boards.map((b) => ({ ...b, category: c.name }))) : []);
 
-  // ---------- Sıralama (sürükle-bırak) ----------
-
   async function persist() {
     const flatten = (nodes: Node[], parentId: number | null): Array<{ id: number; parentId: number | null }> =>
       nodes.flatMap((n) => [{ id: n.id, parentId }, ...flatten(n.children, n.id)]);
@@ -96,8 +94,6 @@
     owner[key] = e.detail.items;
     if (final && e.detail.info.trigger === 'droppedIntoZone') void persist();
   }
-
-  // ---------- Kategoriler ----------
 
   let catOpen = $state(false);
   let catEdit = $state<{ id: number | null; name: string; description: string; isCollapsible: boolean; background: string | null }>({
@@ -174,8 +170,6 @@
     }
   }
 
-  // ---------- Bölüm silme ----------
-
   let delBoard = $state<Node | null>(null);
   let delTarget = $state<number | null>(null);
   async function confirmDeleteBoard() {
@@ -189,8 +183,6 @@
       toast.error(errorMessage(err));
     }
   }
-
-  // ---------- Önekler ----------
 
   const PALETTE = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#64748b'];
   let pxOpen = $state(false);

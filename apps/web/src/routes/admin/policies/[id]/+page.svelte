@@ -25,7 +25,6 @@
   let bodyMd = $state('');
   let requiresReacceptance = $state(true);
   let changeNote = $state('');
-  // SSR sırasında da dolu gelmesi için hemen çalıştırılır; veri değişince yeniden eşitlenir.
   function syncState1() {
     if (!latest) return;
     title = latest.title;

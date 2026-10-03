@@ -10,7 +10,6 @@
   let show = $state(false);
 
   onMount(() => {
-    // Yalnızca zorunlu çerezler kullanıldığından onay değil bilgilendirme gösterilir; kapatınca bir yıl hatırlanır.
     show = !document.cookie.split('; ').some((c) => c.startsWith(`${KEY}=`));
   });
 

@@ -13,7 +13,6 @@ const editTopicSchema = z.object({
   prefixId: z.number().int().positive().nullable().optional(),
 });
 
-/** Konu moderasyonu (yetkiler bölüm bazında serviste kontrol edilir). */
 @Controller('mod/topics')
 @RequireAuth()
 export class ForumModController {
@@ -83,7 +82,6 @@ export class ForumModController {
     return { items: await this.mod.members(v, id) };
   }
 
-  /** Genel bayrak uç noktası en sonda: ':id/move' gibi özel yolları gölgelemesin. */
   @Post(':id/:flag')
   @HttpCode(200)
   async flag(

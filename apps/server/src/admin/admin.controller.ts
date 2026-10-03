@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, HttpCode, Inject, Param, Post, Put, Query } from '@nestjs/common';
 import { z } from 'zod';
-import { MAIL_TEMPLATE_KEYS, maintenancePageInput, type MaintenancePageInput, SETTINGS, SETTING_KEYS, SETTING_SECTIONS, mailTemplateSchema, mailTransportInput, type MailTemplateKey, type MailTransportInput } from '@forum/shared';
+import { MAIL_TEMPLATE_KEYS, onboardingInput, type AdminOnboarding, type OnboardingInput, maintenancePageInput, type MaintenancePageInput, SETTINGS, SETTING_KEYS, SETTING_SECTIONS, mailTemplateSchema, mailTransportInput, type MailTemplateKey, type MailTransportInput } from '@forum/shared';
 import { sql } from 'kysely';
 import { ZodPipe, parse } from '../common/validation.js';
 import { AdminEndpoint, RequirePermission } from '../common/decorators.js';
@@ -18,6 +18,7 @@ import { GroupsService } from '../groups/groups.service.js';
 import { UsersService } from '../users/users.service.js';
 import { UpdatesService } from '../updates/updates.service.js';
 import { SystemInfoService } from '../maintenance/system-info.service.js';
+import { ExtensionsService } from '../extensions/extensions.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { ONLINE_WINDOW_MS } from '../profiles/profiles.service.js';
 import { fromJson } from '../database/json.js';
@@ -51,14 +52,13 @@ export class AdminController {
     private readonly notifications: NotificationsService,
     private readonly updates: UpdatesService,
     private readonly system_: SystemInfoService,
+    private readonly extensions: ExtensionsService,
   ) {}
 
-  /** Yönetim paneli kabuğu: yükseltme gerekmeden erişim ve oturumun yükseltme durumu. */
   @Get('access')
   @RequirePermission('admin.access')
   async access(@CurrentViewer() v: RequestViewer) {
     const until = v.session?.elevated_until ?? 0;
-    // Menüdeki "bekleyen iş" rozetleri (ucuz sayımlar)
     const count = async (q: any) => Number((await q.select((eb: any) => eb.fn.countAll().as('n')).executeTakeFirst())?.n ?? 0);
     const [pendingUsers, pendingPosts, groupRequests, failedJobs] = await Promise.all([
       count(this.db.q.selectFrom('users').where('status', '=', 'pending_approval').where('deleted_at', 'is', null)),
@@ -71,7 +71,35 @@ export class AdminController {
       elevatedUntil: until > this.clock.now() ? until : null,
       badges: { pendingUsers, pendingPosts, groupRequests, failedJobs },
       version: await this.updates.summary(),
+      extensions: this.extensions.adminMenu(v),
+      onboarding: await this.onboarding(v.user!.id),
     };
+  }
+
+  private async onboarding(userId: number): Promise<AdminOnboarding> {
+    const row = await this.db.q.selectFrom('system_state').select('value').where('key', '=', `admin-onboarding:${userId}`).executeTakeFirst();
+    const state = fromJson<{ tourDoneAt?: number | null; seenVersion?: string | null }>(row?.value ?? '{}', {});
+    return { tourDoneAt: state.tourDoneAt ?? null, seenVersion: state.seenVersion ?? null, currentVersion: this.config.version };
+  }
+
+  @Post('onboarding')
+  @HttpCode(200)
+  @RequirePermission('admin.access')
+  async saveOnboarding(@Body(new ZodPipe(onboardingInput)) body: OnboardingInput, @CurrentViewer() v: RequestViewer) {
+    const userId = v.user!.id;
+    const cur = await this.onboarding(userId);
+    const next = {
+      tourDoneAt: body.tour === 'done' ? this.clock.now() : body.tour === 'reset' ? null : cur.tourDoneAt,
+      seenVersion: body.seenVersion ?? cur.seenVersion,
+    };
+    const value = JSON.stringify(next);
+    const now = this.clock.now();
+    await this.db.q
+      .insertInto('system_state')
+      .values({ key: `admin-onboarding:${userId}`, value, updated_at: now })
+      .onConflict((oc) => oc.column('key').doUpdateSet({ value, updated_at: now }))
+      .execute();
+    return { ...next, currentVersion: this.config.version };
   }
 
   @Get('dashboard')
@@ -106,7 +134,6 @@ export class AdminController {
       .execute();
     const summaries = await this.users.summaries(latest.map((r) => r.id));
 
-    // Son 14 günün kayıt grafiği
     const since = now - 14 * DAY;
     const regs = await this.db.q.selectFrom('users').select('registered_at').where('registered_at', '>=', since).where('deleted_at', 'is', null).execute();
     const buckets: Array<{ day: string; count: number }> = [];
@@ -120,7 +147,6 @@ export class AdminController {
       if (b) b.count++;
     }
 
-    // Forum etkinliği: son 14 günün mesajları, toplamlar, onay bekleyenler
     const postRows = await this.db.q
       .selectFrom('posts')
       .select('created_at')
@@ -149,7 +175,6 @@ export class AdminController {
       if (b) b.count++;
     }
 
-    // Son yönetim ve moderasyon işlemleri
     const actions = await this.db.q
       .selectFrom('audit_log')
       .select(['id', 'log_type', 'action', 'actor_id', 'target_type', 'target_id', 'created_at'])
@@ -189,8 +214,6 @@ export class AdminController {
     return this.system_.full(v.locale);
   }
 
-  // ----- Ayarlar -----
-
   @Get('settings')
   @AdminEndpoint('admin.settings')
   getSettings() {
@@ -222,8 +245,6 @@ export class AdminController {
     }
     return { changed };
   }
-
-  // ----- Kayıtlar -----
 
   @Get('logs')
   @AdminEndpoint('admin.logs.view')
@@ -258,22 +279,17 @@ export class AdminController {
     };
   }
 
-  // ----- Bakım modu ve bakım sayfası -----
-
   @Put('maintenance/page')
   @AdminEndpoint('admin.maintenance')
   async saveMaintenancePage(@Body(new ZodPipe(maintenancePageInput)) body: MaintenancePageInput, @CurrentViewer() v: RequestViewer) {
     const { enabled, message, ...page } = body;
     const current = this.settings.get('general.maintenancePage');
-    // Ham HTML/CSS yalnızca özel kod yetkisiyle değişir; yetkisiz kayıtta mevcut kod korunur
     if ((page.html !== current.html || page.css !== current.css) && !(v.isAdmin || can(v, 'admin.customCode'))) {
-      throw Errors.forbidden('Özel HTML/CSS için "Özel kod" yetkisi gerekli.');
+      throw Errors.forbidden('Özel HTML/CSS için "Kod düzenleme" yetkisi gerekli.');
     }
     await this.settings.update({ 'general.maintenanceMode': enabled, 'general.maintenanceMessage': message, 'general.maintenancePage': page }, v.user!.id, { allowHidden: true });
     return { ok: true };
   }
-
-  // ----- İşler / görevler -----
 
   @Get('jobs')
   @AdminEndpoint('admin.maintenance')
@@ -310,8 +326,6 @@ export class AdminController {
       .executeTakeFirst();
     return { retried: Number(r.numUpdatedRows) };
   }
-
-  // ----- E-posta -----
 
   @Post('mail/test')
   @HttpCode(200)
@@ -372,7 +386,6 @@ export class AdminController {
     return { ok: true };
   }
 
-  /** Önizleme (kaydetmeden, örnek değerlerle); `to` verilirse test olarak gönderilir. */
   @Post('mail/templates/:key/preview')
   @HttpCode(200)
   @AdminEndpoint('admin.settings')
@@ -397,8 +410,6 @@ export class AdminController {
   outbox() {
     return { driver: this.mail.driver(), items: [...this.mail.outbox].reverse().map(({ html: _h, ...m }) => m) };
   }
-
-  // ----- Bakım -----
 
   @Post('maintenance')
   @HttpCode(200)
@@ -428,11 +439,9 @@ export class AdminController {
         await this.db.q.deleteFrom('sessions').where('expires_at', '<', this.clock.now()).execute();
         break;
       case 'cleanup_notifications':
-        // Okunmuş ve 90 günden eski bildirimler
         await this.db.q.deleteFrom('notifications').where('read_at', 'is not', null).where('created_at', '<', this.clock.now() - 90 * DAY).execute();
         break;
       case 'cleanup_logs':
-        // 1 yıldan eski denetim kayıtları (güvenlik kayıtları hariç)
         await this.db.q.deleteFrom('audit_log').where('log_type', '!=', 'security').where('created_at', '<', this.clock.now() - 365 * DAY).execute();
         break;
       case 'optimize_db':

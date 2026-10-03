@@ -9,7 +9,6 @@
     label: string;
     value: number;
     icon: IconComponent;
-    /** Günlük seri (son 14 gün); trend son 7 gün / önceki 7 gün */
     series?: number[] | null;
     hint?: string | null;
     href?: string;
@@ -28,7 +27,6 @@
     return { pct: Math.abs(pct), up: pct >= 0, cur };
   });
 
-  // Küçük alan grafiği
   const W = 96;
   const H = 36;
   const path = $derived.by(() => {

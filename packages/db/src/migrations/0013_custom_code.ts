@@ -1,7 +1,6 @@
 import type { Kysely } from 'kysely';
 import { flag, helpers, intDefault, notNull, textDefault } from './_helpers.js';
 
-/** Özel sayfalar ve özel kod alanları (HTML / CSS / JS parçacıkları, UCP entegrasyonları). */
 export async function up(db: Kysely<any>): Promise<void> {
   const h = helpers(db);
 

@@ -31,7 +31,6 @@
   let { data } = $props();
   let tab = $state('templates');
 
-  // ---------- Şablonlar ----------
   let selectedKey = $state(untrack(() => data.templates[0]?.key ?? ''));
   const selected = $derived(data.templates.find((t) => t.key === selectedKey) ?? null);
   let subject = $state('');
@@ -42,7 +41,6 @@
     body = t?.body ?? '';
     snapshot = `${subject}\n${body}`;
   }
-  // İlk çizimde (sunucuda da) dolu gelsin; kaydetme sonrası yeni veriyle yeniden doldurulur.
   fill(untrack(() => selected));
   let lastData = untrack(() => data.templates);
   $effect(() => {
@@ -112,7 +110,6 @@
       await navigator.clipboard.writeText(`{{${k}}}`);
       toast.success(t('{name} kopyalandı.', { name: `{{${k}}}` }));
     } catch {
-      /* pano yok */
     }
   }
   async function choose(key: AdminMailTemplate['key']) {
@@ -136,7 +133,6 @@
     { id: 'notification', label: 'Bildirimler', icon: BellIcon },
   ];
 
-  // ---------- Gönderim testi ----------
   let to = $state(untrack(() => data.viewer.user?.email ?? ''));
   const form = createForm();
   const driverLabels: Record<string, string> = {

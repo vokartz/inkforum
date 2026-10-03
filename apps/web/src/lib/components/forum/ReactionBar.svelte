@@ -23,7 +23,6 @@
   }
   let { postId, defs, reactions: initial, myReaction: initialMine, canReact, loggedIn }: Props = $props();
 
-  // Sunucudan gelen değer; tıklayınca yerelde (iyimser) güncellenir, sayfa verisi yenilenince yeniden eşitlenir.
   let reactions = $derived<PostReactionCount[]>(initial);
   let mine = $derived<number | null>(initialMine);
 
@@ -38,7 +37,6 @@
     if (busy) return;
     busy = true;
     pickerOpen = false;
-    // İyimser güncelleme
     const prevR = reactions;
     const prevM = mine;
     const next = mine === id ? null : id;
@@ -63,7 +61,6 @@
     }
   }
 
-  // Tepki verenler (üzerine gelince yüklenir)
   let who = $state<ReactionUserItem[] | null>(null);
   let whoTab = $state<number | null>(null);
   async function loadWho() {

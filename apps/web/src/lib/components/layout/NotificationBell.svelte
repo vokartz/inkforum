@@ -17,7 +17,6 @@
   import { onMount } from 'svelte';
   import { t } from '$lib/i18n.svelte';
 
-  // `unread` sayfa verisinden gelir; güncel değer ortak sayaçtan okunur.
   let { unread: _initial = 0, class: className }: { unread?: number; class?: string } = $props();
   const unread = $derived(counters.notifications);
 
@@ -35,7 +34,6 @@
     }
   }
 
-  // Açıkken yeni bildirim gelirse liste yenilenir
   onMount(() => {
     const onEvent = (e: Event) => {
       if ((e as CustomEvent<{ type: string }>).detail.type === 'notification' && open) void load();

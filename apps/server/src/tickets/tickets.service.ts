@@ -41,7 +41,6 @@ const ids = (json: string): number[] => {
   }
 };
 
-/** Eklenti ilk açıldığında oluşturulan kategoriler */
 const DEFAULT_CATEGORIES: Array<{ name: string; description: string; icon: string; color: string; priority: 'normal' | 'high' }> = [
   { name: 'Genel destek', description: 'Forum ya da topluluk hakkında her türlü soru.', icon: 'lifebuoy', color: '#3b82f6', priority: 'normal' },
   { name: 'Hesap sorunları', description: 'Giriş, şifre, e-posta ve hesap ayarları.', icon: 'user-circle', color: '#8b5cf6', priority: 'normal' },
@@ -69,9 +68,6 @@ export class TicketsService {
     return { url: this.storage.publicUrl(saved)! };
   }
 
-  // ---------- Kategoriler ----------
-
-  /** Varsayılan kategoriler (yöneticiler ve genel moderatörler sorumlu) — yalnızca bir kez */
   async ensureDefaults(actorId: number | null = null): Promise<void> {
     if (this.settings.get('tickets.seeded')) return;
     const any = await this.db.q.selectFrom('ticket_categories').select('id').executeTakeFirst();
@@ -111,7 +107,6 @@ export class TicketsService {
     return v.groupIds.some((g) => handlers.includes(g));
   }
 
-  /** Görevli olunan kategoriler */
   private staffCategories(v: RequestViewer, cats: CatRow[]): number[] {
     return cats.filter((c) => this.isStaff(v, c)).map((c) => c.id);
   }
@@ -153,7 +148,6 @@ export class TicketsService {
     }));
   }
 
-  /** Seçili sorumlu gruplardaki yetkililer (otomatik atama için seçim listesi) */
   async handlerCandidates(groups: number[]): Promise<UserSummary[]> {
     const people = await this.users.summaries(await this.groupUserIds(groups));
     return [...people.values()].sort((a, b) => a.displayName.localeCompare(b.displayName, 'tr'));
@@ -195,8 +189,6 @@ export class TicketsService {
     await this.audit.log({ type: 'admin', action: 'ticket.category.delete', actorId: v.user!.id, ip: v.ip, data: { id } });
   }
 
-  // ---------- Talepler ----------
-
   private async items(rows: TicketRow[], cats?: CatRow[]): Promise<TicketItem[]> {
     const catMap = new Map((cats ?? (await this.catRows())).map((c) => [c.id, c]));
     const people = await this.users.summaries(rows.flatMap((r) => [r.user_id, r.assignee_id ?? 0]));
@@ -224,7 +216,6 @@ export class TicketsService {
     return this.items(rows);
   }
 
-  /** Destek masası: görevli olunan kategorilerdeki talepler */
   async desk(v: RequestViewer, q: { status?: string; categoryId?: number; page: number }): Promise<TicketDesk> {
     const cats = await this.catRows();
     const allowed = this.staffCategories(v, cats);
@@ -237,7 +228,6 @@ export class TicketsService {
     else if (q.status === 'unassigned') base = base.where('assignee_id', 'is', null).where('status', 'in', ACTIVE);
     else if (q.status !== 'all') base = base.where('status', '=', q.status as TicketStatus);
     const [rows, total, statusCounts, mine, unassigned] = await Promise.all([
-      // Önce acil olanlar ve en uzun süredir bekleyenler
       base
         .selectAll()
         .orderBy((eb) => eb.case().when('priority', '=', 'urgent').then(0).when('priority', '=', 'high').then(1).when('priority', '=', 'normal').then(2).else(3).end())
@@ -271,7 +261,6 @@ export class TicketsService {
     const open = await this.db.q.selectFrom('tickets').select((eb) => eb.fn.countAll<number>().as('n')).where('user_id', '=', v.user!.id).where('status', 'in', ACTIVE).executeTakeFirst();
     const max = this.settings.get('tickets.maxOpenPerUser');
     if (Number(open?.n ?? 0) >= max) throw Errors.forbidden(`En fazla ${max} açık talebiniz olabilir; önce mevcut taleplerin kapanmasını bekleyin.`);
-    // Üyeler acil öncelik seçemez (yetkililer değiştirebilir)
     const priority = input.priority === 'urgent' ? 'high' : input.priority;
     const now = this.clock.now();
     const assignee = await this.pickAssignee(cat, v.user!.id);
@@ -284,16 +273,11 @@ export class TicketsService {
       await this.db.q.insertInto('ticket_messages').values({ ticket_id: t.id, user_id: v.user!.id, body: input.body, body_html: this.render.post(input.body).html, created_at: now }).execute();
       return t.id;
     });
-    // Otomatik atandıysa yalnızca sorumlu yetkili, değilse kategorinin tüm yetkilileri bildirim alır
     await this.notifyHandlers(cat, assignee, { ticketId: id, subject: input.subject, actorName: v.user!.display_name }, v.user!.id, 'ticket.new');
     if (assignee) await this.audit.log({ type: 'moderation', action: 'ticket.auto_assign', actorId: null, data: { id, assigneeId: assignee, mode: cat.auto_assign } });
     return { id };
   }
 
-  /**
-   * Otomatik atama: kategorinin yetkilileri arasından (talebi açan hariç) sırayla, en az açık talebi
-   * olana ya da sabit kişiye. "Önce çevrimiçi" açıksa son 15 dakikada aktif olanlar tercih edilir.
-   */
   private async pickAssignee(cat: CatRow, requesterId: number): Promise<number | null> {
     if (cat.auto_assign === 'none') return null;
     let pool = (await this.handlerUserIds(cat)).filter((id) => id !== requesterId);
@@ -318,7 +302,6 @@ export class TicketsService {
       const load = new Map(counts.map((c) => [c.assignee_id!, Number(c.n)]));
       return [...pool].sort((a, b) => (load.get(a) ?? 0) - (load.get(b) ?? 0) || a - b)[0]!;
     }
-    // Sırayla: bu kategoride en son atanan yetkiliden sonraki
     const last = await this.db.q.selectFrom('tickets').select('assignee_id').where('category_id', '=', cat.id).where('assignee_id', 'is not', null).orderBy('id', 'desc').limit(1).executeTakeFirst();
     const next = pool.find((id) => id > (last?.assignee_id ?? 0));
     return next ?? pool[0]!;
@@ -328,7 +311,6 @@ export class TicketsService {
     return this.groupUserIds(ids(cat.handler_group_ids_json));
   }
 
-  /** Verilen grupların (boşsa yönetici grubunun) etkin üyeleri */
   private async groupUserIds(groups: number[]): Promise<number[]> {
     let groupIds = groups;
     if (!groupIds.length) groupIds = (await this.groupCache.all()).filter((g) => g.system_key === 'admin').map((g) => g.id);
@@ -351,7 +333,6 @@ export class TicketsService {
     return rows.map((r) => r.id);
   }
 
-  /** Atanmış yetkili varsa ona, yoksa kategorinin sorumlularına */
   private async notifyHandlers(cat: CatRow, assigneeId: number | null, data: Record<string, unknown>, actorId: number, type: 'ticket.new' | 'ticket.reply'): Promise<void> {
     const targets = assigneeId ? [assigneeId] : await this.handlerUserIds(cat);
     for (const id of targets) if (id !== actorId) await this.notifications.notify(id, type, data, actorId);
@@ -400,7 +381,6 @@ export class TicketsService {
     if (!staff && (!own || t.status === 'closed')) throw Errors.forbidden('Bu talebe yanıt yazamazsınız.');
     const internal = staff && input.internal;
     const now = this.clock.now();
-    // Durum: yetkili yanıtı → "Yanıtlandı", üye yanıtı → "Yanıt bekliyor"; yetkili isterse başka durum seçebilir
     const byStaff = staff && !own;
     const nextStatus: TicketStatus = internal ? t.status : staff && input.status ? input.status : byStaff ? 'answered' : 'customer_reply';
     await this.db.tx(async () => {
@@ -414,7 +394,6 @@ export class TicketsService {
           message_count: eb('message_count', '+', 1),
           updated_at: now,
           ...(internal ? {} : { last_reply_at: now, last_reply_by_staff: byStaff ? 1 : 0, status: nextStatus, closed_at: nextStatus === 'closed' ? now : null }),
-          // Yanıtlayan yetkili, atanmamış talebi üstlenir
           ...(byStaff && !t.assignee_id && !internal ? { assignee_id: v.user!.id } : {}),
         }))
         .where('id', '=', id)
@@ -428,7 +407,6 @@ export class TicketsService {
   async update(v: RequestViewer, id: number, input: TicketUpdateInput): Promise<void> {
     const { t, staff, cats } = await this.load(v, id);
     const own = t.user_id === v.user!.id;
-    // Üye yalnızca kendi talebini kapatıp yeniden açabilir
     if (!staff) {
       const keys = Object.keys(input).filter((k) => input[k as keyof TicketUpdateInput] !== undefined);
       const closing = input.status === 'closed' && this.settings.get('tickets.allowUserClose') && t.status !== 'closed';
@@ -459,7 +437,6 @@ export class TicketsService {
     if (staff) await this.audit.log({ type: 'moderation', action: 'ticket.update', actorId: v.user!.id, ip: v.ip, data: { id, ...input } });
   }
 
-  /** Menü rozeti: yetkililer için yanıt bekleyen, üyeler için yanıtlanmış talepler */
   async counts(v: RequestViewer): Promise<{ desk: number | null; mine: number }> {
     const cats = await this.catRows();
     const allowed = this.staffCategories(v, cats);

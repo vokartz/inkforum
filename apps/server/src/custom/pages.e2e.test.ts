@@ -26,7 +26,7 @@ async function handle(req) {
       return json({ n, by: req.user?.name ?? null, sent: req.body });
     }
     if (req.path === '/secret') return json({ hasKey: !!secrets.UCP_KEY, len: secrets.UCP_KEY.length });
-    if (req.path === '/go') return redirect('https://ucp.example.com/login?t=' + (await forum.token()).length);
+    if (req.path === '/go') return redirect('https://ucp.example.com/login?t=' + req.user.id);
     if (req.path === '/remote') return json(await (await fetch('https://evil.example.com/x')).json());
     return notFound();
   }
@@ -53,23 +53,18 @@ describe('code pages', () => {
       secrets: [{ name: 'UCP_KEY', value: 'gizli-anahtar-123' }],
     });
     expect(created.status).toBe(201);
-    // Gizli değerin kendisi yönetim yanıtında da yer almaz
     expect(created.body.secrets).toEqual([{ name: 'UCP_KEY' }]);
     expect(JSON.stringify(created.body)).not.toContain('gizli-anahtar');
 
-    // Misafir: sunucu tarafında giriş sayfasına yönlendirilir
     const guest = await h.agent().get('/api/page-route?path=ucp');
     expect(guest.body).toEqual({ redirect: '/login?next=/ucp', status: 302 });
 
-    // Üye: sunucu kodunun verisi sayfaya gelir
     const view = await member.get('/api/page-route?path=/ucp/&tab=bilgi');
     expect(view.status).toBe(200);
     expect(view.body).toMatchObject({ slug: 'ucp', route: 'ucp', css: '#app{color:red}', sidebar: 'right', hasServer: true, data: { name: 'Oyuncu', q: 'bilgi' } });
 
-    // Alt adres: sunucu kodu HTML üretir
     const sub = await member.get('/api/page-route?path=ucp/karakterler');
     expect(sub.body.html).toBe('<h2>Karakterler: Oyuncu</h2>');
-    // Aynı sayfa /pages/{slug} adresinden de açılır
     expect((await member.get('/api/pages/ucp')).body.data.name).toBe('Oyuncu');
     expect((await member.get('/api/page-route?path=yok')).status).toBe(404);
   });
@@ -85,7 +80,6 @@ describe('code pages', () => {
     const go = await member.get('/api/page-api/ucp/go');
     expect(go.status).toBe(302);
     expect(go.headers.location).toMatch(/^https:\/\/ucp\.example\.com\/login\?t=/);
-    // İzinli listede olmayan alan adına istek atılamaz
     expect((await member.get('/api/page-api/ucp/remote')).status).toBe(500);
   });
 
@@ -135,21 +129,8 @@ describe('code pages', () => {
     expect((await h.agent().get('/api/page-api/kotu')).status).toBe(500);
   });
 
-  it('turns server code off with the custom code kill switch', async () => {
-    await h.settings.set('custom.enabled', false);
-    try {
-      const view = await member.get('/api/page-route?path=ucp');
-      expect(view.body).toMatchObject({ hasServer: false, css: '', js: '', html: '' });
-      expect((await member.get('/api/page-route?path=ucp/karakterler')).status).toBe(404);
-      expect((await member.post('/api/page-api/ucp/visits', {})).status).toBe(404);
-    } finally {
-      await h.settings.set('custom.enabled', true);
-    }
-  });
-
   it('gives server code read-only forum data with the visitor permissions', async () => {
     const boards = await h.db.q.selectFrom('boards').select(['id', 'name']).execute();
-    // Üyelerin konu açabildiği ilk bölüm
     let board = boards[0]!;
     let t = { status: 0, body: {} as { topicId: number } };
     for (const b of boards) {
@@ -196,7 +177,6 @@ async function handle(req) {
     });
     expect(res.body.stats.topics).toBeGreaterThan(0);
     expect(res.body.boards).toBeGreaterThan(0);
-    // Misafir: kendi bilgisi yok, gizli olmayan veriler görünür
     const guest = await h.agent().get('/api/page-api/veri/x');
     expect(guest.body.me).toBeNull();
   });

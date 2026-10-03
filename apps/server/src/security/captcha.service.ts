@@ -13,11 +13,6 @@ const VERIFY_URL: Record<'turnstile' | 'hcaptcha' | 'recaptcha', string> = {
   recaptcha: 'https://www.google.com/recaptcha/api/siteverify',
 };
 
-/**
- * Giriş / kayıt / şifre sıfırlama formlarında isteğe bağlı captcha.
- * Yerleşik soru: cevap sunucuda imzalı belirtece gömülür (durum tutulmaz); kullanılan belirteçler
- * süreleri dolana kadar bellekte tutulur, aynı yanıt ikinci kez geçmez.
- */
 @Injectable()
 export class CaptchaService {
   private readonly used = new Map<string, number>();
@@ -33,7 +28,6 @@ export class CaptchaService {
     return this.settings.get('captcha.config');
   }
 
-  /** Yerleşik soru: "7 + 5 kaç eder?" */
   challenge(): { token: string; question: string } {
     const a = randomInt(2, 10);
     const b = randomInt(1, 10);
@@ -43,7 +37,6 @@ export class CaptchaService {
     return { token: `${payload}.${this.crypto.sign(payload)}`, question: `${a} ${plus ? '+' : '−'} ${b} = ?` };
   }
 
-  /** Form gerektiriyorsa doğrular; geçmezse `captcha` alan hatası verir */
   async verify(form: CaptchaForm, response: string | undefined, ip: string | null): Promise<void> {
     const cfg = this.config();
     if (!captchaRequired(cfg, form)) return;
@@ -71,14 +64,13 @@ export class CaptchaService {
 
   private async verifyRemote(provider: keyof typeof VERIFY_URL, token: string, ip: string | null, siteKey: string): Promise<boolean> {
     const enc = this.settings.get('captcha.secretEnc');
-    if (!enc) return true; // gizli anahtar yoksa captcha zaten istenmez (yönetim ekranı uyarır)
+    if (!enc) return true;
     try {
       const body = new URLSearchParams({ secret: this.crypto.decrypt(enc), response: token, ...(ip ? { remoteip: ip } : {}), ...(provider === 'hcaptcha' ? { sitekey: siteKey } : {}) });
       const res = await fetch(VERIFY_URL[provider], { method: 'POST', body, signal: AbortSignal.timeout(8000) });
       const json = (await res.json()) as { success?: boolean };
       return json.success === true;
     } catch {
-      // Doğrulama servisine ulaşılamadı: üyeleri kilitlememek için geçirilir
       return true;
     }
   }

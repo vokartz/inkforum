@@ -28,11 +28,11 @@ export default ts.config(
     languageOptions: { globals: { ...globals.browser, ...globals.node } },
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
+      'no-empty': ['error', { allowEmptyCatch: true }],
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
-      'svelte/no-at-html-tags': 'off', // yalnızca sunucuda güvenli hale getirilmiş Markdown çıktısı için kullanılıyor
+      'svelte/no-at-html-tags': 'off',
       'svelte/require-each-key': 'warn',
       'svelte/no-navigation-without-resolve': 'off',
-      // Fonksiyon içindeki geçici URLSearchParams nesneleri reaktif durum değildir.
       'svelte/prefer-svelte-reactivity': 'off',
     },
   },

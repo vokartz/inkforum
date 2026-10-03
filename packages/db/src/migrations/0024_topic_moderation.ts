@@ -1,10 +1,6 @@
 import type { Kysely } from 'kysely';
 import { flag, textDefault } from './_helpers.js';
 
-/**
- * Gizli konular (yalnızca yazarı ve yetkililer görür), bölüm bazında "konular gizli" seçeneği ve
- * konu şablonu (yeni konu açarken sorulan sorular; JSON).
- */
 export async function up(db: Kysely<any>): Promise<void> {
   await db.schema.alterTable('topics').addColumn('is_hidden', 'smallint', flag(0)).execute();
   await db.schema.alterTable('boards').addColumn('private_topics', 'smallint', flag(0)).execute();

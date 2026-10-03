@@ -1,10 +1,3 @@
-/**
- * Küçük ve güvenli Markdown dönüştürücü (sürüm notları, değişiklik günlüğü).
- * Ham HTML desteklenmez: tüm metin önce kaçışlanır, yalnızca bilinen sözdizimi etikete çevrilir.
- * Desteklenenler: başlıklar, paragraflar, madde / numaralı listeler (iç içe), alıntı, kod bloğu,
- * satır içi kod, kalın, italik, üstü çizili, bağlantılar ve yatay çizgi.
- */
-
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
 function safeHref(raw: string): string | null {
@@ -15,18 +8,15 @@ function safeHref(raw: string): string | null {
 }
 
 function inline(src: string): string {
-  // Satır içi kodu ayır (içinde başka biçimlendirme uygulanmaz)
   const parts = src.split(/(`[^`]+`)/g);
   return parts
     .map((part) => {
       if (/^`[^`]+`$/.test(part)) return `<code>${esc(part.slice(1, -1))}</code>`;
       let s = esc(part);
-      // [metin](adres)
       s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_m, text: string, href: string) => {
         const h = safeHref(href.replace(/&amp;/g, '&'));
         return h ? `<a href="${esc(h)}" target="_blank" rel="noopener noreferrer nofollow">${text}</a>` : text;
       });
-      // Çıplak adresler (bağlantı içinde olmayanlar)
       s = s.replace(/(^|[\s(])(https?:\/\/[^\s<)]+)/g, (_m, pre: string, url: string) => `${pre}<a href="${url}" target="_blank" rel="noopener noreferrer nofollow">${url}</a>`);
       s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/__([^_]+)__/g, '<strong>$1</strong>');
       s = s.replace(/(^|[^*])\*([^*\s][^*]*)\*/g, '$1<em>$2</em>').replace(/(^|[\s(])_([^_\s][^_]*)_(?=[\s).,!?]|$)/g, '$1<em>$2</em>');
@@ -123,7 +113,6 @@ export function renderMarkdown(md: string): string {
           out.push(`<${type}><li>`);
         }
       }
-      // Görev listesi: - [x] / - [ ]
       const task = /^\[( |x|X)\]\s+(.*)$/.exec(li[3]!);
       out.push(task ? `<span class="md-task" data-done="${task[1] !== ' '}">${inline(task[2]!)}</span>` : inline(li[3]!));
       continue;

@@ -28,7 +28,6 @@
   const sp = $derived(page.url.searchParams);
   const r = $derived(data.results);
 
-  // Form alanları adres çubuğuyla eşitlenir (geri / ileri gezinmede de).
   let q = $state(untrack(() => data.q));
   let type = $state<'topics' | 'posts'>('topics');
   let titleOnly = $state(false);
@@ -81,7 +80,6 @@
     submit();
   }
 
-  /** Aranan ifadeyi vurgular (HTML kaçırılarak). */
   const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
   function hl(text: string): string {
     const raw = (r?.query ?? '').trim();

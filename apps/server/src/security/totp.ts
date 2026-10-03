@@ -1,7 +1,5 @@
 import { createHmac, randomBytes } from 'node:crypto';
 
-/** RFC 6238 TOTP (SHA-1, 6 hane, 30 sn) — Google Authenticator vb. ile uyumlu. */
-
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 export const TOTP_PERIOD_MS = 30_000;
 
@@ -59,10 +57,6 @@ export function totpCode(secretBase32: string, nowMs: number): string {
   return hotp(base32Decode(secretBase32), totpStep(nowMs));
 }
 
-/**
- * Kodu ±1 adım toleransla doğrular. Eşleşen adımı döner (tekrar kullanım kontrolü için),
- * eşleşme yoksa null.
- */
 export function verifyTotp(secretBase32: string, code: string, nowMs: number, window = 1): number | null {
   if (!/^\d{6}$/.test(code)) return null;
   const secret = base32Decode(secretBase32);

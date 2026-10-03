@@ -1,7 +1,5 @@
 import type { PublicSettings } from './settings.js';
 
-/** API yanıt tipleri — sunucu ve istemci ortak kullanır. Tüm zamanlar epoch ms. */
-
 export interface GroupBadge {
   id: number;
   name: string;
@@ -16,10 +14,8 @@ export interface UserSummary {
   displayName: string;
   slug: string;
   avatarUrl: string | null;
-  /** Baskın grubun rengi (isim bu renkte gösterilir). */
   color: string | null;
   customTitle: string | null;
-  /** Baskın (görünen) grup. */
   primaryGroup: GroupBadge | null;
 }
 
@@ -46,15 +42,12 @@ export interface ViewerUser extends UserSummary {
   emailVerified: boolean;
   status: UserStatus;
   timezone: string;
-  /** Üyenin seçtiği arayüz dili ('' = otomatik) */
   language: string;
   theme: 'system' | 'light' | 'dark';
   warningPoints: number;
   achievementPoints: number;
   unreadNotifications: number;
-  /** Okunmamış özel mesaj konuşması */
   unreadMessages: number;
-  /** Sosyal girişle açılmış hesaplarda şifre olmayabilir */
   hasPassword: boolean;
   twoFactorEnabled: boolean;
   groups: GroupBadge[];
@@ -76,7 +69,6 @@ export interface Viewer {
   permissions: string[];
   flags: ViewerFlags;
   settings: PublicSettings;
-  /** Etkin arayüz dili */
   locale: import('./i18n.js').Locale;
   now: number;
 }
@@ -114,13 +106,10 @@ export interface PolicyVersionPublic {
   isRequired: boolean;
   publishedAt: number | null;
   changeNote: string | null;
-  /** Yayımlanmış sürümler (yeniden eskiye) */
   history?: Array<{ version: number; publishedAt: number; changeNote: string | null; requiresReacceptance: boolean }>;
-  /** Giriş yapmış üyenin bu politikayı en son kabul ettiği sürüm */
   accepted?: { version: number; at: number } | null;
 }
 
-/** Politika menüsü (yasal sayfalar kenar çubuğu) */
 export interface PolicySummary {
   key: string;
   title: string;

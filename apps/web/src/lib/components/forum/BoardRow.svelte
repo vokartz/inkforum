@@ -12,12 +12,6 @@
   import { cn } from '$lib/utils';
   import { t, tc } from '$lib/i18n.svelte';
 
-  /**
-   * Bölüm satırı. Üç düzen (Tema stüdyosu → Forum listesi):
-   * - table: simge, ad ve açıklama, iki sayı sütunu, son mesaj (varsayılan)
-   * - cards: kategori içinde ızgara kartlar
-   * - compact: tek satır; sayılar ve son mesaj zamanı satır içinde
-   */
   let { board }: { board: BoardSummary } = $props();
 
   const opts = $derived(themeOptions(page.data.viewer?.settings)?.forumList);

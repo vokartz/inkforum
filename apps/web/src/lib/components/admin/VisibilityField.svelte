@@ -5,7 +5,6 @@
   import Combobox from '../Combobox.svelte';
   import { t } from '$lib/i18n.svelte';
 
-  /** Özel sayfa / parçacık görünürlüğü: herkes, üyeler, misafirler ya da seçili gruplar. */
   let {
     visibility = $bindable('all'),
     groupIds = $bindable([]),

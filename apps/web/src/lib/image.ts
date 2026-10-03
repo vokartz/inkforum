@@ -1,9 +1,5 @@
 import { t } from '$lib/i18n.svelte';
 
-/**
- * Görseli tarayıcıda kare olarak kırpar ve küçültür (sunucu tarafında ağır görsel işleme gerekmesin diye).
- * GIF'ler animasyonu korumak için olduğu gibi gönderilir.
- */
 export async function squareResize(file: File, size: number, focus = { x: 0.5, y: 0.5 }): Promise<Blob> {
   if (file.type === 'image/gif') return file;
   const bitmap = await createImageBitmap(file);

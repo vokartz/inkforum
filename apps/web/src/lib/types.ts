@@ -113,7 +113,6 @@ export interface BanValue {
   triggers: Array<{ type: string; value: string }>;
 }
 
-/** Kayıt formu bilgileri (GET /api/auth/register) */
 export interface RegisterInfo {
   mode: 'open' | 'email' | 'approval' | 'email_approval' | 'closed';
   minAge: number;

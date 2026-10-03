@@ -1,12 +1,9 @@
 import { browser } from '$app/environment';
 
-/** Üyenin tercihi: `system` = "forum varsayılanını kullan". */
 export type ThemePreference = 'system' | 'light' | 'dark';
 
-/** Tema tercihi: <html data-theme> + çerez (misafirler için) + profil (üyeler için). */
 class ThemeState {
   preference = $state<ThemePreference>('system');
-  /** Yönetimin seçtiği varsayılan mod (`system` = cihaz ayarı). */
   forumDefault = $state<ThemePreference>('dark');
   private systemDark = $state(false);
 
@@ -18,7 +15,6 @@ class ThemeState {
     }
   }
 
-  /** <html data-theme> değeri */
   get attr(): ThemePreference {
     return this.preference === 'system' ? this.forumDefault : this.preference;
   }
@@ -44,7 +40,6 @@ class ThemeState {
 
 export const theme = new ThemeState();
 
-/** Renk (#RRGGBB) üzerinde okunaklı yazı rengi. */
 export function readableOn(hex: string): string {
   const m = /^#([0-9a-f]{6})$/i.exec(hex);
   if (!m) return '#111111';
@@ -54,6 +49,5 @@ export function readableOn(hex: string): string {
     return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
   });
   const lum = 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
-  // Daha yüksek kontrastı veren yazı rengi (WCAG): ~0.18 parlaklıkta siyah ve beyaz eşit; doygun renklerde beyaz tercih edilir
   return lum > 0.22 ? '#141414' : '#ffffff';
 }

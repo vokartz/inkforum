@@ -28,10 +28,8 @@ export interface Criterion<C = any> {
   description: string;
   fields: CriterionField[];
   schema: z.ZodType<C>;
-  /** Hangi olaylar bu kriteri yeniden değerlendirmeyi tetikler. `daily` = günlük görev. */
   triggers: Array<AppEventName | 'daily'>;
   evaluate(ctx: CriterionContext, userId: number, cfg: C): Promise<CriterionResult>;
-  /** Toplu değerlendirme (geriye dönük dağıtım ve günlük görev) için verimli SQL yolu. */
   qualifying?(ctx: CriterionContext, cfg: C, afterId: number, limit: number): Promise<number[]>;
 }
 

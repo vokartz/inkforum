@@ -21,7 +21,6 @@ export function parseCookies(header: string | undefined): Record<string, string>
 
 let internalToken: string | null = null;
 
-/** SSR'ın iç soket üzerinden yaptığı istekleri tanımak için process'e özel rastgele anahtar. */
 export function setInternalToken(token: string): void {
   internalToken = token;
 }
@@ -29,7 +28,6 @@ export function setInternalToken(token: string): void {
 export const INTERNAL_TOKEN_HEADER = 'x-forum-internal';
 export const INTERNAL_IP_HEADER = 'x-forum-client-ip';
 
-/** SSR'ın iç soket üzerinden yaptığı istek mi (güvenlik duvarı bunları denetlemez) */
 export function isInternalRequest(req: Request): boolean {
   return !!internalToken && req.headers[INTERNAL_TOKEN_HEADER] === internalToken;
 }
@@ -49,7 +47,6 @@ export function userAgent(req: Request): string | null {
   return typeof ua === 'string' ? ua.slice(0, 500) : null;
 }
 
-/** Kullanıcı ajanından okunabilir kısa bir cihaz etiketi çıkarır. */
 export function deviceLabel(ua: string | null): string | null {
   if (!ua) return null;
   const browser = /Edg\//.test(ua)

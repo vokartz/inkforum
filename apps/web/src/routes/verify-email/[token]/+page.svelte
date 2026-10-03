@@ -13,7 +13,6 @@
   let status = $state<'loading' | 'active' | 'pending_approval' | 'error'>('loading');
   let message = $state('');
 
-  // Doğrulama bir POST isteğiyle yapılır (e-posta tarayıcılarının bağlantı ön izlemesi belirteci harcamasın diye).
   onMount(async () => {
     try {
       const res = await api.post<{ status: 'active' | 'pending_approval' }>('/api/auth/verify-email', { token: page.params.token });

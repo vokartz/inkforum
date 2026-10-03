@@ -6,7 +6,6 @@
   import { Button } from '$lib/components/ui/button';
   import { t } from '$lib/i18n.svelte';
 
-  /** Yalnızca bir kez gösterilen gizli değerler (istemci anahtarı, API anahtarı, webhook imza anahtarı). */
   let { title, items = $bindable(null), note = '' }: { title: string; items: Array<{ label: string; value: string }> | null; note?: string } = $props();
 
   async function copy(v: string) {

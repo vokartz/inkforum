@@ -1,8 +1,6 @@
 import { plainExcerpt, type BoardPage, type Breadcrumb, type SeoMeta, type TopicPage } from '@forum/shared';
 import type { PublicProfile } from '$lib/types';
 
-/** Sayfa yükleyicileri için arama motoru / paylaşım verisi üreticileri (bkz. SeoHead.svelte). */
-
 const iso = (ms: number) => new Date(ms).toISOString();
 
 export function breadcrumbLd(items: Breadcrumb[], origin: string, last?: { label: string; href: string }) {

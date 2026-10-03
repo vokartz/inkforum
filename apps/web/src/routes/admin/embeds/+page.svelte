@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import PageHeaderIcon from 'phosphor-svelte/lib/YoutubeLogo';
   import { invalidate } from '$app/navigation';
   import { fly } from 'svelte/transition';
@@ -43,7 +44,7 @@
     clickToLoad = e.clickToLoad;
     disabled = [...e.disabledProviders];
     custom = e.custom.map((c) => ({ ...c }));
-    original = snapshot();
+    original = untrack(snapshot);
   }
   syncState1();
   $effect.pre(syncState1);
@@ -68,7 +69,6 @@
     }
   }
 
-  // ---------- Test ----------
   let testUrl = $state('');
   let testing = $state(false);
   let testResult = $state<{ match: { name: string; provider: string } | null; html: string } | null>(null);
@@ -85,7 +85,6 @@
     }
   }
 
-  // ---------- Özel sağlayıcı ----------
   let dlgOpen = $state(false);
   let editIndex = $state<number | null>(null);
   let draft = $state<CustomEmbedProvider>({ key: '', name: '', pattern: '', template: '', ratio: '16/9', height: null, maxWidth: 720, enabled: true });

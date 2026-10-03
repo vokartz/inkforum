@@ -23,7 +23,6 @@ describe('Db transactions', () => {
     const db = await setup();
     const now = Date.now();
     const inner = async () => {
-      // Servis kodu her zaman db.q kullanır; transaction içindeyse otomatik olarak trx'e gider.
       await db.q.insertInto('system_state').values({ key: 'inner', value: '1', updated_at: now }).execute();
       return db.q.selectFrom('system_state').selectAll().execute();
     };

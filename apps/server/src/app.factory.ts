@@ -7,6 +7,7 @@ import express, { type NextFunction, type Request, type Response } from 'express
 import helmet from 'helmet';
 import { WafService } from './security/waf.service.js';
 import { ViewerService } from './auth/viewer.service.js';
+import { ExtensionsService } from './extensions/extensions.service.js';
 import { AppModule } from './app.module.js';
 import type { AppConfig } from './config/config.js';
 import { ForumLogger } from './common/logger.js';
@@ -16,11 +17,10 @@ import { startInternalBridge, type BridgeRequest, type BridgeResponse } from './
 type Handler = (req: Request, res: Response, next: NextFunction) => void;
 
 declare global {
-  // SvelteKit SSR'ın API'yi ağ kullanmadan (aynı process içinde) çağırması için.
   var __FORUM_API_INJECT__: ((opts: BridgeRequest) => Promise<BridgeResponse>) | undefined;
 }
 
-const API_OR_UPLOADS = /^\/(api|uploads|emoji)(\/|$)/;
+const API_OR_UPLOADS = /^\/(api|uploads|emoji|ext-assets)(\/|$)/;
 
 export async function createApp(config: AppConfig, opts: { mountWeb?: boolean } = {}): Promise<NestExpressApplication> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule.forRoot(config), {
@@ -31,11 +31,9 @@ export async function createApp(config: AppConfig, opts: { mountWeb?: boolean } 
   const server = app.getHttpAdapter().getInstance() as express.Express;
   server.set('trust proxy', config.trustProxy);
   server.disable('x-powered-by');
-  // Yollar harfe duyarlı: /api/Messages, /api/messages ile aynı uç noktaya gitmez
   server.set('case sensitive routing', true);
   server.set('strict routing', false);
 
-  // Güvenlik duvarı: her istekten (sayfa, API, dosya) önce; kapalıyken hiçbir şey yapmaz
   const waf = app.get(WafService);
   const viewers = app.get(ViewerService);
   app.use((req: Request, res: Response, next: NextFunction) => {
@@ -73,19 +71,29 @@ export async function createApp(config: AppConfig, opts: { mountWeb?: boolean } 
       },
     }),
   );
-  // Twemoji görselleri (mesajlardaki emojiler, tepkiler, emoji seçici)
   app.use('/emoji', express.static(EMOJI_DIR, { immutable: true, maxAge: '365d', index: false, dotfiles: 'deny', fallthrough: false }));
+  const extensions = app.get(ExtensionsService);
+  app.use('/ext-assets', (req: Request, res: Response, next: NextFunction) => {
+    const m = /^\/([a-z][a-z0-9-]{1,39})\/(.+)$/.exec(req.path);
+    let file = '';
+    try {
+      file = m ? decodeURIComponent(m[2]!) : '';
+    } catch {
+    }
+    const path = m && file ? extensions.assetPath(m[1]!, file) : null;
+    if (!path) return void res.status(404).end();
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+    res.sendFile(path, { dotfiles: 'deny' }, (err) => err && next(err));
+  });
   app.setGlobalPrefix('api');
 
   if (opts.mountWeb && config.webBuildDir) {
-    // adapter-node ortam değişkenleri handler yüklenmeden önce ayarlanmalı.
-    // Adres otomatik algılanıyorsa SvelteKit de istekteki Host ve ters vekilin protokol başlığını kullanır
     if (config.appUrlMode === 'env') process.env.ORIGIN ??= config.appOrigin;
     else process.env.PROTOCOL_HEADER ??= 'x-forwarded-proto';
     process.env.BODY_SIZE_LIMIT ??= '1M';
     const mod = (await import(pathToFileURL(join(config.webBuildDir, 'handler.js')).href)) as { handler: Handler };
-    // Nest rotaları init sırasında kaydedilir; bu ara katman init'ten önce eklendiği için API'den önce çalışır
-    // ama /api ve /uploads isteklerini Nest'e bırakır.
     app.use((req: Request, res: Response, next: NextFunction) =>
       API_OR_UPLOADS.test(req.path) ? next() : mod.handler(req, res, next),
     );

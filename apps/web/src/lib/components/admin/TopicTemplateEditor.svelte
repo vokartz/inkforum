@@ -14,10 +14,6 @@
   import EyeIcon from 'phosphor-svelte/lib/Eye';
   import { t } from '$lib/i18n.svelte';
 
-  /**
-   * Konu şablonu düzenleyicisi: bu bölümde konu açan üyelere sorulacak sorular.
-   * Yanıtlar mesaja "soru — yanıt" olarak yazılır; başlık şablonu {q1} ile doldurulur.
-   */
   let { value = $bindable(), errors = {} }: { value: TopicTemplate; errors?: Record<string, string> } = $props();
 
   const TYPES: Array<{ value: TopicFieldType; label: string }> = $derived([
@@ -51,7 +47,6 @@
     [list[i], list[j]] = [list[j]!, list[i]!];
     value.fields = list;
   }
-  /** Alan kimliği yazılırken geçerli biçime getirilir (küçük harf, rakam, _) */
   function cleanId(raw: string): string {
     const map: Record<string, string> = { ç: 'c', ğ: 'g', ı: 'i', ö: 'o', ş: 's', ü: 'u' };
     return raw

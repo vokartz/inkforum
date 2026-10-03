@@ -3,11 +3,6 @@ import { REGISTRATION_MODES, THEME_STYLES } from './settings.js';
 import { PLUGIN_KEYS } from './plugins.js';
 import { mailTransportInput } from './mail-templates.js';
 
-/**
- * İlk kurulum sihirbazı (/install). Hiç yönetici yokken açılır; ilk tamamlayan yönetici olur.
- * APP_URL verilmediyse site adresi sihirbazın açıldığı adresten alınır.
- */
-
 export const INSTALL_THEMES = THEME_STYLES;
 
 export const installInput = z
@@ -37,7 +32,6 @@ export const installInput = z
       sampleContent: z.boolean().default(true),
       plugins: z.array(z.enum(PLUGIN_KEYS)).default(['wiki']),
     }),
-    /** Boşsa e-posta ayarı sonraya bırakılır (e-postalar günlük dosyasına yazılır) */
     mail: mailTransportInput.nullable().default(null),
     mailFrom: z.email('Geçerli bir gönderen adresi girin.').max(200).nullable().default(null),
   })
@@ -70,15 +64,10 @@ export interface InstallEnvironment {
 
 export type DeployMode = 'docker' | 'release' | 'source';
 
-/**
- * Docker'da depolama klasörüne kalıcı disk bağlı değilse doludur: yeniden dağıtımda (ör. Coolify'da tek imaj)
- * veritabanı ve yüklemeler kaybolur. `volume` verilerin şu an durduğu isimsiz Docker biriminin adıdır.
- */
 export interface StorageWarning {
   reason: 'anonymous-volume' | 'container-fs';
   volume: string | null;
   path: string;
-  /** SQLite veritabanı da bu klasörde mi (değilse yalnızca yüklemeler ve yedekler etkilenir) */
   database: boolean;
   coolify: boolean;
 }

@@ -37,7 +37,6 @@
     try {
       localStorage.setItem(RECENT_KEY, JSON.stringify(recent));
     } catch {
-      /* depolama kapalı olabilir */
     }
   }
   function forget(term: string) {
@@ -45,7 +44,6 @@
     try {
       localStorage.setItem(RECENT_KEY, JSON.stringify(recent));
     } catch {
-      /* yok say */
     }
   }
 
@@ -107,7 +105,6 @@
     }
   }
 
-  // Kısayollar: Ctrl/⌘+K ve "/" (yazı alanında değilken)
   function onGlobalKey(e: KeyboardEvent) {
     const t = e.target as HTMLElement | null;
     const typing = !!t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));

@@ -9,7 +9,6 @@ interface Brand {
   lang?: string;
 }
 
-/** Ana ekrana ekleme (PWA) bildirimi: forum adı, simge ve renkler yönetimden gelir */
 export const GET: RequestHandler = async ({ fetch }) => {
   const res = await fetch('/api/seo/brand');
   const b: Brand = res.ok ? await res.json() : { name: 'InkForum', description: '', icon: null, accent: '#7b61ff', mode: 'dark' };

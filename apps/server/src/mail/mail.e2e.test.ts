@@ -29,7 +29,6 @@ describe('mail templates', () => {
     expect(preview.status).toBe(200);
     expect(preview.body.subject).toBe('Selam admin');
     expect(preview.body.html).toContain('style="display:inline-block');
-    // Örnek bağlantılar forumun kendi adresiyle gösterilir
     expect(preview.body.text).toContain('Git: http://forum.test');
 
     const save = await admin.put('/api/admin/mail/templates/welcome', { subject: '{{forumName}} ailesine katıldın {{name}}', body: '<p>Hoş geldin {{name}} &amp; <script>x</script></p>' });
@@ -65,7 +64,6 @@ describe('notification emails', () => {
     expect(toOkur).toHaveLength(1);
     expect(toOkur[0]!.subject).toBe('Yeni yanıt: E-posta konusu');
 
-    // Tercih kapatılınca gönderilmez
     const prefs = (await b.get('/api/me/notifications/preferences')).body as Array<{ type: string; email: boolean | null }>;
     expect(prefs.find((p) => p.type === 'message.new')?.email).toBe(true);
     await b.put('/api/me/notifications/preferences', { 'email:forum.quote': false });
@@ -74,10 +72,8 @@ describe('notification emails', () => {
     await b.post(`/api/topics/${t.body.topicId}/posts`, { body: `${quote} katılıyorum` });
     await a.put('/api/me/notifications/preferences', { 'email:forum.quote': false });
     await h.jobs.drain();
-    // Yazar'ın varsayılanı açıktı; alıntı e-postası kuyruğa alınmış olmalı
     expect(h.mail.outbox.some((m) => m.to === 'yazar@forum.test' && m.subject.includes('alıntıladı'))).toBe(true);
 
-    // Özel mesaj e-postası: okunmamış mesaj varken ikincisi gönderilmez
     h.mail.outbox.length = 0;
     const users = (await a.get('/api/members?perPage=50')).body.items.map((i: { user: { id: number; username: string } }) => i.user);
     const okurId = users.find((u: { username: string }) => u.username === 'Okur').id;
@@ -106,11 +102,9 @@ describe('mail transport settings', () => {
     const stored = h.settings.get('mail.transport') as { passwordEnc: string };
     expect(stored.passwordEnc).toMatch(/^v1\./);
 
-    // Boş şifre kayıtlı olanı korur
     const again = await admin.put('/api/admin/mail/transport', { driver: 'smtp', host: '127.0.0.1', port: 1, security: 'none', user: 'u@forum.test' });
     expect(again.body.hasPassword).toBe(true);
 
-    // Kapalı porta bağlanma: anlaşılır hata
     const fail = await admin.post('/api/admin/mail/transport/verify', { driver: 'smtp', host: '127.0.0.1', port: 1, security: 'none', user: '' });
     expect(fail.status).toBe(200);
     expect(fail.body.ok).toBe(false);

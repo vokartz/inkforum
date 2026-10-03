@@ -12,7 +12,6 @@ let admin: Agent;
 let ali: Agent;
 let chat: number;
 
-/** Tarayıcı olmayan istemci: çerez ya da Origin göndermez. */
 const raw = () => request(h.app.getHttpServer());
 
 beforeAll(async () => {
@@ -41,7 +40,7 @@ describe('OAuth 2.0 provider', () => {
       scopes: ['profile', 'email', 'read', 'write', 'admin'],
     });
     expect(res.status).toBe(201);
-    expect(res.body.client.scopes).toEqual(['profile', 'email', 'read', 'write']); // admin OAuth'a verilemez
+    expect(res.body.client.scopes).toEqual(['profile', 'email', 'read', 'write']);
     clientId = res.body.client.clientId;
     secret = res.body.secret;
     expect(secret).toMatch(/^fcs_/);
@@ -76,7 +75,6 @@ describe('OAuth 2.0 provider', () => {
     expect(tok.body).toMatchObject({ token_type: 'Bearer', scope: 'profile email read write' });
     const access = tok.body.access_token as string;
 
-    // Kod ikinci kez kullanılamaz
     const again = await raw().post('/api/oauth/token').set('authorization', `Basic ${b64(`${clientId}:${secret}`)}`).type('form').send({ grant_type: 'authorization_code', code, redirect_uri: params.redirect_uri });
     expect(again.body.error).toBe('invalid_grant');
 
@@ -84,24 +82,20 @@ describe('OAuth 2.0 provider', () => {
     expect(me.status).toBe(200);
     expect(me.body).toMatchObject({ username: 'Ali', email: 'ali@forum.test', email_verified: false });
 
-    // Okuma ve yazma (Origin olmadan)
     expect((await raw().get('/api/forum').set('authorization', `Bearer ${access}`)).status).toBe(200);
     const topic = await raw().post(`/api/boards/${chat}/topics`).set('authorization', `Bearer ${access}`).send({ title: 'API ile açılan konu', body: 'UCP üzerinden' });
     expect(topic.status).toBe(201);
-    // Yasak alanlar
     expect((await raw().get('/api/admin/users').set('authorization', `Bearer ${access}`)).status).toBe(403);
     expect((await raw().put('/api/me/privacy').set('authorization', `Bearer ${access}`).send({})).status).toBe(403);
     expect((await raw().get('/api/messages').set('authorization', `Bearer ${access}`)).status).toBe(403);
     expect((await raw().get('/api/forum').set('authorization', 'Bearer fat_yanlisbelirtecyanlisbelirtec')).status).toBe(401);
 
-    // Yenileme: eski çift iptal olur
     const ref = await raw().post('/api/oauth/token').type('form').send({ grant_type: 'refresh_token', refresh_token: tok.body.refresh_token, client_id: clientId, client_secret: secret });
     expect(ref.status).toBe(200);
     expect((await raw().get('/api/forum').set('authorization', `Bearer ${access}`)).status).toBe(401);
     const reuse = await raw().post('/api/oauth/token').type('form').send({ grant_type: 'refresh_token', refresh_token: tok.body.refresh_token, client_id: clientId, client_secret: secret });
     expect(reuse.body.error).toBe('invalid_grant');
 
-    // Üye bağlı uygulamayı görür ve iptal eder
     const apps = await ali.get('/api/me/apps');
     expect(apps.body.map((a: { name: string }) => a.name)).toEqual(['Oyun UCP']);
     expect((await ali.delete(`/api/me/apps/${clientId}`)).status).toBe(200);
@@ -221,7 +215,6 @@ describe('security hardening', () => {
     expect(requiredScope('POST', '/api/mod/bans')).toBe('admin');
     const k = await admin.post('/api/admin/developers/keys', { name: 'Okuma', scopes: ['read'] });
     const key = k.body.key as string;
-    // Büyük harfli yol ya bulunmaz ya da izin ister; asla özel mesajları döndürmez
     const res = await raw().get('/api/Messages').set('authorization', `Bearer ${key}`);
     expect([403, 404]).toContain(res.status);
     await admin.delete(`/api/admin/developers/keys/${k.body.id}`);

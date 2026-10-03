@@ -7,13 +7,8 @@ import { sounds } from './sounds.svelte';
 import { describeNotification, type NotificationItem } from './notifications';
 import { t } from './i18n.svelte';
 
-/** Sayfalar anlık olayları dinleyebilir: window.addEventListener('forum:realtime', (e) => e.detail) */
 export const REALTIME_EVENT = 'forum:realtime';
 
-/**
- * Anlık bildirim akışı (GET /api/me/stream). Yeni bildirim ve mesajda sayaçlar hemen güncellenir,
- * ses çalınır ve kısa bir uyarı gösterilir. Aynı olay birden çok sekmede yalnızca bir kez seslendirilir.
- */
 class Realtime {
   connected = $state(false);
   private es: EventSource | null = null;
@@ -30,7 +25,6 @@ class Realtime {
           fn(ev);
           window.dispatchEvent(new CustomEvent(REALTIME_EVENT, { detail: ev }));
         } catch {
-          /* bozuk olay */
         }
       });
     on('hello', () => {
@@ -41,12 +35,10 @@ class Realtime {
     on('counters', () => void counters.refresh());
     on('notification', () => void this.onNotification());
     on('message', (e) => e.type === 'message' && this.onMessage(e));
-    // Yalnızca sayfalara iletilen olaylar (konuşma "görüldü", sohbet kutusu)
     for (const type of ['conversationRead'] as const) on(type, () => undefined);
     es.onerror = () => {
       this.connected = false;
       counters.live = false;
-      // Oturum kapandıysa (401) tarayıcı yeniden denemez; akış kapatılır
       if (es.readyState === EventSource.CLOSED) this.stop();
     };
     return () => this.stop();
@@ -59,7 +51,6 @@ class Realtime {
     counters.live = false;
   }
 
-  /** Birden çok sekme açıksa olay yalnızca ilk sekmede seslendirilir */
   private claim(key: string): boolean {
     try {
       const k = `forum_rt_${key}`;
@@ -67,7 +58,6 @@ class Realtime {
       localStorage.setItem(k, '1');
       setTimeout(() => localStorage.removeItem(k), 5000);
     } catch {
-      /* depolama yok: her sekme çalar */
     }
     return true;
   }
@@ -83,7 +73,6 @@ class Realtime {
       });
       if (res.ok) item = ((await res.json()) as { items: NotificationItem[] }).items[0];
     } catch {
-      /* yoksay */
     }
     if (!item || !this.claim(`n${item.id}`)) return;
     sounds.play('notification');

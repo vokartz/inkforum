@@ -32,7 +32,6 @@
   import { profileUrl } from '$lib/viewer';
   import { t, tc } from '$lib/i18n.svelte';
 
-  /** Özel konuşma: forumdaki bir konu gibi; her mesaj yazar sütunlu bir kart, yanıt en altta */
   let { data } = $props();
   const c = $derived(data.conversation);
   const me = $derived(data.viewer.user!.id);
@@ -40,9 +39,7 @@
   const others = $derived(active.filter((p) => p.user.id !== me));
   const heading = $derived(c.title || others.map((p) => p.user.displayName).join(', ') || t('Konuşma'));
   const lastId = $derived(c.messages.items.at(-1)?.id ?? 0);
-  /** Mesajın konuşmadaki sırası (#1 = konuyu açan mesaj) */
   const numberOf = (i: number) => (c.messages.page - 1) * c.messages.perPage + i + 1;
-  /** Son mesajı okuyan diğer katılımcılar */
   const seenBy = $derived(others.filter((p) => lastId > 0 && p.lastReadMessageId >= lastId && c.messages.items.at(-1)?.author?.id !== p.user.id));
 
   $effect(() => {
@@ -50,9 +47,7 @@
     void counters.refresh();
   });
 
-  // Anlık güncelleme: bu konuşmaya yeni mesaj ya da okundu bilgisi gelince yenilenir
   onMount(() => {
-    // Uzun yazışmada açılınca son mesaja gidilir (bağlantıda #m… varsa ona)
     if (!location.hash && c.messages.items.length > 2) document.getElementById(`m${lastId}`)?.scrollIntoView({ block: 'start' });
     const onEvent = (e: Event) => {
       const ev = (e as CustomEvent<RealtimeEvent>).detail;

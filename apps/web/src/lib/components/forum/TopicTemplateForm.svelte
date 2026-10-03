@@ -6,7 +6,6 @@
   import { cn } from '$lib/utils';
   import { t } from '$lib/i18n.svelte';
 
-  /** Konu şablonu soruları: yanıtlar sunucuda doğrulanıp mesaja dönüştürülür. */
   let { template, answers = $bindable(), errors = {} }: { template: TopicTemplate; answers: Record<string, string | string[]>; errors?: Record<string, string> } = $props();
 
   function toggle(id: string, option: string, on: boolean) {

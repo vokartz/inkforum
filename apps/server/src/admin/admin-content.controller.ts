@@ -42,8 +42,6 @@ export class AdminContentController {
     private readonly audit: AuditService,
   ) {}
 
-  // ----- Politikalar -----
-
   @Get('policies')
   @AdminEndpoint('admin.policies.manage')
   async policyList() {
@@ -111,8 +109,6 @@ export class AdminContentController {
     return result;
   }
 
-
-  // ----- Özel profil alanları -----
 
   @Get('profile-fields')
   @AdminEndpoint('admin.profileFields.manage')

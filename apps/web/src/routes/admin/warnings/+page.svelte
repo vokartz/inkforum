@@ -31,7 +31,6 @@
     await invalidate('app:admin-warnings');
   }
 
-  // Şablonlar
   let tOpen = $state(false);
   let tId = $state<number | null>(null);
   let tpl = $state({ title: '', reasonTemplate: '', points: 10, expiryDays: 30 as number | '', isActive: true, sortOrder: 0 });
@@ -54,7 +53,6 @@
     }
   }
 
-  // Eylemler
   let aOpen = $state(false);
   let aId = $state<number | null>(null);
   let a = $state({ thresholdPoints: 50, action: 'mute', mode: 'while_above', durationDays: '' as number | '', isActive: true, sortOrder: 0 });

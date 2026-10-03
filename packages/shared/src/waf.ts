@@ -1,10 +1,5 @@
 import { z } from 'zod';
 
-/**
- * Yerleşik güvenlik duvarı (WAF): saldırı kalıbı engelleme, hız sınırı, kötü bot engeli ve
- * isteğe bağlı doğrulama sayfası (yerleşik hesaplama doğrulaması, Cloudflare Turnstile ya da hCaptcha).
- */
-
 export const WAF_MODES = ['off', 'suspicious', 'all'] as const;
 export type WafMode = (typeof WAF_MODES)[number];
 export const WAF_MODE_INFO: Record<WafMode, { label: string; description: string }> = {
@@ -32,16 +27,13 @@ export const wafConfigInput = z.object({
   mode: z.enum(WAF_MODES).default('suspicious'),
   captcha: z.enum(WAF_CAPTCHAS).default('builtin'),
   siteKey: z.string().trim().max(200).default(''),
-  /** Boşsa kayıtlı gizli anahtar korunur */
   secretKey: z.string().trim().max(200).optional(),
   title: z.string().trim().min(1).max(120).default('Bağlantınız kontrol ediliyor'),
   message: z.string().trim().max(600).default('Siteyi saldırılara karşı korumak için tarayıcınızı doğruluyoruz. Bu işlem birkaç saniye sürer.'),
   buttonLabel: z.string().trim().min(1).max(40).default('Devam et'),
   clearanceHours: z.number().int().min(1).max(720).default(24),
-  /** IP başına dakikada en fazla istek (sayfa + API; statik dosyalar hariç) */
   rateLimitPerMinute: z.number().int().min(30).max(10_000).default(300),
   blockPatterns: z.boolean().default(true),
-  /** Google, Bing vb. (ters DNS ile doğrulanır) ve bağlantı önizleme botları doğrulamasız geçer */
   allowSearchBots: z.boolean().default(true),
   allowIps: z.array(ipOrRange).max(200).default([]),
   blockIps: z.array(ipOrRange).max(1000).default([]),
@@ -62,6 +54,5 @@ export interface AdminWaf {
   config: Omit<WafConfigInput, 'secretKey'> & { hasSecret: boolean };
   stats: { blocked24h: number; challenged24h: number; passed24h: number; rateLimited24h: number; activeBlocks: Array<{ ip: string; until: number; reason: string }> };
   events: WafEvent[];
-  /** .env ile zorla kapatıldı mı (WAF_DISABLED=true) */
   forcedOff: boolean;
 }

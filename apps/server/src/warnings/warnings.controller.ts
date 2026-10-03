@@ -7,7 +7,6 @@ import { CurrentViewer, can, type RequestViewer } from '../common/request-contex
 import { WarningsService } from './warnings.service.js';
 import { issueWarningSchema, revokeWarningSchema } from './warnings.schemas.js';
 
-/** Moderatör uç noktaları (yönetim paneli yeniden doğrulaması gerekmez). */
 @Controller('mod')
 export class WarningsController {
   constructor(private readonly warnings: WarningsService) {}

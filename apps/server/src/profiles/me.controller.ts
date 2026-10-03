@@ -55,8 +55,6 @@ export class MeController {
     private readonly users: UsersService,
   ) {}
 
-  // ----- Profil -----
-
   @Get('profile')
   async profile(@CurrentViewer() v: RequestViewer) {
     return this.profiles.editData(v, v.user!.id);
@@ -86,7 +84,6 @@ export class MeController {
     return { ok: true };
   }
 
-  /** Arayüz dili ('' = otomatik: tarayıcı dili / forum varsayılanı) */
   @Put('language')
   async language(@Body(new ZodPipe(languageSchema)) body: z.output<typeof languageSchema>, @CurrentViewer() v: RequestViewer) {
     await this.users.update(v.user!.id, { locale: body.locale });
@@ -129,8 +126,6 @@ export class MeController {
     return { ok: true };
   }
 
-  // ----- Hesap -----
-
   @Post('username')
   @HttpCode(200)
   async username(@Body(new ZodPipe(usernameChangeSchema)) body: z.output<typeof usernameChangeSchema>, @CurrentViewer() v: RequestViewer) {
@@ -156,8 +151,6 @@ export class MeController {
     return { ok: true };
   }
 
-  // ----- Oturumlar -----
-
   @Get('sessions')
   async sessionList(@CurrentViewer() v: RequestViewer) {
     return this.sessions.list(v.user!.id, v.session?.id ?? null);
@@ -177,8 +170,6 @@ export class MeController {
     await this.audit.log({ type: 'security', action: 'sessions.revoke_others', actorId: v.user!.id, targetType: 'user', targetId: v.user!.id, ip: v.ip, data: { count } });
     return { revoked: count };
   }
-
-  // ----- İki adımlı doğrulama -----
 
   @Get('2fa')
   async twoFactorStatus(@CurrentViewer() v: RequestViewer) {
@@ -220,8 +211,6 @@ export class MeController {
     return { recoveryCodes: await this.twoFactor.regenerateCodes(v.user!.id) };
   }
 
-  // ----- Gruplar -----
-
   @Get('groups')
   async myGroups(@CurrentViewer() v: RequestViewer) {
     const memberships = await this.groups.userMemberships(v.user!.id);
@@ -239,22 +228,16 @@ export class MeController {
     return { ok: true };
   }
 
-  // ----- Politikalar -----
-
   @Get('policies')
   async policyHistory(@CurrentViewer() v: RequestViewer) {
     return this.policies.history(v.user!.id, v.locale);
   }
-
-  // ----- Uyarılar -----
 
   @Get('warnings')
   @RequirePermission('warnings.view.own')
   async myWarnings(@CurrentViewer() v: RequestViewer) {
     return { status: await this.warnings.status(v.user!.id), items: await this.warnings.forUser(v.user!.id, false) };
   }
-
-  // ----- Bildirimler -----
 
   @Get('notifications')
   async notificationList(@Query() query: Record<string, unknown>, @CurrentViewer() v: RequestViewer) {
@@ -285,8 +268,6 @@ export class MeController {
     await this.notifications.setPreferences(v.user!.id, body);
     return { ok: true };
   }
-
-  // ----- Başarılar -----
 
   @Get('achievements')
   async myAchievements(@CurrentViewer() v: RequestViewer) {

@@ -25,7 +25,6 @@ export interface SystemCheck {
 
 const COUNT_TABLES = ['users', 'topics', 'posts', 'conversation_messages', 'member_groups', 'sessions', 'notifications', 'audit_log', 'files', 'jobs'] as const;
 
-/** Yönetim → Sistem bilgisi: sürüm, çalışma ortamı, veritabanı, depolama ve sağlık denetimleri. */
 @Injectable()
 export class SystemInfoService {
   private dirCache: { at: number; bytes: number; files: number } | null = null;
@@ -42,7 +41,6 @@ export class SystemInfoService {
     private readonly i18n: I18nService,
   ) {}
 
-  /** Pano kartı için hafif özet */
   brief() {
     const mem = process.memoryUsage();
     return {
@@ -62,7 +60,6 @@ export class SystemInfoService {
     };
   }
 
-  /** Yüklenen dosyaların toplam boyutu (en fazla 5 dakikada bir, en çok 200 bin dosya taranır) */
   private uploads(): { bytes: number; files: number } {
     if (this.dirCache && this.clock.now() - this.dirCache.at < 5 * 60_000) return this.dirCache;
     let bytes = 0;
@@ -77,7 +74,6 @@ export class SystemInfoService {
           try {
             bytes += statSync(p).size;
           } catch {
-            /* silinmiş */
           }
         }
       }

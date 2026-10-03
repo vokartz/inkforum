@@ -3,7 +3,6 @@ import type { PageServerResponse } from '@forum/shared';
 import type { Row } from '@forum/db';
 import { Db } from '../database/db.service.js';
 import { Clock } from '../common/clock.js';
-import { SettingsService } from '../settings/settings.service.js';
 import { UsersService } from '../users/users.service.js';
 import { CryptoService } from '../security/crypto.service.js';
 import { safeFetch } from '../security/safe-fetch.js';
@@ -13,11 +12,9 @@ import { PageForumApi } from './page-forum-api.js';
 
 type PageRow = Row<'custom_pages'>;
 
-/** Sunucu kodunun gördüğü istek */
 export interface PageRequest {
   kind: 'page' | 'api';
   method: string;
-  /** Sayfa adresinden sonraki kısım ("/" = sayfanın kendisi) */
   path: string;
   query: Record<string, string>;
   body: unknown;
@@ -27,7 +24,6 @@ export interface PageRequest {
 const MAX_FETCHES = 10;
 const MAX_KV_KEYS = 5000;
 const MAX_KV_VALUE = 64 * 1024;
-/** Sunucu kodunun yanıta ekleyebileceği başlıklar */
 const SAFE_HEADER = /^(cache-control|content-type|content-language|x-[a-z0-9-]+)$/i;
 
 function parseJson<T>(s: string, fallback: T): T {
@@ -38,16 +34,11 @@ function parseJson<T>(s: string, fallback: T): T {
   }
 }
 
-/** Joker destekli alan adı eşleşmesi: "*.ornek.com" → "api.ornek.com" (ornek.com'un kendisi değil) */
 export function hostAllowed(host: string, patterns: string[]): boolean {
   const h = host.toLowerCase();
   return patterns.some((p) => (p.startsWith('*.') ? h.endsWith(p.slice(1)) && h.length > p.length - 1 : h === p));
 }
 
-/**
- * Özel sayfaların sunucu kodunu çalıştırır: istek nesnesini hazırlar, köprüleri (fetch, kv, secrets,
- * token, user) sunucu tarafında denetler ve dönen yanıtı güvenli bir biçime indirger.
- */
 @Injectable()
 export class PageRuntimeService {
   private readonly logger = new Logger('Pages');
@@ -55,15 +46,13 @@ export class PageRuntimeService {
   constructor(
     private readonly db: Db,
     private readonly clock: Clock,
-    private readonly settings: SettingsService,
     private readonly users: UsersService,
     private readonly crypto: CryptoService,
     private readonly forumApi: PageForumApi,
   ) {}
 
-  /** Sunucu kodu bu sayfada çalışmalı mı (özel kod kapalıyken hiçbiri çalışmaz) */
   active(page: PageRow): boolean {
-    return page.server_enabled === 1 && !!page.server_code.trim() && this.settings.get('custom.enabled');
+    return page.server_enabled === 1 && !!page.server_code.trim();
   }
 
   secrets(page: PageRow): Record<string, string> {
@@ -83,7 +72,7 @@ export class PageRuntimeService {
     page: PageRow,
     viewer: RequestViewer,
     req: PageRequest,
-    opts: { code?: string; token?: () => string } = {},
+    opts: { code?: string } = {},
   ): Promise<SandboxResult & { response: PageServerResponse | null }> {
     const hosts = parseJson<string[]>(page.allowed_hosts_json, []);
     let fetches = 0;
@@ -145,21 +134,12 @@ export class PageRuntimeService {
           const rows = (await q.orderBy('key').limit(1000).execute()).filter((r) => !r.expires_at || r.expires_at >= now);
           return JSON.stringify(rows.map((r) => ({ key: r.key, value: parseJson(r.value_json, null), expiresAt: r.expires_at })));
         },
-        token: () => {
-          if (!viewer.user || !opts.token) return '';
-          try {
-            return opts.token();
-          } catch {
-            return '';
-          }
-        },
       },
     );
     if (!result.ok) this.logger.warn(`${pageInfo.url} sunucu kodu hatası: ${result.error}`);
     return { ...result, response: result.ok ? this.normalize(result.value) : null };
   }
 
-  /** handle() dönüşünü güvenli bir yanıta çevirir */
   normalize(v: unknown): PageServerResponse {
     if (v === undefined || v === null) return { type: 'none' };
     const status = (x: unknown, d: number) => (Number.isInteger(x) && (x as number) >= 100 && (x as number) <= 599 ? (x as number) : d);
@@ -178,7 +158,6 @@ export class PageRuntimeService {
           return { type: r.type, status: status(r.status, 200), headers: headers(r.headers), body: String(r.body ?? '') };
         case 'redirect': {
           const url = String(r.url ?? '');
-          // Yalnızca sitenin kendi yolları ya da http(s) adresleri (javascript: vb. değil)
           if (!/^(\/(?!\/)|https?:\/\/)/i.test(url) || /[\r\n]/.test(url)) return { type: 'status', status: 500 };
           const s = status(r.status, 302);
           return { type: 'redirect', status: [301, 302, 303, 307, 308].includes(s) ? s : 302, url };

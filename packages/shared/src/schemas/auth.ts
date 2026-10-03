@@ -9,9 +9,7 @@ export const registerSchema = z.object({
   birthdate: z.string().trim().optional().default(''),
   acceptedPolicyVersionIds: z.array(z.number().int().positive()).max(50).default([]),
   customFields: z.record(z.string(), z.string().max(5000)).default({}),
-  /** Honeypot: gerçek kullanıcılar bu alanı boş bırakır. */
   website: z.string().max(200).optional().default(''),
-  /** Formun açıldığı an (ms) — çok hızlı gönderimleri engellemek için. */
   formStartedAt: z.number().int().nonnegative().optional(),
   captcha: captchaField,
 });

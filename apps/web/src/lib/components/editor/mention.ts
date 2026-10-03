@@ -12,7 +12,6 @@ function escape(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 }
 
-/** "@" yazınca üye önerileri (basit DOM açılır listesi; Svelte bileşeni gerektirmez). */
 export function mentionSuggestion(): Omit<SuggestionOptions<MentionItem>, 'editor'> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   return {

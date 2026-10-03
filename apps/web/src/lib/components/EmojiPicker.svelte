@@ -6,11 +6,9 @@
     tags: string;
     group: number;
     order: number;
-    /** Özel emoji görseli (Unicode değilse) */
     url?: string;
   }
 
-  /** Emoji verisi (emojibase) ilk açılışta bir kez yüklenir. */
   let dataPromise: Promise<EmojiEntry[]> | null = null;
   function loadData(): Promise<EmojiEntry[]> {
     dataPromise ??= import('emojibase-data/en/compact.json').then((m) =>
@@ -22,14 +20,12 @@
     return dataPromise;
   }
 
-  /** Yöneticinin eklediği özel emojiler (bir kez yüklenir, editörle ortak). */
   function loadCustom(): Promise<EmojiEntry[]> {
     return loadCustomEmojis().then((list) =>
       list.map((e, i) => ({ unicode: `:${e.shortcode}:`, label: e.name, tags: `${e.shortcode} ${e.category}`.toLocaleLowerCase('tr-TR'), group: -2, order: i, url: e.url })),
     );
   }
 
-  /** Türkçe aramada sık kullanılan kelimeler → İngilizce anahtar kelimeler */
   const TR: Record<string, string> = {
     gül: 'smile grin laugh',
     gülen: 'smile grin',
@@ -170,7 +166,6 @@
     try {
       localStorage.setItem(RECENT_KEY, JSON.stringify(recent));
     } catch {
-      /* yoksay */
     }
   }
 </script>

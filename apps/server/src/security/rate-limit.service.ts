@@ -9,12 +9,6 @@ interface Bucket {
   resetAt: number;
 }
 
-/**
- * İki katmanlı hız sınırlama:
- * - Bellek içi sabit pencere: genel istek sınırlama (process başına).
- * - Veritabanı tabanlı `auth_attempts`: giriş/sıfırlama gibi güvenlik açısından kritik denemeler
- *   (yeniden başlatmaya ve çoklu process'e dayanıklı).
- */
 @Injectable()
 export class RateLimitService {
   private readonly buckets = new Map<string, Bucket>();
@@ -25,7 +19,6 @@ export class RateLimitService {
     private readonly clock: Clock,
   ) {}
 
-  /** Sınır aşılırsa 429 fırlatır. */
   hit(key: string, limit: number, windowMs: number): void {
     const now = this.clock.now();
     this.sweep(now);
@@ -52,7 +45,6 @@ export class RateLimitService {
       .execute();
   }
 
-  /** Belirtilen pencerede başarısız deneme sayısı (tanımlayıcıya veya IP'ye göre). */
   async failures(kind: AuthAttemptKind, by: { identifier?: string; ip?: string | null }, windowMs: number): Promise<number> {
     const since = this.clock.now() - windowMs;
     let q = this.db.q
@@ -67,7 +59,6 @@ export class RateLimitService {
     return Number(row?.n ?? 0);
   }
 
-  /** Son başarılı denemeden sonraki başarısız denemeleri sayar (kilitlenme için). */
   async failuresSinceSuccess(kind: AuthAttemptKind, identifier: string, windowMs: number): Promise<number> {
     const since = this.clock.now() - windowMs;
     const lastSuccess = await this.db.q

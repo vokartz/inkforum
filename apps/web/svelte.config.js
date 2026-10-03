@@ -16,7 +16,6 @@ const config = {
         'img-src': ['self', 'data:', 'blob:', 'https:'],
         'font-src': ['self', 'data:'],
         'connect-src': ['self'],
-        // Gömülü içerik: iframe adresleri yalnızca sunucudaki sağlayıcı listesinden üretilir.
         'frame-src': ['self', 'https:'],
         'frame-ancestors': ['none'],
         'base-uri': ['self'],

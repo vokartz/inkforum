@@ -28,6 +28,7 @@
   import TopicRow from '$lib/components/forum/TopicRow.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
   import CustomHtml from '$lib/components/CustomHtml.svelte';
+  import { extMount } from '$lib/extensions';
   import { api } from '$lib/api';
   import { formatBirthdate, formatDate, formatNumber } from '$lib/format';
   import { t, tc } from '$lib/i18n.svelte';
@@ -38,7 +39,6 @@
   const isOwn = $derived(data.viewer.user?.id === u.id);
   let warnOpen = $state(false);
 
-  // ----- Sekmeler (içerik ilk açılışta yüklenir) -----
   interface PostEntry {
     postId: number;
     html: string;
@@ -74,7 +74,6 @@
       loadingTab = false;
     }
   }
-  // Başka bir profile geçilince sekmeler sıfırlanır.
   let lastId = 0;
   $effect.pre(() => {
     if (u.id !== lastId) {
@@ -87,9 +86,8 @@
 
   const warnPct = $derived(p.warnings ? Math.min(100, Math.round((p.warnings.points / Math.max(1, p.warnings.max)) * 100)) : 0);
 
-  // Yönetimden eklenen profil parçacıkları (UCP karakterleri vb.): yan sütun kartları ve ek sekmeler.
-  const profileSidebar = $derived((data.custom?.snippets ?? []).filter((sn) => sn.placement === 'profileSidebar'));
-  const profileTabs = $derived((data.custom?.snippets ?? []).filter((sn) => sn.placement === 'profileTab'));
+  const profileSidebar = $derived(data.extSlots?.sidebar ?? []);
+  const profileTabs = $derived(data.extSlots?.tabs ?? []);
   const profileVars = $derived({
     'profile.id': u.id,
     'profile.username': u.username,
@@ -238,10 +236,10 @@
       {/if}
 
 
-      {#each profileSidebar as sn (sn.id)}
-        <div class="rounded-2xl border bg-card p-4 shadow-card" data-part="profile-custom-card">
+      {#each profileSidebar as sn (`${sn.ext}:${sn.key}`)}
+        <div class="rounded-2xl border bg-card p-4 shadow-card" data-part="profile-ext-card" data-ext={sn.ext} use:extMount={{ ext: sn.ext, scripts: sn.scripts }}>
           {#if sn.title}<h2 class="mb-3 text-sm font-semibold">{sn.title}</h2>{/if}
-          <CustomHtml html={sn.html} vars={profileVars} class="text-sm" part="custom-profileSidebar" />
+          <CustomHtml html={sn.html} vars={profileVars} class="text-sm" part="ext-profileSidebar" />
         </div>
       {/each}
       {#if p.staff}
@@ -282,7 +280,7 @@
           <Tabs.Trigger value="topics">{t('Konular')}</Tabs.Trigger>
           <Tabs.Trigger value="posts">{t('Mesajlar')}</Tabs.Trigger>
           <Tabs.Trigger value="achievements">{t('Başarılar ({n})', { n: p.achievements.total })}</Tabs.Trigger>
-          {#each profileTabs as sn (sn.id)}<Tabs.Trigger value="custom-{sn.id}">{sn.title}</Tabs.Trigger>{/each}
+          {#each profileTabs as sn (`${sn.ext}:${sn.key}`)}<Tabs.Trigger value="ext-{sn.ext}-{sn.key}">{sn.title ?? sn.ext}</Tabs.Trigger>{/each}
         </Tabs.List>
 
         <Tabs.Content value="about" class="mt-4 grid gap-5">
@@ -361,9 +359,9 @@
             {/if}
           {/if}
         </Tabs.Content>
-        {#each profileTabs as sn (sn.id)}
-          <Tabs.Content value="custom-{sn.id}" class="mt-4">
-            <div class="rounded-2xl border bg-card p-5 shadow-card"><CustomHtml html={sn.html} vars={profileVars} class="text-sm" part="custom-profileTab" /></div>
+        {#each profileTabs as sn (`${sn.ext}:${sn.key}`)}
+          <Tabs.Content value="ext-{sn.ext}-{sn.key}" class="mt-4">
+            <div class="rounded-2xl border bg-card p-5 shadow-card" data-ext={sn.ext} use:extMount={{ ext: sn.ext, scripts: sn.scripts }}><CustomHtml html={sn.html} vars={profileVars} class="text-sm" part="ext-profileTab" /></div>
           </Tabs.Content>
         {/each}
       </Tabs.Root>

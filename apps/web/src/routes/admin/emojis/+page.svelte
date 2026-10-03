@@ -26,7 +26,6 @@
   const categories = $derived([...new Set(shown.map((e) => e.category))]);
   const allCategories = $derived([...new Set(items.map((e) => e.category))]);
 
-  // ---------- Yükleme (çoklu) ----------
   let category = $state(t('Özel'));
   let dragging = $state(false);
   let queue = $state<Array<{ name: string; status: 'wait' | 'ok' | 'error'; error?: string }>>([]);
@@ -62,7 +61,6 @@
     if (e.dataTransfer?.files.length) void uploadFiles(e.dataTransfer.files);
   }
 
-  // ---------- Düzenleme ----------
   let edit = $state<AdminCustomEmoji | null>(null);
   let form = $state({ shortcode: '', name: '', category: '', isEnabled: true });
   let saving = $state(false);

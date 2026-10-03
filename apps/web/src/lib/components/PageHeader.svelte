@@ -5,7 +5,6 @@
   interface Props {
     title: string;
     description?: string | null;
-    /** Başlığın solundaki ikon (yönetim sayfaları) */
     icon?: IconComponent;
     actions?: Snippet;
     children?: Snippet;

@@ -1,11 +1,6 @@
 import type { Kysely } from 'kysely';
 import { flag, notNull, textDefault } from './_helpers.js';
 
-/**
- * Kodla yazılan özel sayfalar: sayfaya özel CSS / JS, kenar çubuğu, kök adres (ör. /ucp) ve
- * yalıtılmış ortamda çalışan sunucu kodu (yönlendirme, API uçları, dış servis çağrıları).
- * `page_kv`: sunucu kodunun sayfa başına anahtar-değer deposu.
- */
 export async function up(db: Kysely<any>): Promise<void> {
   const add = (col: string, type: 'text' | 'smallint', build: Parameters<ReturnType<Kysely<any>['schema']['alterTable']>['addColumn']>[2]) =>
     db.schema.alterTable('custom_pages').addColumn(col, type, build).execute();

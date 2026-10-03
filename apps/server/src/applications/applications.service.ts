@@ -61,8 +61,6 @@ export class ApplicationsService {
     private readonly bans: BansService,
   ) {}
 
-  // ---------- Yardımcılar ----------
-
   private questions(r: FormRow): ApplicationQuestion[] {
     const list = parseJson<unknown[]>(r.questions_json, []);
     return list.flatMap((q) => {
@@ -100,7 +98,6 @@ export class ApplicationsService {
     return r;
   }
 
-  /** Başvurabilir mi: gereksinimler tek tek, ayrıca form kapalı / bekleyen başvuru / bekleme süresi */
   async eligibility(v: RequestViewer, form: FormRow): Promise<Eligibility> {
     const req = this.requirements(form);
     if (!v.user) return { ok: false, checks: [], blocker: 'Başvuru yapmak için giriş yapmalısınız.' };
@@ -168,11 +165,8 @@ export class ApplicationsService {
     };
   }
 
-  // ---------- Ziyaretçi ----------
-
   async list(v: RequestViewer): Promise<ApplicationFormSummary[]> {
     const rows = await this.db.q.selectFrom('application_forms').selectAll().orderBy('sort_order').orderBy('id').execute();
-    // Kapalı formlar yalnızca inceleyicilere ve daha önce başvuranlara görünür
     const out: ApplicationFormSummary[] = [];
     for (const r of rows) {
       const s = await this.summary(v, r, true);
@@ -188,7 +182,6 @@ export class ApplicationsService {
     return { ...s, descriptionHtml: r.description_html, questions: this.questions(r), requirements: this.requirements(r), canReview: this.canReview(v, r) };
   }
 
-  /** Yanıtların soru tiplerine göre doğrulanması */
   private validateAnswers(questions: ApplicationQuestion[], raw: Record<string, Answer>): Record<string, Answer> {
     const fields: Record<string, string> = {};
     const out: Record<string, Answer> = {};
@@ -260,7 +253,6 @@ export class ApplicationsService {
     return { id: row.id };
   }
 
-  /** İnceleyici gruplarının üyelerine (yoksa yöneticilere) bildirim; en fazla 100 kişi */
   private async notifyReviewers(form: FormRow, data: Record<string, unknown>, actorId: number): Promise<void> {
     let groupIds = this.reviewerGroups(form);
     if (!groupIds.length) {
@@ -285,8 +277,6 @@ export class ApplicationsService {
       .execute();
     for (const r of rows) if (r.id !== actorId) await this.notifications.notify(r.id, 'application.new', { ...data, formSlug: form.slug }, actorId);
   }
-
-  // ---------- Başvurular ----------
 
   private async items(rows: AppRow[]): Promise<ApplicationItem[]> {
     const forms = new Map(
@@ -315,7 +305,6 @@ export class ApplicationsService {
     return this.items(rows);
   }
 
-  /** İnceleme listesi: yalnızca incelenebilen formlar */
   async reviewList(v: RequestViewer, q: { status?: string; formId?: number; page: number }): Promise<Paginated<ApplicationItem> & { forms: Array<{ id: number; title: string; pending: number }> }> {
     const forms = (await this.db.q.selectFrom('application_forms').selectAll().orderBy('sort_order').execute()).filter((f) => this.canReview(v, f));
     if (!forms.length) throw Errors.forbidden('İnceleyebileceğiniz bir başvuru formu yok.');
@@ -382,7 +371,6 @@ export class ApplicationsService {
 
   async note(v: RequestViewer, id: number, body: string, internal: boolean): Promise<void> {
     const { app, form, reviewer } = await this.load(v, id);
-    // Başvuran yalnızca herkese açık not (yanıt) yazabilir
     const isInternal = reviewer && internal;
     if (!reviewer && app.status !== 'pending' && app.status !== 'reviewing') throw Errors.badRequest('Sonuçlanmış başvuruya yanıt yazılamaz.');
     await this.db.q.insertInto('application_notes').values({ application_id: id, user_id: v.user!.id, body, is_internal: isInternal ? 1 : 0, created_at: this.clock.now() }).execute();
@@ -410,8 +398,6 @@ export class ApplicationsService {
     });
     await this.audit.log({ type: 'moderation', action: `application.${decision}`, actorId: v.user!.id, ip: v.ip, targetType: 'user', targetId: app.user_id, data: { applicationId: id, form: form.slug } });
   }
-
-  // ---------- Yönetim ----------
 
   private toAdmin(r: FormRow, counts: Map<number, { pending: number; total: number }>): AdminApplicationForm {
     const c = counts.get(r.id) ?? { pending: 0, total: 0 };
@@ -457,7 +443,6 @@ export class ApplicationsService {
     for (const g of [...input.reviewerGroupIds, ...input.requirements.requiredGroupIds, ...input.requirements.blockedGroupIds, ...(input.targetGroupId ? [input.targetGroupId] : [])]) {
       if (!known.has(g)) throw Errors.badRequest('Bilinmeyen grup seçildi.');
     }
-    // Başvuruyla yönetici grubuna girilmesi engellenir
     const target = input.targetGroupId ? all.find((g) => g.id === input.targetGroupId) : null;
     if (target && (target.system_key === 'admin' || target.system_key === 'guest' || target.system_key === 'member')) throw Errors.field('targetGroupId', 'Bu gruba başvuruyla üye eklenemez.');
     const now = this.clock.now();

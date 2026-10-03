@@ -38,9 +38,7 @@
       localStorage.clear();
       sessionStorage.clear();
     } catch {
-      /* depolama kapalı */
     }
-    // JavaScript'ten erişilebilen (httpOnly olmayan) çerezleri sil.
     for (const c of document.cookie.split(';')) {
       const name = c.split('=')[0]?.trim();
       if (name) document.cookie = `${name}=; Path=/; Max-Age=0; SameSite=Lax`;
@@ -49,7 +47,6 @@
       try {
         await api.post('/api/auth/logout');
       } catch {
-        /* yoksay */
       }
     }
     toast.success(t('Çerezler ve yerel veriler temizlendi.'));

@@ -10,7 +10,6 @@ import { CaptchaService } from './captcha.service.js';
 export class CaptchaController {
   constructor(private readonly captcha: CaptchaService) {}
 
-  /** Yerleşik captcha sorusu (dış servis seçiliyse kullanılmaz) */
   @Get('auth/captcha')
   @AllowIncomplete()
   @RateLimit({ limit: 60, windowMs: 5 * MINUTE })

@@ -6,11 +6,6 @@ import { Clock } from '../common/clock.js';
 const VERSION_PREFIX = 'cache_version:';
 const SYNC_INTERVAL_MS = 2000;
 
-/**
- * Bellek içi önbellek. Birden fazla process (ör. Passenger) arasında tutarlılık için
- * her ad alanının bir versiyon sayacı `system_state` tablosunda tutulur; geçersizleme sayacı artırır,
- * diğer process'ler en geç 2 sn içinde fark eder.
- */
 @Injectable()
 export class CacheService {
   private readonly logger = new Logger('Cache');
@@ -49,7 +44,6 @@ export class CacheService {
     return value;
   }
 
-  /** Ad alanındaki tüm kayıtları (tüm process'lerde) geçersiz kılar. */
   async invalidate(ns: string): Promise<void> {
     const key = VERSION_PREFIX + ns;
     const now = this.clock.now();
@@ -80,7 +74,6 @@ export class CacheService {
     }
   }
 
-  /** Diğer process'lerin yaptığı geçersizlemeleri algılar (istek başında çağrılır, 2 sn'de bir sorgular). */
   async sync(force = false): Promise<void> {
     const now = this.clock.now();
     if (!force && now - this.lastSync < SYNC_INTERVAL_MS) return;

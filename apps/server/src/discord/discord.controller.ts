@@ -12,7 +12,6 @@ import { DiscordService } from './discord.service.js';
 export class DiscordController {
   constructor(private readonly discord: DiscordService) {}
 
-  /** Ana sayfa bloğu: sunucu adı, çevrimiçi sayısı, davet */
   @Get('discord/widget')
   async widget() {
     return { widget: await this.discord.widget() };

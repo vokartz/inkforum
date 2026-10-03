@@ -1,7 +1,3 @@
-/**
- * Invision Community (IPS) 4.x / 5.x okuyucusu. Forum, grup ve rütbe adları core_sys_lang_words tablosundadır;
- * mesajlar HTML olarak saklanır.
- */
 import { legacyHash } from '../../security/legacy-password.js';
 import { ipsToBBCode, type IpsContext } from '../convert.js';
 import type {
@@ -36,14 +32,12 @@ export class IpsReader extends BaseReader implements SourceReader {
     return this.settingsCache.get(key) ?? '';
   }
 
-  /** Dil dizesi: varsayılan dildeki özel çeviri, yoksa varsayılan metin */
   private word(key: string): string {
     if (!this.words) {
       this.words = new Map();
       const defaultLang = this.stage.rows(this.t('core_sys_lang'), 'WHERE lang_default = 1')[0];
       const langId = defaultLang ? this.n(defaultLang.lang_id) : null;
       const rows = this.stage.rows(this.t('core_sys_lang_words'));
-      // Önce diğer dillerdeki, sonra varsayılan dildeki değerler (varsayılan üstün gelir)
       rows.sort((a, b) => Number(this.n(a.lang_id) === langId) - Number(this.n(b.lang_id) === langId));
       for (const r of rows) {
         const v = this.s(r.word_custom) || this.s(r.word_default);
@@ -256,7 +250,6 @@ export class IpsReader extends BaseReader implements SourceReader {
         }
       }
       const isGroup = this.s(r.type) === 'g';
-      // Tüm forumları kapsayan grup moderatörlüğü, grup rolünde (genel moderatör) karşılanır
       if (forums === '*' && isGroup) continue;
       for (const b of forums === '*' ? boards : forums) out.push(isGroup ? { boardId: b, groupId: this.id(r.id) } : { boardId: b, userId: this.id(r.id) });
     }
@@ -377,7 +370,6 @@ export class IpsReader extends BaseReader implements SourceReader {
           const picked = (JSON.parse(this.s(v.member_choices)) as Record<string, number | number[]>)[qid];
           for (const c of Array.isArray(picked) ? picked : picked !== undefined ? [picked] : []) votes.push({ userId: this.id(v.member_id), optionId: String(c) });
         } catch {
-          /* bozuk oy kaydı */
         }
       }
       yield {

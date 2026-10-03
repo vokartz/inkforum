@@ -23,7 +23,6 @@ async function seed(d: Database) {
     .returning('id')
     .executeTakeFirstOrThrow();
   const cat = await d.db.insertInto('forum_categories').values({ name: 'Genel', sort_order: 0, created_at: now, updated_at: now } as never).returning('id').executeTakeFirstOrThrow();
-  // Kendine başvuru: alt bölüm üst bölümden önce eklenmiş (daha küçük id)
   const child = await d.db.insertInto('boards').values({ category_id: cat.id, name: 'Alt', slug: 'alt', sort_order: 1, created_at: now, updated_at: now } as never).returning('id').executeTakeFirstOrThrow();
   const parent = await d.db.insertInto('boards').values({ category_id: cat.id, name: 'Üst', slug: 'ust', sort_order: 0, created_at: now, updated_at: now } as never).returning('id').executeTakeFirstOrThrow();
   await d.db.updateTable('boards').set({ parent_id: parent.id }).where('id', '=', child.id).execute();
@@ -41,7 +40,6 @@ describe('transferDatabase', () => {
     expect(users).toEqual([{ id: userId, username: 'Ayşe' }]);
     const boards = await dst.db.selectFrom('boards').select(['name', 'parent_id']).orderBy('id').execute();
     expect(boards.map((b) => b.name)).toEqual(['Alt', 'Üst']);
-    // Yeni kayıtlar kopyalanan en büyük id'den sonra gelir
     const now = Date.now();
     const next = await dst.db.insertInto('forum_categories').values({ name: 'Yeni', sort_order: 1, created_at: now, updated_at: now } as never).returning('id').executeTakeFirstOrThrow();
     expect(next.id).toBe(2);

@@ -1,7 +1,6 @@
 import type { Kysely } from 'kysely';
 import { flag, helpers, notNull, ref } from './_helpers.js';
 
-/** Tema stüdyosu: yöneticinin oluşturduğu temalar (renk paletleri, yazı, düzen seçenekleri, özel CSS / HTML). */
 export async function up(db: Kysely<any>): Promise<void> {
   await helpers(db)
     .table('themes')

@@ -17,7 +17,6 @@
     siGoogle,
   } from 'simple-icons';
 
-  /** Sosyal platform ikonları (simple-icons, CC0). Renkler koyu zeminde okunacak şekilde ayarlandı. */
   export const BRANDS: Record<string, { path: string; color: string; fg?: string }> = {
     discord: { path: siDiscord.path, color: '#5865f2' },
     instagram: { path: siInstagram.path, color: 'linear-gradient(45deg,#f9ce34,#ee2a7b 50%,#6228d7)' },
@@ -45,7 +44,6 @@
   interface Props {
     platform: string;
     size?: number;
-    /** Renkli daire içinde göster */
     badge?: boolean;
     class?: string;
   }

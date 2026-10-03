@@ -9,7 +9,6 @@ export {
 	Description,
 	Title,
 	Action,
-	//
 	Root as Alert,
 	Description as AlertDescription,
 	Title as AlertTitle,

@@ -34,7 +34,6 @@ describe('reactions', () => {
     expect(page.status).toBe(200);
     expect(page.body.reactions.map((r: { key: string }) => r.key)).toContain('like');
     expect(page.body.posts.items[0]).toMatchObject({ reactions: [], myReaction: null, can: { react: true } });
-    // Emoji görsele çevrilir
     expect(page.body.posts.items[0].html).toContain('/emoji/1f600.svg');
   });
 
@@ -82,7 +81,6 @@ describe('reactions', () => {
     const after = await admin.get('/api/admin/forum/reactions');
     const keys = after.body.items.filter((r: { isEnabled: boolean }) => r.isEnabled).map((r: { key: string }) => r.key);
     expect(keys).toEqual(['like', 'love', 'party']);
-    // Kullanılmış tepki listeden çıkarılsa da silinmez, kapatılır
     expect(after.body.items.find((r: { key: string }) => r.key === 'like')).toBeTruthy();
     expect((await ali.put('/api/admin/forum/reactions', { items })).status).toBe(403);
   });

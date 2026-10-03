@@ -12,7 +12,6 @@
 
   interface Props {
     items: NavEntry[];
-    /** pill: hap (modern); underline: alt çizgili (topluluk); tab: sekme (klasik) */
     variant?: 'pill' | 'underline' | 'tab';
   }
   let { items, variant = 'pill' }: Props = $props();
@@ -22,11 +21,9 @@
   let visibleCount = $state(Number.POSITIVE_INFINITY);
   const MORE_WIDTH = 130;
 
-  /** Forum sayfaları (bölüm, konu, mesaj) "Forum" öğesini etkin gösterir. */
   function active(e: NavEntry): boolean {
     const path = page.url.pathname;
     if (!e.href) return e.children.some(active);
-    // Forum dizini "/" ya da (açılış sayfası varken) "/forum"; konu ve bölüm sayfaları da forumun parçası
     const landing = !!effectiveLanding(page.data.viewer?.settings);
     if (e.href === '/') return landing ? path === '/' : path === '/' || /^\/(f|t|p|new)(\/|$)/.test(path);
     if (e.href === '/forum') return /^\/(forum|f|t|p|new)(\/|$)/.test(path);

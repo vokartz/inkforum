@@ -5,7 +5,6 @@
 
   let { children } = $props();
 
-  // Yeni mesaj gelince ya da bir konuşma okununca liste yenilenir
   onMount(() => {
     const onEvent = (e: Event) => {
       const type = (e as CustomEvent<{ type: string }>).detail.type;

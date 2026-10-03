@@ -1,6 +1,5 @@
 import type { OgCard } from '@forum/shared';
 
-/** Paylaşım kartının içeriği (sayfaya göre değişir) */
 export interface CardContent {
   kicker: string;
   title: string;
@@ -8,7 +7,6 @@ export interface CardContent {
   forum: string;
 }
 
-/** Karta gömülen görseller (data: adresleri; sunucu yerel dosyalardan üretir) */
 export interface CardAssets {
   logo: string | null;
   background: string | null;
@@ -30,7 +28,6 @@ export function truncate(s: string, n: number): string {
   return s.length > n ? `${s.slice(0, n - 1)}…` : s;
 }
 
-/** Başlığı satırlara böler (en fazla `max` satır, sonuncusu gerekirse kısaltılır) */
 export function wrap(text: string, width: number, max: number): string[] {
   const words = text.split(/\s+/).filter(Boolean);
   const lines: string[] = [];
@@ -52,7 +49,6 @@ export function wrap(text: string, width: number, max: number): string[] {
   return lines.map((l) => truncate(l, width + 6));
 }
 
-/** Açık zemin mi (yazı rengi için) */
 function isLightBg(card: OgCard): boolean {
   const b = card.background;
   if (b.kind === 'light') return true;
@@ -64,14 +60,12 @@ function isLightBg(card: OgCard): boolean {
   return false;
 }
 
-/** 1200×630 paylaşım kartı (SVG; sharp ile PNG'ye çevrilir) */
 export function renderCardSvg(c: CardContent, card: OgCard, forumAccent: string, assets: CardAssets): string {
   const accent = hexOk(card.accent || forumAccent, '#7b61ff');
   const lightText = card.text === 'light' || (card.text === 'auto' && !isLightBg(card));
   const fg = lightText ? '#ffffff' : '#111318';
   const b = card.background;
 
-  // Zemin
   const defs: string[] = [];
   let bg = '';
   if (b.kind === 'dark' || (b.kind === 'image' && !assets.background)) {
@@ -118,7 +112,6 @@ export function renderCardSvg(c: CardContent, card: OgCard, forumAccent: string,
     if (meta) body += `<text x="${W / 2}" y="${Math.round(startY + lines.length * size * 1.18 + 20)}" text-anchor="middle" font-size="27" fill="${fg}" fill-opacity="0.72">${esc(truncate(meta, 72))}</text>`;
     body += `<text x="${W / 2}" y="574" text-anchor="middle" font-size="28" font-weight="800" fill="${accent}">${esc(footer)}</text>`;
   } else if (card.layout === 'split') {
-    // Sağda vurgu paneli + logo
     defs.push(`<linearGradient id="sp" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${accent}"/><stop offset="1" stop-color="${accent}" stop-opacity="0.6"/></linearGradient>`);
     body += `<rect x="780" y="0" width="420" height="${H}" fill="url(#sp)"/>`;
     body += logo
@@ -138,7 +131,6 @@ export function renderCardSvg(c: CardContent, card: OgCard, forumAccent: string,
     body += lines.map((l, i) => `<text x="80" y="${Math.round(startY + i * size * 1.16)}" font-size="${size}" font-weight="800" fill="${fg}">${esc(l)}</text>`).join('');
     body += logo ? `<image href="${logo}" x="${W - 80 - 220}" y="520" width="220" height="56" preserveAspectRatio="xMaxYMid meet"/>` : `<text x="${W - 80}" y="566" text-anchor="end" font-size="28" font-weight="800" fill="${accent}">${esc(footer)}</text>`;
   } else {
-    // classic
     const lines = wrap(c.title, 30, 3);
     const size = lines.length > 2 ? 58 : 66;
     const startY = 250 - (lines.length - 1) * (size * 0.6);

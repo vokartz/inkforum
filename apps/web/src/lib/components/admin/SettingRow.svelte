@@ -9,10 +9,8 @@
     description?: string | null;
     for?: string;
     error?: string | null;
-    /** Değer varsayılandan farklı mı (rozet + "varsayılana dön") */
     modified?: boolean;
     onreset?: () => void;
-    /** Kontrol dar mı (anahtar gibi): sağa yaslanır */
     inline?: boolean;
     children: Snippet;
   }

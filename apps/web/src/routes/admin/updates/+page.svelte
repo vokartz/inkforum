@@ -41,7 +41,6 @@
   let { data } = $props();
   const u = $derived(data.updates);
 
-  // ----- Denetim -----
   let checking = $state(false);
   async function checkNow() {
     checking = true;
@@ -56,7 +55,6 @@
     }
   }
 
-  // ----- Kurulum ve canlı ilerleme -----
   let job = $state<UpdateJob | null>(untrack(() => data.updates?.job ?? null));
   let offline = $state(false);
   let polling = false;
@@ -92,7 +90,6 @@
             return;
           }
         } catch {
-          // Uygulama yeniden başlıyor: kısa süre yanıt vermez
           offline = true;
         }
       }
@@ -140,7 +137,6 @@
     }
   }
 
-  // ----- Ayarlar -----
   let prefs = $state<UpdateSettingsInput>(untrack(() => ({ ...(data.updates?.settings ?? { autoCheck: true, channel: 'stable', autoInstall: 'off', installHour: 4, notifyAdmins: true }) })));
   let saving = $state(false);
   async function savePrefs() {
@@ -156,7 +152,6 @@
     }
   }
 
-  // ----- Coolify ile güncelleme (tek imajla kurulumlar) -----
   let coolifyUrl = $state(untrack(() => data.updates?.coolify?.webhookUrl ?? ''));
   let coolifyToken = $state('');
   let coolifySaving = $state(false);
@@ -175,7 +170,6 @@
     }
   }
 
-  // ----- Sürüm geçmişi -----
   let expanded = $state<string | null>(null);
   const kindLabel = { major: 'Ana sürüm', minor: 'Yeni özellikler', patch: 'Düzeltme', pre: 'Ön sürüm' } as const;
 </script>

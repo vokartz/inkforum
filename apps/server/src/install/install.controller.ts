@@ -13,7 +13,6 @@ import { InstallService } from './install.service.js';
 
 const mailTestInput = z.object({ mail: mailTransportInput });
 
-/** Sihirbazın açıldığı adres (site adresi otomatik algılanırken kaydedilir) */
 const wizardOrigin = (req: Request) => requestOrigin(requestSource(req), req.headers.host);
 
 @Controller('install')
@@ -30,17 +29,14 @@ export class InstallController {
     return this.install.status();
   }
 
-  /** Ortam denetimleri (sihirbazın ilk adımı) */
   @Get('environment')
   @RateLimit({ limit: 30, windowMs: 5 * MINUTE })
   environment(@CurrentViewer() v: RequestViewer, @Req() req: Request) {
-    // Yalnızca gösterim için: ters vekil arkasında protokol X-Forwarded-Proto'dan okunur
     const host = req.headers.host;
     const proto = String(req.headers['x-forwarded-proto'] ?? req.protocol).split(',')[0]!.trim();
     return this.install.environment(v.locale, host ? requestOrigin(`${proto}://${host}`, host) : null);
   }
 
-  /** SMTP bağlantısını dener (kayıt yapmadan) */
   @Post('mail-test')
   @HttpCode(200)
   @RateLimit({ limit: 10, windowMs: 5 * MINUTE })

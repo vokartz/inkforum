@@ -2,12 +2,6 @@ import { sql, type Kysely } from 'kysely';
 import type { DbDriver } from './dialect.js';
 import { migrateToLatest, pendingMigrations } from './migrator.js';
 
-/**
- * Veritabanı taşıma (ör. SQLite → PostgreSQL): hedefte şema migration'larla kurulur, ardından kaynaktaki
- * tüm tablolar yabancı anahtar sırasına göre kopyalanır. PostgreSQL hedefinde aktarım tek işlemdir; hata olursa
- * hedefte hiçbir şey kalmaz. Kaynak veritabanı değiştirilmez.
- */
-
 export interface TransferSide {
   db: Kysely<any>;
   driver: DbDriver;
@@ -55,7 +49,6 @@ async function foreignKeys(side: TransferSide, tables: string[]): Promise<Foreig
   return rows.rows.map((r) => ({ table: r.table_name, column: r.column_name, ref: r.ref_table }));
 }
 
-/** Başvurulan tablolar önce gelecek şekilde sıralar (kendine başvurular ayrıca ele alınır) */
 function topoOrder(tables: string[], fks: ForeignKey[]): string[] {
   const deps = new Map(tables.map((t) => [t, new Set<string>()]));
   for (const fk of fks) if (fk.table !== fk.ref && deps.has(fk.table) && deps.has(fk.ref)) deps.get(fk.table)!.add(fk.ref);
@@ -73,7 +66,6 @@ function topoOrder(tables: string[], fks: ForeignKey[]): string[] {
   return out;
 }
 
-/** Kendine başvuran tablolarda (ör. üst bölüm) üst satırlar önce eklenir */
 function orderSelfReferencing(rows: Array<Record<string, unknown>>, columns: string[]): Array<Record<string, unknown>> {
   if (!columns.length || !rows.length || !('id' in rows[0]!)) return rows;
   const pending = [...rows];
@@ -89,7 +81,7 @@ function orderSelfReferencing(rows: Array<Record<string, unknown>>, columns: str
         pending.splice(i, 1);
       } else i++;
     }
-    if (pending.length === before) return [...out, ...pending]; // döngü: kalanları olduğu gibi ekle
+    if (pending.length === before) return [...out, ...pending];
   }
   return out;
 }
@@ -120,12 +112,10 @@ export async function transferDatabase(
     throw new Error('Hedef veritabanında zaten üye var. Veri kaybını önlemek için taşıma yalnızca boş bir veritabanına yapılır.');
   }
 
-  // Şema bilgisi işlem başlamadan okunur (işlem bağlantısı dışında sorgu kilitlenmeye yol açabilir)
   const targetColumns = new Map<string, Set<string>>();
   for (const t of order) targetColumns.set(t, new Set(await columnsOf(target, t)));
 
   const copy = async (db: Kysely<any>): Promise<TransferResult> => {
-    // Migration'ların eklediği varsayılan satırlar temizlenir (ters sırayla), sonra her tablo kopyalanır
     for (const t of [...order].reverse()) await db.deleteFrom(t).execute();
     const result: TransferResult = { tables: [], totalRows: 0 };
     for (const t of order) {
@@ -142,7 +132,6 @@ export async function transferDatabase(
       if (rows.length) log(`${t}: ${rows.length}`);
     }
     if (target.driver !== 'sqlite') {
-      // Kimlik sütunlarının sayaçları kopyalanan en büyük değerden devam eder
       for (const t of order) {
         if (!targetColumns.get(t)!.has('id')) continue;
         await sql`select setval(pg_get_serial_sequence(${t}, 'id'), coalesce((select max(id) from ${sql.table(t)}), 1), (select max(id) from ${sql.table(t)}) is not null)`.execute(db);
@@ -162,7 +151,6 @@ export async function transferDatabase(
     result = await target.db.transaction().execute(copy);
   }
 
-  // Doğrulama: her tablodaki satır sayısı kaynakla aynı olmalı
   for (const { table, rows } of result.tables) {
     const n = await count(target.db, table);
     if (n !== rows) throw new Error(`Doğrulama başarısız: ${table} tablosunda ${rows} yerine ${n} satır var.`);

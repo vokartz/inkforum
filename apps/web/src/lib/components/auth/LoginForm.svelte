@@ -16,12 +16,9 @@
   import { t } from '$lib/i18n.svelte';
 
   interface Props {
-    /** Başarılı girişten sonra */
     ondone: () => void | Promise<void>;
-    /** Kimlik alanına otomatik odaklan */
     autofocus?: boolean;
     idPrefix?: string;
-    /** Sosyal girişten iki adımlı doğrulamaya devam */
     initialChallenge?: string | null;
   }
   let { ondone, autofocus = false, idPrefix = 'login', initialChallenge = null }: Props = $props();

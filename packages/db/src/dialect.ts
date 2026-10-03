@@ -5,16 +5,12 @@ import type { DB } from './schema.js';
 import { BooleanToIntPlugin } from './plugins.js';
 import { isNodeSqliteAvailable, openNodeSqlite, type NodeSqliteDatabase } from './node-sqlite.js';
 
-/** `pglite`: WebAssembly PostgreSQL — yalnızca testlerde Postgres uyumluluğunu doğrulamak için. */
 export type DbDriver = 'sqlite' | 'postgres' | 'pglite';
 
 export interface DatabaseConfig {
   driver: DbDriver;
-  /** SQLite dosya yolu veya ':memory:' */
   sqlitePath?: string;
-  /** auto: node:sqlite varsa onu, yoksa better-sqlite3 */
   sqliteDriver?: 'auto' | 'node' | 'better';
-  /** SQLite journal modu; ağ dosya sistemlerinde 'DELETE' kullanılmalı. */
   sqliteJournalMode?: 'WAL' | 'DELETE';
   postgresUrl?: string;
   postgresPoolSize?: number;
@@ -27,7 +23,6 @@ export interface Database {
   destroy(): Promise<void>;
 }
 
-// busy_timeout ilk sırada: başka bir süreç (ör. CLI) yazarken açılışta "database is locked" hatası alınmaz.
 const PRAGMAS = (journal: string) => [
   'PRAGMA busy_timeout = 5000',
   `PRAGMA journal_mode = ${journal}`,
@@ -61,7 +56,6 @@ async function openSqlite(config: DatabaseConfig): Promise<SqliteDatabase> {
 async function createPostgresPool(config: DatabaseConfig) {
   const pg = await import('pg');
   const types = pg.default.types;
-  // int8 (bigint) ve COUNT(*) sonuçlarını number olarak döndür (epoch ms güvenli aralıkta).
   types.setTypeParser(20, (v: string) => Number(v));
   types.setTypeParser(1700, (v: string) => Number(v));
   return new pg.default.Pool({

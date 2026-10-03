@@ -59,7 +59,6 @@ const services = [
   RealtimeService,
 ];
 
-/** Uygulama genelinde paylaşılan altyapı ve çekirdek alan servisleri. */
 @Global()
 @Module({})
 export class CoreModule {

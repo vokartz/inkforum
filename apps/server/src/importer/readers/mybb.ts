@@ -1,6 +1,3 @@
-/**
- * MyBB 1.8 okuyucusu.
- */
 import { legacyHash } from '../../security/legacy-password.js';
 import { mybbToBBCode } from '../convert.js';
 import type {
@@ -278,7 +275,6 @@ export class MybbReader extends BaseReader implements SourceReader {
     }
   }
 
-  /** MyBB her kutu için ayrı kopya tutar; alınan kopyalar katılımcı çifti + konu başlığına göre birleştirilir */
   *conversations(): Iterable<SrcConversation> {
     if (!this.has('privatemessages')) return;
     const threads = new Map<string, SrcConversation>();

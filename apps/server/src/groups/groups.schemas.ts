@@ -25,7 +25,6 @@ export type GroupInput = z.infer<typeof groupInputSchema>;
 export const addMemberSchema = z.object({
   userId: z.number().int().positive(),
   asPrimary: z.boolean().default(false),
-  /** Süreli üyelik: bitiş zamanı (ms). */
   expiresAt: z.number().int().positive().nullable().default(null),
 });
 

@@ -39,7 +39,6 @@ import { storageWarning } from '../storage/persistence.js';
 
 const CACHE_KEY = 'updates:cache';
 const NOTIFIED_KEY = 'updates:notified';
-/** Platform (Coolify) yeniden dağıtımı sonrası açılışta sonuç kaydı: { from, to } */
 const PLATFORM_PENDING_KEY = 'updates:platform-pending';
 const JOB_KEY = 'updates:job';
 const CHECK_EVERY = 6 * HOUR;
@@ -64,13 +63,6 @@ interface GithubRelease {
 
 const EMPTY_JOB: UpdateJob = { state: 'idle', version: null, from: null, startedAt: null, finishedAt: null, log: [], error: null };
 
-/**
- * Sürüm denetimi ve güncelleme. Yayınlar GitHub'dan (UPDATE_REPO) okunur. Kurulum yöntemi ortama göre:
- *  - docker  : yardımcı "updater" kapsayıcısı yeni imajı çeker ve uygulama kapsayıcısını yeniden oluşturur
- *  - release : sürüm paketi indirilir, SHA-256 ile doğrulanır, yerine kurulur, uygulama yeniden başlatılır
- *  - source  : yalnızca bildirim (git ile güncellenir)
- * Her kurulumdan önce veritabanı yedeği alınır.
- */
 @Injectable()
 export class UpdatesService implements OnApplicationBootstrap {
   private readonly logger = new Logger('Güncelleme');
@@ -91,7 +83,6 @@ export class UpdatesService implements OnApplicationBootstrap {
     private readonly i18n: I18nService,
   ) {}
 
-  /** Son güncelleyici isteğinin bağlantı hatası (yönetim ekranında gösterilir) */
   private updaterFailure: { code: string; host: string; at: number } | null = null;
 
   async onApplicationBootstrap(): Promise<void> {
@@ -99,8 +90,6 @@ export class UpdatesService implements OnApplicationBootstrap {
     await this.finishPendingRelease();
     await this.finishPendingPlatform();
   }
-
-  // ---------- Durum ----------
 
   prefs(): UpdateSettingsInput {
     return updateSettingsInput.parse(this.settings.get('updates.config') ?? {});
@@ -134,7 +123,6 @@ export class UpdatesService implements OnApplicationBootstrap {
     return this.state<Cache>(CACHE_KEY, { checkedAt: null, error: null, etag: null, releases: [] });
   }
 
-  /** Kanala uygun, mevcut sürümden yeni en son yayın */
   private latestFor(releases: Cache['releases'], s: UpdateSettingsInput) {
     return releases.find((r) => (s.channel === 'beta' || !r.prerelease) && compareVersions(r.version, this.config.version) > 0) ?? null;
   }
@@ -146,7 +134,6 @@ export class UpdatesService implements OnApplicationBootstrap {
   installBlocker(): string | null {
     if (this.config.updates.disabled) return 'Güncelleme denetimi kapalı (UPDATES_DISABLED).';
     if (this.config.deploy === 'source') return 'Kaynak koddan çalışan kurulumlar git ile güncellenir (git pull, pnpm install, pnpm build).';
-    // Kalıcı disk yokken Coolify'ın yeniden dağıtımı kapsayıcıyı boş bir birimle açar: forum silinmiş olur
     if (this.config.deploy === 'docker' && this.coolify().configured && storageWarning(this.config)) {
       return 'Depolama klasörüne kalıcı disk bağlı değil; Coolify ile güncellemek tüm verileri siler. Önce Coolify → Persistent Storage bölümünden /app/storage için bir birim ekleyin.';
     }
@@ -187,13 +174,10 @@ export class UpdatesService implements OnApplicationBootstrap {
     };
   }
 
-  /** Yönetim menüsündeki rozet için hafif özet */
   async summary(): Promise<{ current: string; available: string | null }> {
     const latest = this.latestFor((await this.cache()).releases, this.prefs());
     return { current: this.config.version, available: latest?.version ?? null };
   }
-
-  // ---------- GitHub'dan denetim ----------
 
   async check(force = false): Promise<void> {
     if (this.config.updates.disabled) return;
@@ -240,7 +224,6 @@ export class UpdatesService implements OnApplicationBootstrap {
     }
   }
 
-  /** Zamanlanmış görev: denetim, yöneticilere bildirim, izin verilmişse gece otomatik kurulum */
   async tick(): Promise<void> {
     const s = this.prefs();
     if (!s.autoCheck || this.config.updates.disabled) return;
@@ -258,7 +241,6 @@ export class UpdatesService implements OnApplicationBootstrap {
     const job = await this.job();
     const busy = this.isBusy(job);
     if (autoInstallAllows(s.autoInstall, kind) && new Date(this.clock.now()).getHours() === s.installHour && !busy && !this.installBlocker()) {
-      // Aynı sürümde başarısız olmuş otomatik kurulum her saat tekrarlanmasın
       if (job?.version === latest.version && job.state === 'failed') return;
       this.logger.log(`Otomatik güncelleme başlıyor: v${latest.version}`);
       await this.install(latest.version, null).catch((err) => this.logger.error(`Otomatik güncelleme başarısız: ${String(err)}`));
@@ -276,11 +258,8 @@ export class UpdatesService implements OnApplicationBootstrap {
     return rows.map((r) => r.id);
   }
 
-  // ---------- Kurulum ----------
-
   async job(): Promise<UpdateJob | null> {
     if (this.config.deploy === 'docker' && !this.coolify().configured && this.config.updates.updaterUrl && this.config.updates.updaterToken) {
-      // Ulaşılamayan güncelleyici her sayfa açılışında beklenmesin: son hatadan sonra 1 dakika yerel durum kullanılır
       if (this.updaterFailure && this.clock.now() - this.updaterFailure.at < MINUTE) return this.localJob ?? (await this.state<UpdateJob | null>(JOB_KEY, null));
       try {
         const res = await this.updater('GET', '/v1/status', undefined, 3_000);
@@ -292,7 +271,6 @@ export class UpdatesService implements OnApplicationBootstrap {
     return this.localJob ?? (await this.state<UpdateJob | null>(JOB_KEY, null));
   }
 
-  /** Süren güncelleme var mı (30 dakikadan eski, sonuçlanmamış işler takılmış sayılır) */
   private isBusy(job: UpdateJob | null): boolean {
     if (!job || ['idle', 'done', 'failed', 'rolledback'].includes(job.state)) return false;
     return !job.startedAt || this.clock.now() - job.startedAt < 30 * MINUTE;
@@ -314,13 +292,11 @@ export class UpdatesService implements OnApplicationBootstrap {
         return res;
       },
       (err: unknown) => {
-        // "fetch failed" yerine nedeni ve çözümü söyleyen mesaj (bkz. describeUpdaterError)
         const e = err as { name?: string; cause?: { code?: string } };
         let host = 'updater';
         try {
           host = new URL(this.config.updates.updaterUrl ?? '').host;
         } catch {
-          /* varsayılan */
         }
         this.updaterFailure = { code: e?.cause?.code ?? (e?.name === 'TimeoutError' ? 'TIMEOUT' : ''), host, at: this.clock.now() };
         throw new UpdaterUnreachable();
@@ -328,7 +304,6 @@ export class UpdatesService implements OnApplicationBootstrap {
     );
   }
 
-  /** Güncelleyiciye ulaşılamama nedeni ve çözümü (yöneticinin dilinde) */
   private describeUpdaterError(f: { code: string; host: string }, locale?: string | null): string {
     const lang = this.i18n.resolve({ preference: locale });
     const tr = (text: string, params?: Record<string, string>) => this.i18n.t(lang, text, params);
@@ -346,8 +321,6 @@ export class UpdatesService implements OnApplicationBootstrap {
     return `${reason} ${hint}`;
   }
 
-  // ---------- Coolify ----------
-
   private coolify(): { configured: boolean; webhookUrl: string; tokenEnc: string } {
     const v = (this.settings.get('updates.coolify') ?? {}) as { webhookUrl?: unknown; tokenEnc?: unknown };
     const webhookUrl = typeof v.webhookUrl === 'string' ? v.webhookUrl : '';
@@ -363,7 +336,6 @@ export class UpdatesService implements OnApplicationBootstrap {
     await this.audit.log({ type: 'admin', action: 'updates.coolify', actorId, data: { configured: !!input.webhookUrl } });
   }
 
-  /** Coolify'a yeniden dağıtım isteği: Coolify imajı (etiket latest ise yeni sürümü) çeker ve kapsayıcıyı yeniler */
   private async deployWithCoolify(job: UpdateJob): Promise<void> {
     const c = this.coolify();
     let token: string;
@@ -386,7 +358,6 @@ export class UpdatesService implements OnApplicationBootstrap {
     this.log(job, 'Coolify yeniden dağıtımı başlatıldı; yeni imaj çekiliyor, forum birazdan yeniden başlayacak.');
   }
 
-  /** Açılışta: Coolify ile başlatılan güncellemenin sonucunu kaydet */
   private async finishPendingPlatform(): Promise<void> {
     const p = await this.state<{ from: string; to: string } | null>(PLATFORM_PENDING_KEY, null);
     if (!p || compareVersions(this.config.version, p.from) === 0) return;
@@ -446,7 +417,6 @@ export class UpdatesService implements OnApplicationBootstrap {
         return (await this.job()) ?? job;
       }
 
-      // Sunucu paketi (release) kurulumu arka planda sürer; ilerleme job üzerinden izlenir
       void this.installRelease(job, release).catch(async (err) => {
         job.state = 'failed';
         job.error = err instanceof Error ? err.message : String(err);
@@ -493,10 +463,6 @@ export class UpdatesService implements OnApplicationBootstrap {
     });
   }
 
-  /**
-   * Sunucu paketi güncellemesi: indir → SHA-256 doğrula → aç → (gerekirse) bağımlılıkları kur →
-   * dosyaları değiştir (eskiler .update/previous içinde saklanır) → süreci yeniden başlat.
-   */
   private async installRelease(job: UpdateJob, release: Cache['releases'][number]): Promise<void> {
     const platform = `${process.platform}-${process.arch}`;
     const asset =
@@ -553,12 +519,10 @@ export class UpdatesService implements OnApplicationBootstrap {
     this.restartProcess();
   }
 
-  /** Süreç yöneticisi (systemd, pm2, Passenger, Docker) uygulamayı yeniden başlatır */
   private restartProcess(): void {
     requestRestart(this.config.root);
   }
 
-  /** Açılışta: yarım kalan paket güncellemesinin sonucunu kaydet */
   private async finishPendingRelease(): Promise<void> {
     const file = join(this.updateDir(), 'pending.json');
     if (!existsSync(file)) return;
@@ -577,7 +541,6 @@ export class UpdatesService implements OnApplicationBootstrap {
     }
   }
 
-  /** Sunucu paketi kurulumunda önceki sürüme dön (.update/previous) */
   async rollback(actorId: number): Promise<void> {
     if (this.config.deploy !== 'release') throw Errors.badRequest('Geri alma yalnızca sunucu paketi kurulumlarında buradan yapılır; Docker’da önceki imaj etiketini kurun.');
     const previous = join(this.updateDir(), 'previous');
@@ -600,7 +563,6 @@ export class UpdatesService implements OnApplicationBootstrap {
   }
 }
 
-/** Güncelleyici kapsayıcısına bağlanılamadı (ayrıntı UpdatesService.updaterFailure içinde) */
 class UpdaterUnreachable extends Error {
   constructor() {
     super('updater unreachable');

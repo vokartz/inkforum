@@ -27,7 +27,6 @@ export class WafController {
     private readonly audit: AuditService,
   ) {}
 
-  /** Doğrulama sayfasının gönderdiği çözüm: geçerliyse doğrulama çerezi verilir */
   @Post('waf/verify')
   @HttpCode(200)
   @AllowIncomplete()
@@ -45,7 +44,6 @@ export class WafController {
     return { ok: true };
   }
 
-  /** Geliştirme ortamında SvelteKit sayfa isteklerini denetlemek için (üretimde ara katman doğrudan çalışır) */
   @Get('waf/gate')
   @AllowIncomplete()
   @AllowBeforeInstall()
@@ -58,8 +56,6 @@ export class WafController {
     const page = d.action === 'block' ? this.waf.blockPage(d.reason, d.status, ctx.locale) : this.waf.challengePage(ctx.ua, url, ctx.ip, ctx.locale);
     return { action: d.action, status: d.action === 'block' ? d.status : 403, html: page.html, csp: this.waf.csp(page.nonce) };
   }
-
-  // ---------- Yönetim ----------
 
   @Get('admin/waf')
   @AdminEndpoint('admin.settings')
@@ -84,7 +80,6 @@ export class WafController {
     return { ok: true };
   }
 
-  /** Doğrulama sayfasının önizlemesi (yönetim) */
   @Get('admin/waf/preview')
   @AdminEndpoint('admin.settings')
   preview(@Req() req: Request, @Res() res: Response) {

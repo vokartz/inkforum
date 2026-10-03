@@ -1,10 +1,6 @@
 import { browser } from '$app/environment';
 import type { ActiveTheme } from '@forum/shared';
 
-/**
- * Tema stüdyosunun canlı önizlemesi: düzenleyici taslak temayı bu anahtara yazar ve çerçeveye haber verir;
- * çerçevedeki sayfa (yalnızca iframe içindeyken) taslağı ayarların üzerine uygular.
- */
 export const THEME_PREVIEW_KEY = 'inkforum:theme-preview';
 export const THEME_PREVIEW_MESSAGE = 'inkforum:theme-preview';
 

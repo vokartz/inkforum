@@ -2,11 +2,6 @@ import { z } from 'zod';
 import type { UserSummary } from './dto.js';
 import { ICON_NAME, type IconNode } from './forum.js';
 
-/**
- * Başvuru sistemi: yönetimin tanımladığı formlar (sorular + gereksinimler), üyelerin başvuruları,
- * inceleme (not, onay / ret) ve onayda otomatik grup ataması.
- */
-
 export const APPLICATION_FIELD_TYPES = ['text', 'textarea', 'select', 'radio', 'checkboxes', 'number', 'url', 'yesno'] as const;
 export type ApplicationFieldType = (typeof APPLICATION_FIELD_TYPES)[number];
 export const APPLICATION_FIELD_LABELS: Record<ApplicationFieldType, string> = {
@@ -33,18 +28,12 @@ export const applicationQuestionSchema = z.object({
 export type ApplicationQuestion = z.output<typeof applicationQuestionSchema>;
 
 export const applicationRequirementsSchema = z.object({
-  /** Üyelik en az kaç günlük olmalı */
   minAccountDays: z.number().int().min(0).max(3650).default(0),
-  /** En az mesaj sayısı */
   minPosts: z.number().int().min(0).max(1_000_000).default(0),
   emailVerified: z.boolean().default(true),
-  /** Bu gruplardan en az birinde olmalı (boşsa şart yok) */
   requiredGroupIds: z.array(z.number().int().positive()).max(20).default([]),
-  /** Bu gruplardaysa başvuramaz */
   blockedGroupIds: z.array(z.number().int().positive()).max(20).default([]),
-  /** Uyarı puanı en fazla (boşsa şart yok) */
   maxWarningPoints: z.number().int().min(0).max(10_000).nullable().default(null),
-  /** Reddedildikten sonra yeniden başvurmak için beklenecek gün */
   cooldownDays: z.number().int().min(0).max(365).default(7),
 });
 export type ApplicationRequirements = z.output<typeof applicationRequirementsSchema>;
@@ -60,10 +49,8 @@ export const applicationFormInput = z
     isOpen: z.boolean().default(true),
     questions: z.array(applicationQuestionSchema).min(1, 'En az bir soru ekleyin.').max(60),
     requirements: applicationRequirementsSchema.default(applicationRequirementsSchema.parse({})),
-    /** Onaylanınca eklenecek grup */
     targetGroupId: z.number().int().positive().nullable().default(null),
     setPrimary: z.boolean().default(false),
-    /** Başvuruları inceleyebilecek gruplar (yöneticiler her zaman inceleyebilir) */
     reviewerGroupIds: z.array(z.number().int().positive()).max(20).default([]),
     acceptMessage: z.string().trim().max(2000).default(''),
     rejectMessage: z.string().trim().max(2000).default(''),
@@ -105,7 +92,6 @@ export interface EligibilityCheck {
 export interface Eligibility {
   ok: boolean;
   checks: EligibilityCheck[];
-  /** Başvuramama nedeni (form kapalı, bekleyen başvuru, bekleme süresi…) */
   blocker: string | null;
 }
 
@@ -119,10 +105,8 @@ export interface ApplicationFormSummary {
   isOpen: boolean;
   questionCount: number;
   targetGroup: { id: number; name: string; color: string | null } | null;
-  /** Giriş yapmış üye için */
   eligibility: Eligibility | null;
   myLatest: { id: number; status: ApplicationStatus; createdAt: number } | null;
-  /** İnceleyiciler için bekleyen başvuru sayısı */
   pendingCount: number | null;
 }
 
@@ -166,6 +150,5 @@ export interface ApplicationDetail extends ApplicationItem {
   notes: ApplicationNote[];
   canReview: boolean;
   canWithdraw: boolean;
-  /** İnceleyicilere: başvuranın özeti */
   applicant: { postCount: number; registeredAt: number; warningPoints: number; emailVerified: boolean } | null;
 }

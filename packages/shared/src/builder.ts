@@ -2,13 +2,6 @@ import { z } from 'zod';
 import type { ForumStats, IconNode, OnlineSummary, RecentTopicItem } from './forum.js';
 import type { UserSummary } from './dto.js';
 
-/**
- * Sürükle-bırak sayfa oluşturucu. Özel sayfanın `format = builder` olduğunda gövdesi
- * bu şemadaki blok listesidir (JSON). Sunucu blokları doğrular, metinleri BBCode'dan HTML'e
- * çevirir ve dinamik blokların (istatistik, son konular, ekip…) verisini ekler.
- */
-
-/** Bağlantı: http(s), site içi yol, çapa, e-posta ya da oyun/uygulama protokolü (fivem://, steam://…). */
 const LINK = /^(https?:\/\/[^\s]+|\/(?![\\/])[^\s\\]*|#[\w-]*|mailto:[^\s]+|(?!(?:javascript|data|vbscript|file):)[a-z][a-z0-9+.-]{1,20}:\/\/[^\s]+)$/i;
 const link = z.string().trim().max(500).regex(LINK, 'Geçersiz bağlantı.');
 const optLink = z.union([link, z.literal('')]).default('');
@@ -25,9 +18,7 @@ const base = {
   spacing: z.enum(['none', 'sm', 'md', 'lg']).default('md'),
   align: z.enum(['left', 'center']).default('left'),
   visibility: z.enum(['all', 'members', 'guests']).default('all'),
-  /** Bağlantı çapası (#kayit gibi) */
   anchor: z.union([z.string().trim().max(40).regex(/^[a-z0-9-]+$/, 'Yalnızca küçük harf, rakam, tire.'), z.literal('')]).default(''),
-  /** Kaydırınca beliriş animasyonu */
   animation: z.enum(['none', 'fade', 'up', 'zoom']).default('up'),
 };
 
@@ -63,7 +54,6 @@ export const builderBlockSchema = z.discriminatedUnion('type', [
     type: z.literal('gallery'),
     title: text(160),
     columns: z.number().int().min(2).max(5).default(3),
-    /** Izgara, döşeme (farklı yükseklikler) ya da kaydırmalı */
     layout: z.enum(['grid', 'masonry', 'carousel']).default('grid'),
     autoplay: z.boolean().default(true),
     images: z.array(z.object({ url: image, caption: text(160) })).max(40).default([]),
@@ -75,10 +65,8 @@ export const builderBlockSchema = z.discriminatedUnion('type', [
     showLogo: z.boolean().default(true),
     links: z.array(navLink).max(8).default([]),
     buttons: z.array(button).max(2).default([]),
-    /** Giriş / kayıt ya da üye menüsü */
     showAuth: z.boolean().default(true),
     sticky: z.boolean().default(true),
-    /** Altındaki kapağın üzerine şeffaf biner; kaydırınca arka plan gelir */
     transparent: z.boolean().default(false),
   }),
   z.object({
@@ -176,12 +164,10 @@ export type BuilderBlockType = BuilderBlock['type'];
 export const builderDocSchema = z.object({
   version: z.literal(1).default(1),
   blocks: z.array(builderBlockSchema).max(80, 'Bir sayfada en fazla 80 blok olabilir.'),
-  /** Sayfaya özel CSS ("Özel kod" yetkisi gerekir) */
   css: z.string().max(50_000, 'CSS en fazla 50.000 karakter olabilir.').default(''),
 });
 export type BuilderDoc = z.output<typeof builderDocSchema>;
 
-/** Blok kataloğu (editör menüsü) */
 export const BUILDER_BLOCKS: Record<BuilderBlockType, { label: string; description: string; icon: string; group: 'layout' | 'basic' | 'media' | 'dynamic' | 'advanced' }> = {
   navbar: { label: 'Menü çubuğu', description: 'Sayfanın üst menüsü: logo, bağlantılar, giriş / kayıt; yapışkan ya da kapağın üzerinde şeffaf.', icon: 'navigation-arrow', group: 'layout' },
   footer: { label: 'Alt bilgi', description: 'Logo, bağlantı sütunları, sosyal medya ve telif yazısı.', icon: 'rows', group: 'layout' },
@@ -205,16 +191,13 @@ export const BUILDER_BLOCKS: Record<BuilderBlockType, { label: string; descripti
   boards: { label: 'Forum bölümleri', description: 'Kategoriler ve bölümlere hızlı bağlantılar.', icon: 'list-bullets', group: 'dynamic' },
   team: { label: 'Ekip', description: 'Bir grubun üyeleri (ör. Yönetim ekibi).', icon: 'users-three', group: 'dynamic' },
   countdown: { label: 'Geri sayım', description: 'Açılış veya etkinlik için geri sayım.', icon: 'timer', group: 'dynamic' },
-  html: { label: 'Özel HTML', description: 'Kendi HTML / JS kodun ("Özel kod" yetkisi gerekir).', icon: 'code', group: 'advanced' },
+  html: { label: 'Özel HTML', description: 'Kendi HTML / JS kodun ("Kod düzenleme" yetkisi gerekir).', icon: 'code', group: 'advanced' },
   spacer: { label: 'Boşluk / çizgi', description: 'Bloklar arasına boşluk veya ayırıcı çizgi.', icon: 'arrows-vertical', group: 'advanced' },
 };
 
-/** Ziyaretçiye giden, sunucuda çözümlenmiş blok verisi */
 export type ResolvedBlock = BuilderBlock & {
-  /** text/faq: HTML; video: gömme HTML'i */
   html?: string;
   faqHtml?: string[];
-  /** features: öğe ikonlarının SVG düğümleri */
   itemIcons?: Array<IconNode | null>;
   stats?: ForumStats & { online: number };
   topics?: RecentTopicItem[];
@@ -228,7 +211,6 @@ export function newBlockId(): string {
   return Math.random().toString(36).slice(2, 10);
 }
 
-/** Yeni blok için varsayılan değerler */
 export function defaultBlock(type: BuilderBlockType): BuilderBlock {
   const samples: Partial<Record<BuilderBlockType, Record<string, unknown>>> = {
     navbar: { links: [{ label: 'Forum', url: '/forum' }, { label: 'Wiki', url: '/wiki' }], width: 'full', spacing: 'none', animation: 'none' },

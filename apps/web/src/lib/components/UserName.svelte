@@ -11,7 +11,6 @@
     avatar?: boolean;
     avatarSize?: number;
     link?: boolean;
-    /** Üzerine gelince mini profil kartı */
     card?: boolean;
     class?: string;
   }

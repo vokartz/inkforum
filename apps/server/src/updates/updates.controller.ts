@@ -17,7 +17,6 @@ export class UpdatesController {
     return { ...(await this.updates.status(refresh === '1', v.locale ?? 'tr')), hasPrevious: this.updates.hasPrevious() };
   }
 
-  /** Yönetim menüsü rozeti (yeniden doğrulama gerektirmez) */
   @Get('summary')
   @RequirePermission('admin.access')
   summary() {

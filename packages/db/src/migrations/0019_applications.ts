@@ -1,7 +1,6 @@
 import type { Kysely } from 'kysely';
 import { flag, helpers, intDefault, notNull, textDefault } from './_helpers.js';
 
-/** Başvuru formları, başvurular ve inceleme notları. */
 export async function up(db: Kysely<any>): Promise<void> {
   const h = helpers(db);
 

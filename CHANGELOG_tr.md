@@ -9,6 +9,55 @@ güncelleme notuna dönüşür (panel yöneticinin diline uygun olanı gösterir
 
 ## [Yayımlanmamış]
 
+### Eklendi
+
+- **Eklenti sistemi.** Eklentiler *Yönetim → Eklentiler* ekranından `.zip` / `.tgz` yükleyerek, npm paket adıyla ya
+  da `storage/extensions/<id>` klasörüne kopyalanarak kurulur. Kurmadan önce yönetici eklentinin ne yapacağını
+  görür (sunucu kodu, her sayfada betik, dış adresler, yetkiler, menü bağlantıları). Bir eklenti şunları ekleyebilir:
+  - kendi adreslerinde forum sayfaları ve **forum sayfalarının yerine geçen** sayfalar (`override: true` — ana sayfa,
+    üyeler, profiller …; yönetim, giriş ve API adresleri korunur),
+  - yönetim sayfaları (yönetim menüsünde *Eklentiler* altında) ve otomatik ayar formu, üye ayarları sayfaları
+    (*Ayarlar → Eklentiler*),
+  - `/api/ext/<id>/…` altında giriş, yetki, yönetim ve hız sınırı seçenekli API uçları,
+  - migration'larla kendi veritabanı tabloları (SQLite ve PostgreSQL), anahtar-değer deposu ve başka herhangi bir
+    veritabanına ya da servise bağlantı (tam Node.js),
+  - sayfa yerlerine HTML: üst çubuğun altı, alt bilginin üstü, ana sayfanın üstü / yan sütunu, bölümün üstü, konunun
+    üstü / altı, her mesajın altı, **her mesajın düğmeleri** (ör. şikayet sistemi), profil kartları ve sekmeleri,
+  - menü bağlantıları, yetkiler (*Yönetim → Yetkiler* ekranında), olay dinleyicileri, kuyruk işleri ve zamanlanmış
+    görevler, her sayfada betik ve stil.
+  Eklentiler açılıp kapatılabilir, yeniden yüklenebilir, yerinde güncellenebilir (ayarlar ve veriler korunur, yeni
+  migration'lar çalışır) ve verileriyle ya da verileri korunarak kaldırılabilir. Her eklentinin sunucu kayıtları
+  yönetim panelinde görünür. `INKFORUM_SAFE_MODE=1` (ya da `storage/extensions/.safemode` dosyası) forumu eklentisiz
+  başlatır.
+- Eklenti geliştiricileri için **başlangıç paketi**, *Yönetim → Eklentiler → Eklenti geliştir* ekranından indirilir
+  (npm gerekmez): çalışan bir örnek eklenti, editör için tür tanımları ve `inkforum-ext` aracı (`validate`, `pack`,
+  `build`). Ayrıntılı geliştirici rehberi de aynı ekranda.
+- InkForum ile gelen **hazır eklentiler**: *Oyun Paneli* (karakter başvurusu) ve *Şikayet Merkezi* (her mesajda
+  "Şikayet et" düğmesi, üyenin şikayetleri, iç notlu ekip kuyruğu, atama ve durum takibi). Tek tıkla kurulur ya da
+  temel almak için indirilir.
+- **Yönetim rehberi:** yönetim paneline ilk girişte karşılama ekranı ve menüyü adım adım gösteren tanıtım turu;
+  güncellemeden sonra değişiklikleri anlatan "Neler yeni?" penceresi. İkisi de yardım düğmesinden yeniden açılabilir.
+
+### Değişti
+
+- **Sadeleşen yönetim menüsü:** benzer sayfalar sekmelerde birleşti (Captcha Güvenlik altında, Tepkiler Emojilerle,
+  İşler ve Sistem bilgisi Bakım altında), Politikalar Forum grubuna taşındı, üyeler ve gruplar tek grupta, eklentilerin
+  kendi grubu var. Gömülü içerik sayfası menüden gizlendi; gömülü içerik kayıtlı ayarlarıyla çalışmaya devam eder.
+- **Tema stüdyosu** tam ekran açılır ve önizlemeyi gerçek ekran genişliğinde (1920 / 1440 / tablet / telefon) çizip
+  alana sığdırır; sayfa genişliği, yan sütun ve yoğunluk seçenekleri önizlemede görünür. Genişlik seçenekleri piksel
+  karşılığını gösterir, mesaj düzeni için önizlemede bir konu açılabilir.
+
+### Kaldırıldı
+
+- *Özel kod ve entegrasyon* ekranı (HTML/CSS/JS parçacıkları, özel CSS, dış kaynak izin listesi ve UCP için imzalı
+  üye belirteci, `window.forum.token()`). Yerini eklentiler aldı. Özel kod yetkisinin adı artık "Kod düzenleme";
+  sayfa, tema, ana sayfa bloğu ve bakım sayfasındaki HTML/CSS/JS'i denetlemeye devam eder.
+
+### Düzeltildi
+
+- Profil kapak fotoğrafının konumunu kaydetmek işe yaramıyordu.
+- Sunucuda özel sayfa çizen sayfalar (ör. açılış sayfası) iç hata verebiliyordu.
+
 ## [1.5.0] - 2026-10-02
 
 ### Eklenenler

@@ -10,12 +10,6 @@ interface TxContext {
   afterCommit: Array<() => unknown>;
 }
 
-/**
- * Veritabanı erişim noktası. Repository'ler her zaman `db.q` kullanır:
- * aktif bir transaction varsa (AsyncLocalStorage) onu, yoksa kök bağlantıyı döner.
- * SQLite tek bağlantı + mutex kullandığı için transaction içinde kök bağlantıya gitmek kilitlenmeye yol açar;
- * bu tasarım bunu önler.
- */
 @Injectable()
 export class Db implements OnApplicationShutdown {
   private readonly logger = new Logger('Db');
@@ -27,7 +21,6 @@ export class Db implements OnApplicationShutdown {
     return this.database.driver;
   }
 
-  /** Aktif transaction veya kök bağlantı. */
   get q(): Kysely<DB> {
     return this.als.getStore()?.trx ?? this.database.db;
   }
@@ -36,7 +29,6 @@ export class Db implements OnApplicationShutdown {
     return this.als.getStore() !== undefined;
   }
 
-  /** İç içe çağrılarda mevcut transaction yeniden kullanılır. */
   async tx<T>(fn: (trx: Kysely<DB>) => Promise<T>): Promise<T> {
     const current = this.als.getStore();
     if (current) return fn(current.trx);
@@ -55,7 +47,6 @@ export class Db implements OnApplicationShutdown {
     return result;
   }
 
-  /** Transaction başarıyla bittikten sonra çalışır; transaction yoksa hemen çalışır. */
   afterCommit(fn: () => unknown): void {
     const current = this.als.getStore();
     if (current) current.afterCommit.push(fn);

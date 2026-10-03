@@ -57,7 +57,6 @@
       await navigator.clipboard.writeText(`${location.origin}/wiki/${p.path}${id ? `#${id}` : ''}`);
       toast.success(t('Bağlantı kopyalandı.'));
     } catch {
-      /* yoksay */
     }
   }
 </script>

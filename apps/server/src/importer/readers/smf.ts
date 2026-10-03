@@ -1,6 +1,3 @@
-/**
- * Simple Machines Forum 2.0 / 2.1 okuyucusu.
- */
 import { legacyHash } from '../../security/legacy-password.js';
 import { smfToBBCode } from '../convert.js';
 import type {
@@ -71,8 +68,6 @@ export class SmfReader extends BaseReader implements SourceReader {
     );
   }
 
-  // ---------- Gruplar ----------
-
   groups(): SrcGroup[] {
     const out: SrcGroup[] = [
       { id: '-1', name: 'Guests', description: '', color: null, iconUrl: null, iconCount: 0, role: 'guest', minPosts: null, hidden: false },
@@ -98,8 +93,6 @@ export class SmfReader extends BaseReader implements SourceReader {
     }
     return out;
   }
-
-  // ---------- Üyeler ----------
 
   private bannedMembers(): Map<string, { until: number; reason: string }> {
     const out = new Map<string, { until: number; reason: string }>();
@@ -181,8 +174,6 @@ export class SmfReader extends BaseReader implements SourceReader {
     }
   }
 
-  // ---------- Forum yapısı ----------
-
   categories(): SrcCategory[] {
     return this.stage.rows(this.t('categories'), 'ORDER BY cat_order, id_cat').map((r) => ({
       id: this.id(r.id_cat),
@@ -229,8 +220,6 @@ export class SmfReader extends BaseReader implements SourceReader {
     return out;
   }
 
-  // ---------- Konular ve mesajlar ----------
-
   *topics(): Iterable<SrcTopic> {
     this.stage.index(this.t('messages'), 'id_msg');
     const redirectCol = this.col('topics', 'id_redirect_topic') ? 't.id_redirect_topic' : '0';
@@ -242,7 +231,6 @@ export class SmfReader extends BaseReader implements SourceReader {
       't',
     );
     for (const r of rows) {
-      // Taşındı bildirimleri (yönlendirme konuları) atlanır
       if (this.n(r.redirect_to) > 0) continue;
       if (this.n(r.locked) && this.n(r.num_replies) === 0 && /index\.php\?topic=\d+/.test(this.s(r.body)) && /\[iurl\]|\[url/.test(this.s(r.body)) && this.s(r.body).length < 600) continue;
       yield {

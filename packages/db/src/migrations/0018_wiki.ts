@@ -1,7 +1,6 @@
 import type { Kysely } from 'kysely';
 import { flag, helpers, intDefault, notNull, textDefault } from './_helpers.js';
 
-/** Wiki: iç içe sayfalar (sınırsız alt sayfa) ve sayfa geçmişi. */
 export async function up(db: Kysely<any>): Promise<void> {
   const h = helpers(db);
 

@@ -79,7 +79,7 @@
   }
 
   function onPointerDown(e: PointerEvent) {
-    if (!repositioning) return;
+    if (!repositioning || (e.target as HTMLElement).closest('button')) return;
     dragging = true;
     startY = e.clientY;
     startOffset = offset;

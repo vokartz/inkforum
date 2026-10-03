@@ -23,7 +23,6 @@
     closesAt: '',
   });
 
-  /** Sunucuya gönderilecek anket (boş seçenekler atılır). */
   export function pollPayload(p: PollDraft) {
     const options = p.options.map((o) => o.label.trim()).filter(Boolean);
     return {

@@ -1,7 +1,3 @@
-/**
- * Küçük, bağımlılıksız tar (ustar) yazıcı / okuyucu — tam yedekler (.tar.gz) için.
- * Yalnızca normal dosyalar ve klasörler; bağlantılar ve özel dosyalar yok sayılır.
- */
 import { createReadStream, createWriteStream, mkdirSync } from 'node:fs';
 import { dirname, join, normalize, sep } from 'node:path';
 import { Readable, Writable } from 'node:stream';
@@ -9,9 +5,7 @@ import { pipeline } from 'node:stream/promises';
 import { createGunzip, createGzip } from 'node:zlib';
 
 export interface TarEntry {
-  /** Arşiv içindeki yol (ör. "uploads/2026/09/a.png") */
   name: string;
-  /** Diskteki dosya (ya da içerik) */
   file?: string;
   data?: Buffer;
   size: number;
@@ -24,7 +18,6 @@ function header(name: string, size: number, mtime: number, type: '0' | '5'): Buf
   let prefix = '';
   if (Buffer.byteLength(n) > 100) {
     const cut = n.lastIndexOf('/', n.length - 1 - 0);
-    // ustar: 155 bayt önek + 100 bayt ad
     let i = cut;
     while (i > 0 && (Buffer.byteLength(n.slice(i + 1)) > 100 || Buffer.byteLength(n.slice(0, i)) > 155)) i = n.lastIndexOf('/', i - 1);
     if (i <= 0) throw new Error(`Yol çok uzun: ${name}`);
@@ -48,7 +41,6 @@ function header(name: string, size: number, mtime: number, type: '0' | '5'): Buf
   return h;
 }
 
-/** Girdileri sırayla gzip'li tar olarak yazar (bellekte tüm arşivi tutmaz) */
 export async function writeTarGz(target: string, entries: AsyncIterable<TarEntry> | Iterable<TarEntry>): Promise<void> {
   async function* chunks() {
     for await (const e of entries) {
@@ -68,10 +60,6 @@ function parseOctal(buf: Buffer, start: number, len: number): number {
   return s ? parseInt(s, 8) : 0;
 }
 
-/**
- * .tar.gz arşivini `dest` klasörüne açar. Yol geçişi (../) ve mutlak yollar reddedilir.
- * `filter` false dönen girdiler atlanır.
- */
 export async function extractTarGz(source: string, dest: string, filter: (name: string) => boolean = () => true): Promise<string[]> {
   const written: string[] = [];
   const pending: Array<Promise<void>> = [];

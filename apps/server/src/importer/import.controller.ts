@@ -36,7 +36,6 @@ const startInput = z.object({
 const previewQuery = z.object({ charset, fix: z.enum(['0', '1']).default('0') });
 const legacyQuery = z.object({ kind: z.enum(['topic', 'post', 'board', 'user']), id: z.string().regex(/^\d{1,12}$/) });
 
-/** Yüklenen dökümler önce geçici klasöre yazılır; klasör servis üzerinden belirlenir */
 let incoming: () => string = () => '.';
 
 @Controller()
@@ -49,7 +48,6 @@ export class ImportController {
     incoming = () => imports.incomingDir();
   }
 
-  /** Günlük satırları ve hata sunucuda Türkçe üretilir; yöneticinin diline çevrilir */
   private localize<T extends { log: Array<{ msg: string }>; error: string | null }>(r: T, v: RequestViewer): T {
     const locale = v.locale ?? 'tr';
     if (locale === 'tr') return r;
@@ -117,7 +115,6 @@ export class ImportController {
     return { ok: true };
   }
 
-  /** Eski forum adresleri için yönlendirme hedefi (herkese açık; yalnızca yeni kimliği verir) */
   @Get('import/legacy')
   async legacy(@Query(new ZodPipe(legacyQuery)) q: z.output<typeof legacyQuery>) {
     const id = await this.imports.redirect(q.kind, q.id);

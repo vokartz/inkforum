@@ -1,10 +1,5 @@
 import { z } from 'zod';
 
-/**
- * Bakım modu sayfasının görünümü (Yönetim → Bakım → Bakım sayfası). Ziyaretçiye herkese açık ayar
- * olarak gider; özel HTML/CSS yalnızca `admin.customCode` yetkisiyle değiştirilebilir.
- */
-
 export const MAINTENANCE_LAYOUTS = ['centered', 'card', 'split'] as const;
 export const MAINTENANCE_ICONS = ['wrench', 'clock', 'rocket', 'hammer', 'logo', 'none'] as const;
 export const MAINTENANCE_BACKGROUNDS = ['theme', 'color', 'gradient', 'image'] as const;
@@ -31,20 +26,15 @@ export const maintenancePageSchema = z.object({
       to: hex.default('#0f766e'),
       angle: z.number().int().min(0).max(360).default(135),
       image: z.string().trim().max(500).regex(/^(\/|https:\/\/|$)/, 'Görsel / ya da https:// ile başlamalı.').default(''),
-      /** Görselin üstündeki karartma (%) */
       dim: z.number().int().min(0).max(90).default(55),
     })
     .prefault({}),
-  /** Yazı rengi: auto = arka plana göre */
   text: z.enum(['auto', 'light', 'dark']).default('auto'),
-  /** Geri sayım bitişi (ms); bitince sayfa kendini yeniler */
   endsAt: z.number().int().positive().nullable().default(null),
-  /** İlerleme çubuğu (%) */
   progress: z.number().int().min(0).max(100).nullable().default(null),
   buttons: z.array(link).max(3).default([]),
   social: z.boolean().default(true),
   showLogin: z.boolean().default(true),
-  /** Mesajın altına eklenen ham HTML (betik çalışabilir) */
   html: z.string().max(20_000).default(''),
   css: z.string().max(20_000).default(''),
 });

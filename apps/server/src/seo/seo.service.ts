@@ -24,7 +24,6 @@ export interface SitemapUrl {
 
 const TOPICS_PER_SITEMAP = 10_000;
 
-/** Robots ve site haritasında hiç dizinlenmeyecek yollar */
 const PRIVATE_PATHS = [
   '/admin',
   '/api/',
@@ -56,7 +55,6 @@ const PRIVATE_PATHS = [
 
 const AI_CRAWLERS = ['GPTBot', 'ChatGPT-User', 'ClaudeBot', 'anthropic-ai', 'CCBot', 'Google-Extended', 'PerplexityBot', 'Bytespider', 'Amazonbot', 'Applebot-Extended', 'Meta-ExternalAgent', 'cohere-ai'];
 
-/** Arama motoru dosyaları (robots, site haritası), oEmbed ve paylaşım görselleri. */
 @Injectable()
 export class SeoService {
   private readonly logger = new Logger('SEO');
@@ -80,12 +78,10 @@ export class SeoService {
   }
 
   private async guest(): Promise<RequestViewer> {
-    // Yetkiler önbellekten gelir; misafir bağlamı her çağrıda ucuzdur ama tekrar kurmaya gerek yok
     this.guestViewer = await this.viewers.forUser(null, null, null, null);
     return this.guestViewer;
   }
 
-  /** Uygulama bildirimi (manifest) ve simge yönlendirmeleri için marka özeti */
   brand() {
     const favicon = this.settings.get('appearance.faviconUrl');
     return {
@@ -97,8 +93,6 @@ export class SeoService {
       lang: String(this.settings.get('i18n.defaultLocale') ?? 'tr'),
     };
   }
-
-  // ---------- robots.txt ----------
 
   robots(): string {
     const lines: string[] = [];
@@ -112,15 +106,12 @@ export class SeoService {
     }
     lines.push('User-agent: *', 'Allow: /', 'Allow: /api/og/', 'Allow: /uploads/');
     for (const p of PRIVATE_PATHS) lines.push(`Disallow: ${p}`);
-    // Sıralama ve filtre parametreli kopya sayfalar
     lines.push('Disallow: /*?*sort=', 'Disallow: /*?*prefix=', 'Disallow: /*?*safemode=');
     const extra = this.settings.get('seo.robotsExtra').trim();
     if (extra) lines.push('', '# Yönetici tarafından eklenen kurallar', extra);
     lines.push('', `Sitemap: ${this.url('/sitemap.xml')}`);
     return `${lines.join('\n')}\n`;
   }
-
-  // ---------- Site haritası ----------
 
   private async visibleBoardIds(): Promise<number[]> {
     const boards = await this.access.visibleBoards(await this.guest());
@@ -189,9 +180,6 @@ export class SeoService {
     return rows.map((r) => ({ loc: this.url(`/t/${r.id}/${r.slug}`), lastmod: r.last_post_at, priority: r.is_pinned ? 0.7 : 0.5 }));
   }
 
-  // ---------- Gömülü konu kartı / oEmbed ----------
-
-  /** Misafirin görebildiği konu için kart verisi; göremiyorsa null */
   async topicEmbed(id: number): Promise<TopicEmbed | null> {
     const t = await this.db.q.selectFrom('topics').selectAll().where('id', '=', id).where('deleted_at', 'is', null).where('is_approved', '=', 1).where('is_hidden', '=', 0).executeTakeFirst();
     if (!t) return null;
@@ -223,7 +211,6 @@ export class SeoService {
     };
   }
 
-  /** oEmbed (https://oembed.com): konu adresinden gömülebilir kart */
   async oembed(rawUrl: string, maxwidth?: number): Promise<Record<string, unknown> | null> {
     let u: URL;
     try {
@@ -256,25 +243,19 @@ export class SeoService {
     };
   }
 
-  // ---------- Paylaşım görselleri ----------
-
-  /** Görsel üretilemiyorsa kullanılacak site görseli (banner → logo → InkForum simgesi) */
   fallbackImage(): string {
     const banner = this.settings.get('appearance.bannerUrl');
-    // Hazır InkForum yazı logosu şeffaf/tek renktir; paylaşım kartında simge daha iyi görünür
     const logo = String(this.settings.get('appearance.logoUrl') || '');
     const customLogo = logo && !logo.startsWith('/brand/') ? logo : '';
     return String(banner || customLogo || '/brand/inkforum-icon-512.png');
   }
 
-  /** Konu kartı PNG'si (sharp varsa); yoksa null → çağıran yedek görsele yönlendirir */
   async topicImage(id: number): Promise<Buffer | null> {
     if (!this.settings.get('seo.ogImages')) return null;
     const sharp = await this.storage.loadSharp();
     if (!sharp) return null;
     const card = await this.topicEmbed(id);
     if (!card) return null;
-    // Görsel herkese aynıdır: forumun varsayılan dilinde
     const locale = this.i18n.defaultLocale();
     const svg = this.cardSvg({
       kicker: card.board.name,
@@ -285,10 +266,6 @@ export class SeoService {
     return this.render(sharp, svg, `t${id}`);
   }
 
-  /**
-   * Her sayfa için paylaşım kartı (Discord, X, WhatsApp…): adresten herkese açık başlık çözülür.
-   * Yalnızca veritabanındaki görünür içerik kullanılır; tanınmayan adresler site kartını alır.
-   */
   async pageImage(rawPath: string): Promise<Buffer | null> {
     if (!this.settings.get('seo.ogImages')) return null;
     const path = `/${String(rawPath || '/').split(/[?#]/)[0]!.replace(/^\/+/, '').slice(0, 300)}`;
@@ -358,7 +335,6 @@ export class SeoService {
       '/register': 'Kayıt ol',
       '/login': 'Giriş yap',
     };
-    // Kök adresli özel sayfa (/ucp vb.)
     const route = path.replace(/^\/+|\/+$/g, '');
     if (route && !route.includes('.')) {
       const pg = await this.db.q
@@ -375,7 +351,6 @@ export class SeoService {
     return null;
   }
 
-  /** Site geneli kart (ana sayfa, bölümler) */
   async siteImage(): Promise<Buffer | null> {
     if (!this.settings.get('seo.ogImages')) return null;
     const sharp = await this.storage.loadSharp();
@@ -385,7 +360,6 @@ export class SeoService {
   }
 
   private async render(sharp: NonNullable<Awaited<ReturnType<StorageService['loadSharp']>>>, svg: string, key: string): Promise<Buffer | null> {
-    // OG_RENDER: yazı tipi / çizim değişince eski (bozuk) önbellek görselleri kullanılmasın
     const hash = createHash('sha1').update(`${OG_RENDER}:${svg}`).digest('hex').slice(0, 16);
     const dir = join(this.config.storageDir, 'cache', 'og');
     const file = join(dir, `${key}-${hash}.png`);
@@ -406,13 +380,11 @@ export class SeoService {
     return { kicker: new URL(this.config.appUrl).host, title: name, meta: String(this.settings.get('general.forumDescription') ?? '').slice(0, 110), forum: name };
   }
 
-  /** Kart tasarımı (Yönetim → SEO → Paylaşım kartı) ile SVG */
   private cardSvg(c: CardContent, design?: OgCard): string {
     const card = design ?? this.settings.get('seo.ogCard');
     return renderCardSvg(c, card, String(this.settings.get('appearance.accentColor') ?? '#7b61ff'), this.cardAssets(card));
   }
 
-  /** Logo ve arka plan görseli: yalnızca bu forumun yüklemeleri, data: adresi olarak gömülür */
   private assetCache = new Map<string, { mtime: number; uri: string }>();
   private cardAssets(card: OgCard): CardAssets {
     const logo = this.settings.get('appearance.logoUrl');
@@ -437,7 +409,6 @@ export class SeoService {
     }
   }
 
-  /** Yönetimdeki tasarım ekranının canlı önizlemesi (kaydedilmemiş tasarımla, önbelleksiz) */
   async previewImage(card: OgCard, sample: 'topic' | 'site' | 'board'): Promise<{ type: string; data: Buffer }> {
     const locale = this.i18n.defaultLocale();
     let content = this.siteContent();
@@ -461,12 +432,10 @@ export class SeoService {
       if (board) content = { kicker: board.kicker, title: board.title, meta: board.meta ?? '', forum: content.forum };
     }
     const svg = Buffer.from(this.cardSvg(content, card));
-    // sharp yoksa (ör. geliştirme ortamı) SVG'nin kendisi gösterilir; yazı tipleri tarayıcınınkidir
     const sharp = await this.storage.loadSharp();
     return sharp ? { type: 'image/png', data: await sharp(svg).png().toBuffer() } : { type: 'image/svg+xml', data: svg };
   }
 }
 
-/** Paylaşım görseli çizim sürümü (önbellek anahtarına girer) */
 const OG_RENDER = 3;
 

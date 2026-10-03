@@ -12,7 +12,6 @@ export {
 	Badge,
 	Group,
 	GroupCount,
-	//
 	Root as Avatar,
 	Image as AvatarImage,
 	Fallback as AvatarFallback,

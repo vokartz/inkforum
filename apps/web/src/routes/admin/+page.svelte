@@ -116,7 +116,7 @@
       </section>
 
       <!-- Bekleyen işler -->
-      <section class="flex flex-col rounded-2xl border bg-card shadow-card animate-rise" data-part="todos">
+      <section class="flex flex-col rounded-2xl border bg-card shadow-card animate-rise" data-part="todos" data-tour="todo">
         <header class="flex items-center justify-between border-b px-5 py-4">
           <h2 class="font-bold">{t('Bekleyen işler')}</h2>
           {#if openTodos.length}<span class="rounded-full bg-warning px-2 py-0.5 text-xs font-bold text-black">{openTodos.reduce((a, t) => a + t.count, 0)}</span>{/if}

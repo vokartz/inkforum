@@ -3,7 +3,6 @@
   import { cn } from '$lib/utils';
   import { t } from '$lib/i18n.svelte';
 
-  /** Renk seçici: boş değer "otomatik" (temel temanın rengi) demektir */
   let {
     label,
     hint = '',

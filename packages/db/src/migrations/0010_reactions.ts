@@ -1,13 +1,9 @@
 import type { Kysely } from 'kysely';
 import { flag, helpers, intDefault, notNull, ref } from './_helpers.js';
 
-/**
- * Tepkiler (beğeni/emoji), itibar puanı ve konu görüntüleyen üyelerin kaydı.
- */
 export async function up(db: Kysely<any>): Promise<void> {
   const h = helpers(db);
 
-  // Yönetimden düzenlenen tepki seti
   await h
     .table('reactions')
     .addColumn('key', 'text', notNull)
@@ -20,7 +16,6 @@ export async function up(db: Kysely<any>): Promise<void> {
     .execute();
   await db.schema.createIndex('reactions_key_uq').on('reactions').column('key').unique().execute();
 
-  // Mesaj başına üye başına tek tepki
   await db.schema
     .createTable('post_reactions')
     .addColumn('post_id', 'bigint', ref('posts.id'))
@@ -33,10 +28,8 @@ export async function up(db: Kysely<any>): Promise<void> {
   await db.schema.createIndex('post_reactions_author_idx').on('post_reactions').columns(['post_author_id', 'created_at']).execute();
   await db.schema.createIndex('post_reactions_user_idx').on('post_reactions').columns(['user_id', 'created_at']).execute();
 
-  // İtibar: alınan tepkilerin puan toplamı
   await db.schema.alterTable('users').addColumn('reputation', 'integer', intDefault(0)).execute();
 
-  // Konuyu görüntüleyen üyeler (kim, ilk/son ne zaman, kaç kez)
   await db.schema
     .createTable('topic_viewers')
     .addColumn('topic_id', 'bigint', ref('topics.id'))

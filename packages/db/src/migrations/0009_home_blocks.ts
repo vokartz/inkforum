@@ -1,7 +1,6 @@
 import type { Kysely } from 'kysely';
 import { flag, helpers, intDefault, notNull, textDefault } from './_helpers.js';
 
-/** Ana sayfa blokları (duyuru, görsel kartlar, serbest içerik, yan sütun bileşenleri). */
 export async function up(db: Kysely<any>): Promise<void> {
   const h = helpers(db);
   await h

@@ -1,10 +1,5 @@
 import type { SqliteDatabase, SqliteStatement } from 'kysely';
 
-/**
- * Node'un yerleşik `node:sqlite` modülünü Kysely'nin SqliteDialect arayüzüne uyarlar.
- * Native derleme gerektirmediği için ucuz hostinglerde varsayılan sürücüdür.
- */
-
 interface NodeStatementSync {
   columns(): unknown[];
   all(...params: unknown[]): unknown[];
@@ -62,7 +57,6 @@ type NodeSqliteModule = {
   DatabaseSync: new (path: string, options?: Record<string, unknown>) => NodeDatabaseSync;
 };
 
-/** `process.getBuiltinModule` paketleyici/test çalıştırıcılarının modül çözümlemesini atlar. */
 function loadNodeSqlite(): NodeSqliteModule | null {
   try {
     const getBuiltin = (process as unknown as { getBuiltinModule?: (id: string) => unknown }).getBuiltinModule;

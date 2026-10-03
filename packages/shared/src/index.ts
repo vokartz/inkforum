@@ -20,6 +20,8 @@ export * from './wiki.js';
 export * from './builder.js';
 export * from './applications.js';
 export * from './plugins.js';
+export * from './extensions.js';
+export * from './onboarding.js';
 export * from './themes.js';
 export * from './maintenance-page.js';
 export * from './captcha.js';

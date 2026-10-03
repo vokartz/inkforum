@@ -4,12 +4,9 @@
 
   interface Props {
     count: number;
-    /** Grubun yüklenmiş rütbe görseli: tek başına, yatay banner olarak gösterilir */
     iconUrl?: string | null;
     color?: string | null;
-    /** Yıldız boyutu (px) */
     size?: number;
-    /** Rütbe görselinin yüksekliği (px) */
     bannerHeight?: number;
     title?: string;
   }

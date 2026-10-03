@@ -30,7 +30,6 @@ interface Tree {
   byId: Map<number, PageMeta>;
   children: Map<number | null, PageMeta[]>;
   paths: Map<number, string>;
-  /** Derinlik öncelikli sıra (önceki / sonraki sayfa) */
   order: number[];
 }
 
@@ -71,7 +70,6 @@ export class WikiService {
       const byId = new Map(rows.map((r) => [r.id, r]));
       const children = new Map<number | null, PageMeta[]>();
       for (const r of rows) {
-        // Üstü silinmiş/eksik sayfa köke düşer
         const parent = r.parent_id && byId.has(r.parent_id) ? r.parent_id : null;
         const list = children.get(parent) ?? [];
         list.push(r);
@@ -120,7 +118,6 @@ export class WikiService {
       }));
   }
 
-  /** Site haritası: yayımlanmış sayfaların adresleri */
   async sitemap(): Promise<Array<{ path: string; title: string; updatedAt: number }>> {
     const t = await this.tree();
     return [...t.byId.values()].filter((r) => r.is_published === 1 && t.paths.has(r.id)).map((r) => ({ path: t.paths.get(r.id)!, title: r.title, updatedAt: r.updated_at }));
@@ -164,7 +161,6 @@ export class WikiService {
       this.db.q.selectFrom('wiki_revisions').select((eb) => eb.fn.countAll<number>().as('n')).where('page_id', '=', row.id).executeTakeFirst(),
       this.users.summaries([row.updated_by ?? 0]),
     ]);
-    // Görüntülenme sayısı (önbelleği bozmadan)
     await this.db.q.updateTable('wiki_pages').set((eb) => ({ view_count: eb('view_count', '+', 1) })).where('id', '=', row.id).execute();
 
     const crumbs: WikiLink[] = [];
@@ -201,18 +197,14 @@ export class WikiService {
     };
   }
 
-  // ---------- Düzenleme ----------
-
   private async validate(t: Tree, id: number | null, input: WikiPageInput): Promise<void> {
     if (input.icon && !iconExists(input.icon)) throw Errors.field('icon', 'Bu ikon bulunamadı.');
     if (input.parentId !== null) {
       if (!t.byId.has(input.parentId)) throw Errors.field('parentId', 'Üst sayfa bulunamadı.');
-      // Bir sayfa kendi altına taşınamaz
       for (let p: number | null = input.parentId, n = 0; p && n < 50; p = t.byId.get(p)?.parent_id ?? null, n++) {
         if (p === id) throw Errors.field('parentId', 'Sayfa kendi alt sayfasının altına taşınamaz.');
       }
     }
-    // Arayüz adresleriyle (/wiki/new, /wiki/edit/…) çakışmasın
     if (input.parentId === null && ['new', 'edit', 'history'].includes(input.slug)) throw Errors.field('slug', 'Bu adres ayrılmış; başka bir adres seçin.');
     const clash = (t.children.get(input.parentId) ?? []).find((r) => r.slug === input.slug && r.id !== id);
     if (clash) throw Errors.field('slug', 'Aynı yerde bu adrese sahip başka bir sayfa var.');
@@ -225,7 +217,6 @@ export class WikiService {
     if (id && !prev) throw Errors.notFound('Wiki sayfası bulunamadı.');
     const manage = this.canManage(v);
     if (prev?.is_locked === 1 && !manage) throw Errors.forbidden('Bu sayfa kilitli; yalnızca wiki yöneticileri düzenleyebilir.');
-    // Kilitleme ve taşıma yönetici işi; diğer düzenleyiciler için önceki değerler korunur
     if (!manage) {
       input.isLocked = prev ? prev.is_locked === 1 : false;
       if (prev) input.parentId = prev.parent_id;
@@ -263,7 +254,6 @@ export class WikiService {
             .executeTakeFirstOrThrow()
         ).id;
       }
-      // Yalnızca içerik ya da başlık değiştiyse geçmişe yazılır
       if (!prev || prev.body !== input.body || prev.title !== input.title) {
         await this.db.q.insertInto('wiki_revisions').values({ page_id: pageId!, title: input.title, body: input.body, note: input.note, user_id: v.user!.id, created_at: now }).execute();
       }
@@ -280,7 +270,6 @@ export class WikiService {
     const row = await this.db.q.selectFrom('wiki_pages').select(['id', 'title', 'parent_id']).where('id', '=', id).executeTakeFirst();
     if (!row) throw Errors.notFound('Wiki sayfası bulunamadı.');
     await this.db.tx(async () => {
-      // Alt sayfalar bir üst seviyeye taşınır
       await this.db.q.updateTable('wiki_pages').set({ parent_id: row.parent_id }).where('parent_id', '=', id).execute();
       await this.db.q.deleteFrom('wiki_revisions').where('page_id', '=', id).execute();
       await this.db.q.deleteFrom('wiki_pages').where('id', '=', id).execute();
@@ -289,7 +278,6 @@ export class WikiService {
     await this.audit.log({ type: 'admin', action: 'wiki.delete', actorId: v.user!.id, ip: v.ip, data: { id, title: row.title } });
   }
 
-  /** Sürükle-bırak ile ağaç düzeni (üst sayfa + sıra) */
   async reorder(v: RequestViewer, input: WikiReorderInput): Promise<void> {
     if (!this.canManage(v)) throw Errors.forbidden('Wiki düzenini değiştirme yetkiniz yok.');
     const t = await this.tree();
@@ -299,7 +287,6 @@ export class WikiService {
       if (it.parentId !== null && !t.byId.has(it.parentId)) throw Errors.badRequest('Bilinmeyen üst sayfa.');
       parentOf.set(it.id, it.parentId);
     }
-    // Döngü ve aynı yerde yinelenen adres denetimi
     for (const id of parentOf.keys()) {
       for (let p = parentOf.get(id) ?? null, n = 0; p !== null; p = parentOf.get(p) ?? null, n++) {
         if (p === id || n > 50) throw Errors.badRequest('Bir sayfa kendi altına taşınamaz.');
@@ -320,7 +307,6 @@ export class WikiService {
     await this.audit.log({ type: 'admin', action: 'wiki.reorder', actorId: v.user!.id, ip: v.ip, data: { count: input.items.length } });
   }
 
-  /** Düzenleme formu için: ham sayfa */
   async forEdit(v: RequestViewer, id: number) {
     if (!this.canEdit(v)) throw Errors.forbidden('Wiki düzenleme yetkiniz yok.');
     const r = await this.db.q.selectFrom('wiki_pages').selectAll().where('id', '=', id).executeTakeFirst();
@@ -340,8 +326,6 @@ export class WikiService {
       path: t.paths.get(r.id) ?? r.slug,
     };
   }
-
-  // ---------- Geçmiş ----------
 
   async revisions(v: RequestViewer, pageId: number): Promise<WikiRevisionItem[]> {
     this.assertView(v);
@@ -382,7 +366,6 @@ export class WikiService {
     return { url: this.storage.publicUrl(saved)!, width: saved.width ?? 0, height: saved.height ?? 0 };
   }
 
-  /** Arama: başlık ve içerikte */
   async search(v: RequestViewer, q: string): Promise<Array<WikiLink & { summary: string | null }>> {
     this.assertView(v);
     const term = q.trim().toLocaleLowerCase('tr-TR');

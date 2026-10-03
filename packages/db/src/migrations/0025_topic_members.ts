@@ -1,7 +1,6 @@
 import type { Kysely } from 'kysely';
 import { notNull, ref } from './_helpers.js';
 
-/** Gizli konulara yetkililerin eklediği üyeler (konuyu görür ve bölüm yetkisi varsa yanıtlar). */
 export async function up(db: Kysely<any>): Promise<void> {
   await db.schema
     .createTable('topic_members')

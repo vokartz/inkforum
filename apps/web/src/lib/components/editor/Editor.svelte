@@ -48,25 +48,19 @@
   import EmojiPicker from '../EmojiPicker.svelte';
 
   interface Props {
-    /** BBCode */
     value?: string;
     id?: string;
     placeholder?: string;
-    /** Görsel yükleme için bölüm (yoksa yalnızca adresle görsel eklenir). */
     boardId?: number | null;
-    /** Bölümden bağımsız görsel yükleme adresi (wiki, sayfalar) */
     uploadUrl?: string | null;
     maxLength?: number;
-    /** Kısa metinler (imza, hakkımda): daha az araç. */
     compact?: boolean;
     minHeight?: number;
-    /** Tarayıcıda otomatik taslak anahtarı. */
     draftKey?: string | null;
     mentions?: boolean;
     invalid?: boolean;
     disabled?: boolean;
     previewKind?: 'post' | 'short';
-    /** Ctrl+Enter */
     onsubmit?: () => void;
     class?: string;
   }
@@ -110,7 +104,6 @@
   let previewHtml = $state('');
   let previewLoading = $state(false);
   let uploading = $state(0);
-  /** Araç çubuğu durumunu yenilemek için sayaç */
   let tick = $state(0);
   let lastEmitted = '';
   let linkUrl = $state('');
@@ -139,18 +132,15 @@
         if (value?.trim()) localStorage.setItem(`draft:${draftKey}`, value);
         else localStorage.removeItem(`draft:${draftKey}`);
       } catch {
-        /* depolama kapalı */
       }
     }, 600);
   }
 
-  /** Gönderimden sonra taslağı temizler. */
   export function clearDraft() {
     clearTimeout(draftTimer);
     try {
       if (draftKey) localStorage.removeItem(`draft:${draftKey}`);
     } catch {
-      /* yoksay */
     }
   }
 
@@ -159,7 +149,6 @@
     else textarea?.focus();
   }
 
-  /** Alıntı gibi hazır BBCode'u sona ekler. */
   export function insertBBCode(bb: string) {
     preview = false;
     const next = (value?.trim() ? value.replace(/\s+$/, '') + '\n' : '') + bb;
@@ -167,7 +156,6 @@
     queueMicrotask(() => focus());
   }
 
-  /** BBCode → editör belgesi; bilinen özel emojiler görsel olarak gösterilir. */
   const toDoc = (bb: string) => bbcodeToDoc(bb, { customEmoji });
 
   function setValue(bb: string) {
@@ -175,7 +163,6 @@
     if (mode === 'visual' && editor) editor.commands.setContent(toDoc(bb), { emitUpdate: false });
   }
 
-  // Dışarıdan gelen değer değişikliği (ör. gönderim sonrası temizleme)
   $effect(() => {
     const v = value ?? '';
     untrack(() => {
@@ -216,7 +203,6 @@
       const saved = localStorage.getItem(MODE_KEY);
       if (saved === 'source') mode = 'source';
     } catch {
-      /* yoksay */
     }
     if (draftKey && !value?.trim()) {
       try {
@@ -226,7 +212,6 @@
           toast.info(t('Kaydedilmemiş taslağınız geri yüklendi.'));
         }
       } catch {
-        /* yoksay */
       }
     }
     lastEmitted = value ?? '';
@@ -254,7 +239,6 @@
               void uploadFiles(files);
               return true;
             }
-            // Desteklenen bir bağlantı tek başına yapıştırılırsa gömülü içeriğe dönüşür.
             const text = event.clipboardData?.getData('text/plain')?.trim() ?? '';
             if (embedsOn && /^https?:\/\/\S+$/i.test(text) && resolveEmbed(text, { host: location.hostname })) {
               editor?.chain().focus().insertContent({ type: 'media', attrs: { src: text } }).run();
@@ -307,7 +291,6 @@
     try {
       localStorage.setItem(MODE_KEY, next);
     } catch {
-      /* yoksay */
     }
     queueMicrotask(() => focus());
   }
@@ -324,8 +307,6 @@
       previewLoading = false;
     }
   }
-
-  // ---------- Kaynak (BBCode) modu yardımcıları ----------
 
   function wrapSource(open: string, close: string, replaceSelection = false) {
     const ta = textarea;
@@ -360,8 +341,6 @@
       wrapSource(m[0], m[1]);
     }
   }
-
-  // ---------- Komutlar (her iki modda) ----------
 
   type Cmd =
     | 'bold' | 'italic' | 'underline' | 'strike' | 'sub' | 'sup'
@@ -412,7 +391,6 @@
     }
   }
 
-  /** Başlık düzeyi (0 = normal paragraf) */
   function heading(level: 0 | 2 | 3 | 4) {
     if (mode === 'source') {
       if (level) wrapSource(`[h${level}]`, `[/h${level}]`);

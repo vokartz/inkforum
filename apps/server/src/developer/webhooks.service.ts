@@ -19,15 +19,10 @@ const JOB = 'webhook.deliver';
 const TIMEOUT_MS = 10_000;
 type HookRow = Row<'webhooks'>;
 
-/** İmza: `t=<unix saniye>,v1=<hex HMAC-SHA256(gizli anahtar, "<t>.<gövde>")>` */
 export function signWebhook(secret: string, timestamp: number, body: string): string {
   return `t=${timestamp},v1=${createHmac('sha256', secret).update(`${timestamp}.${body}`).digest('hex')}`;
 }
 
-/**
- * Webhook'lar: forumdaki olaylar (yeni konu, yanıt, üye kaydı, grup değişimi, yasak) yöneticinin
- * girdiği adreslere imzalı JSON olarak gönderilir. Her gönderim kaydedilir, başarısızlar tekrar denenir.
- */
 @Injectable()
 export class WebhooksService implements OnModuleInit {
   private readonly logger = new Logger('Webhooks');
@@ -51,8 +46,6 @@ export class WebhooksService implements OnModuleInit {
       this.events.on(event as keyof AppEvents, (payload) => this.fire(event, payload as unknown as Record<string, number | null>));
     }
   }
-
-  // ---------- Olay verisi ----------
 
   private async userData(userId: number) {
     const u = await this.db.q.selectFrom('users').select(['id', 'username', 'display_name', 'email', 'email_verified_at', 'status', 'registered_at']).where('id', '=', userId).executeTakeFirst();
@@ -108,7 +101,6 @@ export class WebhooksService implements OnModuleInit {
     }
   }
 
-  /** Olayı dinleyen webhook'lar için gönderim kaydı oluşturur ve kuyruğa ekler. */
   async fire(event: WebhookEvent, payload: Record<string, number | null>): Promise<void> {
     const hooks = (await this.db.q.selectFrom('webhooks').selectAll().where('is_enabled', '=', 1).execute()).filter((h) => fromJson<string[]>(h.events_json, []).includes(event));
     if (!hooks.length) return;
@@ -132,7 +124,6 @@ export class WebhooksService implements OnModuleInit {
     return row.id;
   }
 
-  /** Tek gönderim. `retry` açıkken başarısızlıkta hata fırlatılır (iş kuyruğu tekrar dener). */
   async deliver(deliveryId: number, retry: boolean): Promise<WebhookDelivery | null> {
     const d = await this.db.q.selectFrom('webhook_deliveries').selectAll().where('id', '=', deliveryId).executeTakeFirst();
     if (!d) return null;
@@ -145,7 +136,6 @@ export class WebhooksService implements OnModuleInit {
     let text: string | null = null;
     let error: string | null = null;
     try {
-      // Yerel ağ / bulut üst veri adreslerine gidilmez; yanıttan yalnızca kısa bir özet saklanır
       const res = await safeFetch(h.url, {
         method: 'POST',
         headers: {
@@ -189,8 +179,6 @@ export class WebhooksService implements OnModuleInit {
     if (!ok && retry) throw new Error(`Webhook ${h.id} gönderilemedi: ${error ?? `HTTP ${code}`}`);
     return this.deliveryDto((await this.db.q.selectFrom('webhook_deliveries').selectAll().where('id', '=', d.id).executeTakeFirst())!);
   }
-
-  // ---------- Yönetim ----------
 
   private toAdmin(h: HookRow): AdminWebhook {
     return {
@@ -279,7 +267,6 @@ export class WebhooksService implements OnModuleInit {
     return { items: rows.map((r) => this.deliveryDto(r)), total: Number(total?.n ?? 0), page, perPage };
   }
 
-  /** Bağlantı testi: hemen gönderir ve sonucu döner. */
   async ping(id: number): Promise<WebhookDelivery | null> {
     const h = await this.db.q.selectFrom('webhooks').selectAll().where('id', '=', id).executeTakeFirst();
     if (!h) throw Errors.notFound('Webhook bulunamadı.');

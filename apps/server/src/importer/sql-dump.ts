@@ -1,20 +1,7 @@
-/**
- * MySQL / MariaDB dökümü (mysqldump, phpMyAdmin, Adminer) akış hâlinde okunur ve seçilen tablolar
- * geçici bir SQLite "ara depo" veritabanına yazılır. Böylece yüzlerce MB'lık dökümler belleğe alınmadan
- * içe aktarılabilir ve içe aktarıcılar tabloları istedikleri sırayla sorgulayabilir.
- *
- * Desteklenenler: CREATE TABLE (sütun sırası için), INSERT / INSERT IGNORE / REPLACE INTO (çoklu satır,
- * sütun listeli ya da listesiz), MySQL kaçış dizileri, 0x… onaltılık değerler, _binary/_utf8mb4 önekleri,
- * yorumlar (--, #, /* … *\/ ve /*!40101 … *\/). .sql ve .sql.gz dosyaları.
- */
 import { createReadStream } from 'node:fs';
 import { createGunzip } from 'node:zlib';
 import { StringDecoder } from 'node:string_decoder';
 
-/**
- * Dizeler bayt korunarak (latin1 = her bayt bir karakter) okunur ve ara depoya BLOB olarak yazılır;
- * doğru karakter seti (UTF-8, windows-1254, çift kodlanmış UTF-8) içe aktarma sırasında seçilir.
- */
 export type SqlValue = string | number | null | Uint8Array;
 
 export interface SqliteStatement {
@@ -34,7 +21,6 @@ export function openSqlite(path: string): SqliteDb {
   return new mod.DatabaseSync(path);
 }
 
-/** Tek bir SQL ifadesini sırayla veren akış ayrıştırıcı (tırnak ve yorumlara duyarlı) */
 export async function* statements(file: string): AsyncGenerator<string> {
   const input = createReadStream(file, { highWaterMark: 1 << 20 });
   const stream = file.endsWith('.gz') ? input.pipe(createGunzip()) : input;
@@ -100,7 +86,6 @@ export async function* statements(file: string): AsyncGenerator<string> {
 
 const unquoteIdent = (s: string) => s.trim().replace(/^`|`$/g, '').replace(/``/g, '`');
 
-/** CREATE TABLE `ad` ( … ) → tablo adı ve sütun sırası */
 export function parseCreateTable(stmt: string): { table: string; columns: string[] } | null {
   const m = /^CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?((?:`[^`]+`|\w+)(?:\.(?:`[^`]+`|\w+))?)\s*\(([\s\S]*)\)[^)]*$/i.exec(stmt);
   if (!m) return null;
@@ -116,7 +101,6 @@ export function parseCreateTable(stmt: string): { table: string; columns: string
   return { table, columns };
 }
 
-/** INSERT … VALUES (…),(…) → tablo, sütunlar (varsa) ve satırlar */
 export function parseInsert(stmt: string): { table: string; columns: string[] | null; rows: SqlValue[][] } | null {
   const head = /^(?:INSERT|REPLACE)\s+(?:LOW_PRIORITY\s+|DELAYED\s+|HIGH_PRIORITY\s+|IGNORE\s+)*(?:INTO\s+)?((?:`[^`]+`|\w+)(?:\.(?:`[^`]+`|\w+))?)\s*(\(([^)]*)\))?\s*VALUES\s*/i.exec(stmt);
   if (!head) return null;
@@ -131,11 +115,10 @@ export function parseInsert(stmt: string): { table: string; columns: string[] | 
       i++;
     }
     if (i >= n) break;
-    i++; // (
+    i++;
     const row: SqlValue[] = [];
     for (;;) {
       while (stmt[i] === ' ' || stmt[i] === '\n' || stmt[i] === '\r' || stmt[i] === '\t') i++;
-      // _binary 'x', _utf8mb4'x' gibi karakter seti önekleri
       const intro = /^_[a-z0-9]+\s*/i.exec(stmt.slice(i, i + 20));
       if (intro && (stmt[i + intro[0].length] === "'" || stmt[i + intro[0].length] === '"')) i += intro[0].length;
       const c = stmt[i];
@@ -200,14 +183,8 @@ export interface StageResult {
   statements: number;
 }
 
-/**
- * Dökümü ara depoya yazar. `keep(table)` yalnızca gereken tabloları seçmek içindir (ör. önek + bilinen adlar).
- * Her kaynak tablo, sütunları TEXT/sayı olarak saklanan bir SQLite tablosuna dönüşür.
- */
-/** Satır filtresi: büyük tablolardan yalnızca gereken satırları almak için (ör. IPS dil dizeleri) */
 export type RowFilter = (table: string, value: (column: string) => SqlValue) => boolean;
 
-/** Tırnaklı sayılar (phpMyAdmin) sayıya çevrilir ki ara depoda birleştirmeler (JOIN) doğru çalışsın */
 const INT_RE = /^-?(?:0|[1-9]\d{0,14})$/;
 // eslint-disable-next-line no-control-regex
 const ASCII_RE = /^[\u0000-\u007f]*$/;
@@ -277,7 +254,6 @@ export async function stageDump(
         const values: SqlValue[] = target.map(() => null);
         idx.forEach((to, from) => {
           const v = r[from] ?? null;
-          // ASCII değerler her karakter setinde aynıdır: TEXT saklanır (SQL karşılaştırmaları çalışsın)
           if (to >= 0) values[to] = typeof v === 'string' ? (INT_RE.test(v) ? Number(v) : ASCII_RE.test(v) ? v : Buffer.from(v, 'latin1')) : v;
         });
         insert.run(...values);
@@ -296,7 +272,6 @@ export async function stageDump(
     try {
       db.exec('ROLLBACK');
     } catch {
-      /* yok say */
     }
     throw err;
   } finally {

@@ -1,8 +1,3 @@
-/**
- * Gömülü içerik için tarayıcı tarafı yardımcılar (sayfa başına bir kez kurulur):
- *  - "Tıklayınca yükle" modundaki içerikleri tıklanınca iframe'e çevirir.
- *  - X/Instagram/Telegram/Reddit gibi gönderi gömmelerinin bildirdiği yüksekliğe göre iframe'i boyutlandırır.
- */
 import { t } from '$lib/i18n.svelte';
 
 const SANDBOX = 'allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-presentation allow-forms';
@@ -23,7 +18,6 @@ function loadDeferred(wrapper: HTMLElement) {
   wrapper.classList.remove('bb-embed-deferred');
 }
 
-/** İleti içeriğinden bildirilen yüksekliği çıkarır (sağlayıcıya göre biçim değişir). */
 function reportedHeight(origin: string, raw: unknown): number | null {
   let data = raw;
   if (typeof data === 'string') {

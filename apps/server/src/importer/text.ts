@@ -1,8 +1,3 @@
-/**
- * İçe aktarma için metin yardımcıları: karakter seti çözme, çift kodlanmış UTF-8 düzeltme,
- * HTML varlıklarını çözme.
- */
-
 import { TextDecoder } from 'node:util';
 
 export type SourceCharset = 'utf8' | 'windows-1254' | 'windows-1252';
@@ -17,7 +12,6 @@ function decoder(cs: SourceCharset): TextDecoder {
   return d;
 }
 
-// windows-1252'nin 0x80–0x9F aralığı (MySQL "latin1" aslında cp1252'dir)
 const CP1252_HIGH: Record<number, number> = {
   0x20ac: 0x80, 0x201a: 0x82, 0x0192: 0x83, 0x201e: 0x84, 0x2026: 0x85, 0x2020: 0x86, 0x2021: 0x87, 0x02c6: 0x88, 0x2030: 0x89, 0x0160: 0x8a,
   0x2039: 0x8b, 0x0152: 0x8c, 0x017d: 0x8e, 0x2018: 0x91, 0x2019: 0x92, 0x201c: 0x93, 0x201d: 0x94, 0x2022: 0x95, 0x2013: 0x96, 0x2014: 0x97,
@@ -30,20 +24,18 @@ function encodeCp1252(s: string): Buffer | null {
     const c = s.charCodeAt(i);
     if (c < 0x100 && (c < 0x80 || c > 0x9f)) out[i] = c;
     else if (CP1252_HIGH[c] !== undefined) out[i] = CP1252_HIGH[c]!;
-    else if (c >= 0x80 && c <= 0x9f) out[i] = c; // tanımsız kontrol karakterleri olduğu gibi
+    else if (c >= 0x80 && c <= 0x9f) out[i] = c;
     else return null;
   }
   return out;
 }
 
-/** Türkçe metinlerde çift kodlama izleri: "ÅŸ" (ş), "Ä±" (ı), "Ã§" (ç), "â€™" (’) … */
 const MOJIBAKE = /Ã[\u0080-¿ŒœŠšŸŽžƒˆ˜–—‘-„†-•…‰‹›€™]|Å[\u009e\u009fŽŸƒ¸¾º»¡\u00a0žšŠ]|Ä[±°ŸŽƒ\u009f\u009ež]|â€/;
 
 export function looksDoubleEncoded(s: string): boolean {
   return MOJIBAKE.test(s);
 }
 
-/** "ÅŸeker" → "şeker" (yalnızca geri dönüşüm geçerli UTF-8 üretiyorsa) */
 export function fixDoubleEncoding(s: string): string {
   if (!looksDoubleEncoded(s)) return s;
   const bytes = encodeCp1252(s);
@@ -57,7 +49,6 @@ const NAMED: Record<string, string> = {
   lsquo: '‘', rsquo: '’', ldquo: '“', rdquo: '”', laquo: '«', raquo: '»', euro: '€', trade: '™', middot: '·', bull: '•', deg: '°',
 };
 
-/** HTML varlıklarını çözer (&amp; &#039; &#x27; …) */
 export function decodeEntities(s: string): string {
   if (!s.includes('&')) return s;
   return s.replace(/&(#x[0-9a-f]+|#\d+|[a-z][a-z0-9]{1,8});/gi, (m, e: string) => {
@@ -69,7 +60,6 @@ export function decodeEntities(s: string): string {
   });
 }
 
-/** Ara depodaki değerden metin (BLOB → seçilen karakter seti, çift kodlama düzeltmesi) */
 export function makeText(charset: SourceCharset, fixMojibake: boolean) {
   return (v: unknown): string => {
     if (v === null || v === undefined) return '';
@@ -86,7 +76,6 @@ export const num = (v: unknown): number => {
   return Number(v) || 0;
 };
 
-/** VARBINARY(16) IP (inet_pton) ya da metin IP → metin */
 export function ipText(v: unknown): string | null {
   if (v === null || v === undefined) return null;
   const buf = v instanceof Uint8Array ? Buffer.from(v) : Buffer.from(String(v), 'utf8');

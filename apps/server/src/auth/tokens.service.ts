@@ -7,7 +7,6 @@ import { CryptoService } from '../security/crypto.service.js';
 import { Errors } from '../common/errors.js';
 import { fromJson, toJson } from '../database/json.js';
 
-/** Tek kullanımlık e-posta bağlantı belirteçleri (doğrulama, sıfırlama, e-posta değişimi). */
 @Injectable()
 export class TokensService {
   constructor(
@@ -35,7 +34,6 @@ export class TokensService {
     return token;
   }
 
-  /** Belirteci doğrular ve kullanılmış olarak işaretler. */
   async consume<P = unknown>(type: UserTokenType, token: string): Promise<{ row: Row<'user_tokens'>; payload: P | null }> {
     const now = this.clock.now();
     const row = await this.db.q
@@ -57,7 +55,6 @@ export class TokensService {
     return { row, payload: fromJson<P | null>(row.payload_json, null) };
   }
 
-  /** Kullanılmadan geçerli mi (tüketmeden kontrol). */
   async peek(type: UserTokenType, token: string): Promise<Row<'user_tokens'> | null> {
     const row = await this.db.q
       .selectFrom('user_tokens')

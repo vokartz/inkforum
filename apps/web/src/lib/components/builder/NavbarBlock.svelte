@@ -19,7 +19,6 @@
   let scrolled = $state(false);
   let open = $state(false);
   const overlay = $derived(b.transparent && !editing);
-  // Şeffaf menü kaydırılana kadar kapağın üzerinde beyaz yazıyla durur
   const light = $derived((overlay && !scrolled) || b.background === 'dark' || b.background === 'accent' || (editing && b.transparent));
 </script>
 

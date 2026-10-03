@@ -19,7 +19,6 @@
   const x = (i: number) => PAD.l + (i * (W - PAD.l - PAD.r)) / Math.max(1, days.length - 1);
   const y = (v: number) => PAD.t + (1 - v / niceMax) * (height - PAD.t - PAD.b);
 
-  /** Yumuşak eğri (monoton kübik yaklaşımı) */
   function path(points: Array<{ count: number }>): string {
     if (!points.length) return '';
     let d = `M${x(0)},${y(points[0]!.count)}`;

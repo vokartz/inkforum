@@ -6,7 +6,6 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { adminAgent, createHarness, type Agent, type Harness } from '../testing/harness.js';
 import { overrideMountinfo } from '../storage/persistence.js';
 
-/** Docker'da güncelleyici kapsayıcısı yokken anlaşılır hata ve Coolify Deploy Webhook ile güncelleme */
 describe('updates on Coolify', () => {
   let h: Harness;
   let admin: Agent;
@@ -36,7 +35,6 @@ describe('updates on Coolify', () => {
     });
     await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
     base = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
-    // Açılıp hemen kapatılan port: güncelleyici kapsayıcısı yok (bağlantı reddedilir)
     const closed = createServer();
     await new Promise<void>((r) => closed.listen(0, '127.0.0.1', r));
     const closedPort = (closed.address() as { port: number }).port;
@@ -106,7 +104,6 @@ describe('updates on Coolify', () => {
     expect(res.status).toBe(202);
     expect(res.body.state).toBe('restart');
     expect(deploys).toEqual([{ url: '/api/v1/deploy?uuid=abc&force=false', auth: 'Bearer coolify-secret' }]);
-    // Yeniden dağıtım sürerken ikinci kurulum reddedilir
     expect((await admin.post('/api/admin/updates/install', { version: '99.1.0' })).status).toBe(409);
   });
 });

@@ -1,9 +1,3 @@
-/**
- * Kullanıcı adı / görünen ad / e-posta için karşılaştırma anahtarları.
- * Veritabanında `*_canonical` sütunlarında saklanır ve düz UNIQUE index ile korunur.
- * Türkçe İ/ı dahil tüm varyantlar aynı anahtara katlanır: Ilker = İlker = ılker = ilker.
- */
-
 const ZERO_WIDTH = new RegExp(`[${String.fromCharCode(0x200b)}-${String.fromCharCode(0x200d)}${String.fromCharCode(0x2060)}${String.fromCharCode(0xfeff)}]`, 'g');
 const COMBINING_DOT_ABOVE = /̇/g;
 const WHITESPACE = /\s+/g;
@@ -12,7 +6,7 @@ export function canonicalName(input: string): string {
   return input
     .normalize('NFKC')
     .replace(ZERO_WIDTH, '')
-    .toLowerCase() // locale bağımsız: İ -> i̇ (i + U+0307)
+    .toLowerCase()
     .replace(COMBINING_DOT_ABOVE, '')
     .replace(/ı/g, 'i')
     .replace(WHITESPACE, ' ')
@@ -35,20 +29,17 @@ export function emailDomain(canonical: string): string {
 
 function domainToAscii(domain: string): string {
   try {
-    // URL ayrıştırıcısı IDN alan adlarını punycode'a çevirir (tarayıcı ve Node'da aynı).
     return new URL(`http://${domain}`).hostname;
   } catch {
     return domain;
   }
 }
 
-/** Arama için LIKE deseni: canonical değer + joker karakter kaçışı. */
 export function likePattern(term: string, mode: 'prefix' | 'contains' = 'contains'): string {
   const escaped = canonicalName(term).replace(/[\\%_]/g, (c) => `\\${c}`);
   return mode === 'prefix' ? `${escaped}%` : `%${escaped}%`;
 }
 
-/** URL'lerde kullanılacak basit slug (profil bağlantıları için). */
 export function slugify(input: string): string {
   const map: Record<string, string> = { ç: 'c', ğ: 'g', ı: 'i', i: 'i', ö: 'o', ş: 's', ü: 'u' };
   const slug = canonicalName(input)

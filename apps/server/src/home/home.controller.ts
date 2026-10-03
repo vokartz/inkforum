@@ -12,7 +12,6 @@ import { HomeService } from './home.service.js';
 export class HomeController {
   constructor(private readonly home: HomeService) {}
 
-  /** Ziyaretçiye göre ana sayfa blokları. */
   @Get('home')
   layout(@CurrentViewer() v: RequestViewer) {
     return this.home.layout(v);

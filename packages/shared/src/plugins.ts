@@ -1,10 +1,5 @@
 import { z } from 'zod';
 
-/**
- * Yerleşik eklentiler. Yönetim → Eklentiler ekranından açılıp kapatılır; kapalı bir eklentinin
- * API uç noktaları 404 döner, menü öğeleri ve yönetim sayfaları gizlenir. Veriler silinmez.
- */
-
 export const PLUGIN_KEYS = ['landing', 'wiki', 'applications', 'tickets', 'discord'] as const;
 export type PluginKey = (typeof PLUGIN_KEYS)[number];
 
@@ -12,17 +7,13 @@ export interface PluginDef {
   key: PluginKey;
   name: string;
   description: string;
-  /** Phosphor ikon adı */
   icon: string;
   version: string;
   author: string;
   category: 'site' | 'community' | 'support' | 'integration';
   features: string[];
-  /** Yönetim sayfası */
   adminHref: string | null;
-  /** Ziyaretçi sayfası */
   publicHref: string | null;
-  /** Ayar kaydı yoksa açık mı (sonradan eklenen eklentiler kapalı başlar) */
   defaultEnabled?: boolean;
 }
 
@@ -99,25 +90,20 @@ export const PLUGINS: PluginDef[] = [
 
 export const PLUGIN_MAP = new Map(PLUGINS.map((p) => [p.key, p]));
 
-/** Ayar kaydından eklentinin açık olup olmadığı (kayıt yoksa açık) */
 export function pluginEnabled(settings: Record<string, unknown> | undefined | null, key: PluginKey): boolean {
   const map = (settings?.['plugins.enabled'] ?? {}) as Partial<Record<PluginKey, boolean>>;
   const v = map[key];
   return v === undefined ? PLUGIN_MAP.get(key)?.defaultEnabled !== false : v;
 }
 
-/** Açılış sayfası eklentisi kapalıysa ana sayfa her zaman forum dizinidir */
 export function effectiveLanding(settings: Record<string, unknown> | undefined | null): string {
   return pluginEnabled(settings, 'landing') ? String(settings?.['home.landingPage'] ?? '') : '';
 }
 
 export interface AdminPlugin extends PluginDef {
   enabled: boolean;
-  /** Kısa özet (ör. "7 sayfa", "3 bekleyen talep") */
   stats: string[];
 }
-
-// ----- Discord -----
 
 export interface DiscordWidget {
   name: string;
@@ -127,16 +113,13 @@ export interface DiscordWidget {
 }
 
 export const discordSettingsInput = z.object({
-  /** https://discord.com/api/webhooks/… (boş = kaldır, "keep" = değiştirme) */
   webhookUrl: z
     .string()
     .trim()
     .max(300)
     .refine((v) => v === '' || v === 'keep' || /^https:\/\/(ptb\.|canary\.)?discord(app)?\.com\/api\/webhooks\/\d+\/[\w-]+$/.test(v), 'Discord kanalındaki "Webhook URL" adresini yapıştırın.'),
-  /** Boşsa misafirlerin görebildiği tüm bölümler */
   boardIds: z.array(z.number().int().positive()).max(200).default([]),
   replies: z.boolean().default(false),
-  /** Sunucu Ayarları → Widget → Sunucu Kimliği */
   guildId: z.string().trim().regex(/^(\d{15,22})?$/, 'Sunucu kimliği yalnızca rakamlardan oluşur.').default(''),
   inviteUrl: z
     .string()

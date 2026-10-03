@@ -38,14 +38,12 @@ export class AuthController {
     private readonly captcha: CaptchaService,
   ) {}
 
-  /** Mevcut kullanıcı + yetkiler + uyum bayrakları + herkese açık ayarlar. */
   @Get('me')
   @AllowBeforeInstall()
   async me(@CurrentViewer() viewer: RequestViewer) {
     return this.viewers.toDto(viewer);
   }
 
-  /** Kayıt formu için gereken her şey. */
   @Get('register')
   async registerInfo(@CurrentViewer() viewer: RequestViewer) {
     const policies = await this.policies.forRegistration(viewer.locale);

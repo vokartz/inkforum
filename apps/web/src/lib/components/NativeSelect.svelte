@@ -2,10 +2,6 @@
   import Combobox from './Combobox.svelte';
   import { t } from '$lib/i18n.svelte';
 
-  /**
-   * Eski <select> API'siyle uyumlu seçici: arka planda aramalı, klavyeyle kullanılabilen Combobox (Select2 tarzı).
-   * Değeri boş dize olan seçenek "yer tutucu" etiketi olarak kullanılır.
-   */
   interface Props {
     value?: string | number | null;
     options: Array<{ value: string | number; label: string; disabled?: boolean }>;

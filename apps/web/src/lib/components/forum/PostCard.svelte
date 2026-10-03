@@ -31,11 +31,12 @@
   import { profileUrl } from '$lib/viewer';
   import { cn } from '$lib/utils';
   import { t, tc } from '$lib/i18n.svelte';
+  import type { ExtensionSlotItem } from '@forum/shared';
+  import ExtensionSlotView from '$lib/components/ExtensionSlotView.svelte';
 
   interface Props {
     post: PostItem;
     boardId: number;
-    /** İlk mesaj düzenlenirken başlık/önek de düzenlenebilir. */
     topicTitle?: string;
     prefixes?: TopicPrefix[];
     canReply?: boolean;
@@ -45,11 +46,11 @@
     ontogglemulti?: (postId: number) => void;
     onchanged?: () => void;
     onhistory?: (postId: number) => void;
-    /** Etkin tepki seti */
     reactionDefs?: ReactionDef[];
     loggedIn?: boolean;
-    /** side: yazar solda sütun; top: yazar mesajın üstünde yatay şerit */
     layout?: 'side' | 'top';
+    extFooter?: ExtensionSlotItem[];
+    extActions?: ExtensionSlotItem[];
   }
   let {
     post,
@@ -66,6 +67,8 @@
     reactionDefs = [],
     loggedIn = false,
     layout = 'side',
+    extFooter,
+    extActions,
   }: Props = $props();
 
   let editing = $state(false);
@@ -320,11 +323,16 @@
         </div>
       {/if}
 
+      {#if extFooter?.length && !editing}
+        <div class="mx-4 mb-3 grid gap-2 sm:mx-5" data-part="post-ext-footer"><ExtensionSlotView items={extFooter} key="postFooter" /></div>
+      {/if}
+
       {#if !editing}
         <footer class="flex flex-wrap items-center gap-1 px-3 pb-3 sm:px-4">
           <div class="mr-auto min-w-0 py-0.5">
             <ReactionBar postId={post.id} defs={reactionDefs} reactions={post.reactions} myReaction={post.myReaction} canReact={post.can.react} {loggedIn} />
           </div>
+          {#if extActions?.length}<ExtensionSlotView items={extActions} key="postActions" class="contents" />{/if}
           {#if post.can.edit}
             <Button variant="ghost" size="sm" onclick={startEdit} disabled={loadingSource} class="text-muted-foreground">
               {#if loadingSource}<LoaderIcon class="animate-spin" />{:else}<PencilIcon />{/if}{t('Düzenle')}

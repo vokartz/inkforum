@@ -9,8 +9,6 @@
   let { viewer, nav }: { viewer: Viewer; nav: NavEntry[] } = $props();
   let searchOpen = $state(false);
 
-  // Seçili temanın üst alanı (Yönetim → Görünüm → Tema)
-  // Tema stüdyosundaki temanın üst alan seçimi; yoksa temel temaya göre
   const opts = $derived(themeOptions(viewer.settings));
   const style = $derived(opts ? { topbar: 'modern', banner: 'community', centered: 'centered' }[opts.header.style] : String(viewer.settings['appearance.themeStyle'] ?? 'modern'));
   const onsearch = () => (searchOpen = true);

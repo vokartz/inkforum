@@ -36,14 +36,12 @@
 
   let { data } = $props();
   const runs = $derived(data.imports?.runs ?? []);
-  /** Üzerinde çalışılan kayıt: süren, hazır ya da en son biten */
   let selectedId = $state<number | null>(null);
   const current = $derived(
     runs.find((r) => r.id === selectedId) ?? runs.find((r) => r.status === 'staging' || r.status === 'running' || r.status === 'ready') ?? null,
   );
   const busy = $derived(current?.status === 'staging' || current?.status === 'running');
 
-  // Süren iş varken durum düzenli yenilenir
   $effect(() => {
     if (!busy) return;
     const timer = setInterval(() => invalidate('app:admin-import'), 1200);
@@ -104,7 +102,6 @@
     avatars: 'Avatar',
   };
 
-  // ----- 1) Yükleme -----
   let uploadPct = $state<number | null>(null);
   let dragging = $state(false);
   function upload(file: File) {
@@ -144,7 +141,6 @@
     (e.currentTarget as HTMLInputElement).value = '';
   }
 
-  // ----- 2) Seçenekler -----
   let charset = $state<Charset>('utf8');
   let fixMojibake = $state(false);
   let baseUrl = $state('');
@@ -154,7 +150,6 @@
   let files = $state({ avatars: true, groupIcons: true, attachmentImages: true });
   let configuredFor = 0;
 
-  // Analiz gelince önerilen değerler doldurulur (kayıt başına bir kez)
   $effect(() => {
     const r = current;
     if (!r || r.status !== 'ready' || configuredFor === r.id) return;

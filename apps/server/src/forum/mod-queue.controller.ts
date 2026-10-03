@@ -7,7 +7,6 @@ import { ModQueueService } from './mod-queue.service.js';
 
 const pageQuery = z.object({ page: z.coerce.number().int().min(1).max(10_000).default(1) });
 
-/** Moderatör onay kuyruğu: onaylama POST /api/posts/:id/approve, reddetme DELETE /api/posts/:id */
 @Controller('mod/queue')
 @RequireAuth()
 export class ModQueueController {

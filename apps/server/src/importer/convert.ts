@@ -1,14 +1,7 @@
 /* eslint-disable no-control-regex -- işaretçiler bilerek kontrol karakterleriyle yazılır */
-/**
- * Mesaj gövdesi dönüştürücüleri: SMF, phpBB (eski biçim ve 3.2+ s9e XML), MyBB MyCode ve IPS HTML
- * → InkForum BBCode. Alıntı, bahsetme ve eklenti başvuruları işaretçiyle yazılır (bkz. model.ts).
- */
 import { decodeEntities } from './text.js';
 import { mark } from './model.js';
 
-// ---------- Ortak ----------
-
-/** Kontrol karakterleri (işaretçilerle çakışmasın) ve satır sonu biçimleri */
 export function cleanText(s: string): string {
   return s.replace(/\r\n?/g, '\n').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '');
 }
@@ -20,7 +13,6 @@ export function tidy(s: string): string {
     .trim();
 }
 
-/** Alıntı yazarı: tırnak ve köşeli parantez parser'ı bozmasın */
 const author = (s: string) => decodeEntities(s).replace(/["[\]]/g, '').trim().slice(0, 80);
 const quoteTag = (name: string | null, postId: string | null) =>
   `[quote${name ? ` author="${author(name)}"` : ''}${postId && /^\d+$/.test(postId) ? ` post=${mark('p', postId)}` : ''}]`;
@@ -30,7 +22,6 @@ interface Protected {
   restore(s: string): string;
 }
 
-/** Kod blokları dönüştürmeden korunur (içlerindeki BBCode örnekleri bozulmasın) */
 function protect(s: string, tags: string[], wrap: (tag: string, value: string | undefined, body: string) => string): Protected {
   const saved: string[] = [];
   const re = new RegExp(`\\[(${tags.join('|')})(?:=([^\\]]*))?\\]([\\s\\S]*?)\\[\\/\\1\\]`, 'gi');
@@ -41,7 +32,6 @@ function protect(s: string, tags: string[], wrap: (tag: string, value: string | 
   return { text, restore: (out) => out.replace(/\u0003(\d+)\u0004/g, (_m, i: string) => saved[Number(i)] ?? '') };
 }
 
-/** Genel etiket yeniden yazıcı: `fn(ad, değer/öznitelik, kapanış mı)` null dönerse etiket olduğu gibi kalır */
 function rewriteTags(s: string, fn: (name: string, rest: string, closing: boolean) => string | null): string {
   return s.replace(/\[(\/?)([a-z][a-z0-9]*|\*)((?:=|\s)[^\]\n]*)?\]/gi, (m, slash: string, name: string, rest: string | undefined) => {
     const out = fn(name.toLowerCase(), rest ?? '', slash === '/');
@@ -65,8 +55,6 @@ const STRIP_TAGS = new Set(['ltr', 'rtl', 'glow', 'shadow', 'move', 'anchor', 'a
 
 const fmtDate = (sec: number) => new Date(sec * 1000).toISOString().slice(0, 16).replace('T', ' ');
 
-// ---------- SMF ----------
-
 export function smfToBBCode(raw: string): string {
   let s = cleanText(raw);
   const p = protect(s, ['code', 'php', 'nobbc', 'html', 'pre', 'tt'], (tag, value, body) => {
@@ -83,7 +71,6 @@ export function smfToBBCode(raw: string): string {
       if (closing) return '[/quote]';
       const link = attr(rest, 'link');
       const msg = link ? /msg(\d+)/.exec(link)?.[1] ?? null : null;
-      // SMF yazar adını tırnaksız ve boşluklu yazar: [quote author=Ali Veli link=… date=…]
       const who = /author=(?:"([^"]*)"|(.+?))(?=\s+(?:link|date)=|$)/.exec(rest.trim());
       return quoteTag(who ? (who[1] ?? who[2] ?? '') : mainValue(rest), msg);
     }
@@ -109,17 +96,13 @@ export function smfToBBCode(raw: string): string {
     if (name === 'time') return closing ? '\u0007' : '\u0008';
     return null;
   });
-  // [attach]…[/attach] içindeki dosya adı atılır; [time]zaman[/time] tarihe çevrilir
   s = s.replace(/\u0006[^\u0005]*\u0005/g, '').replace(/[\u0005\u0006]/g, '');
   s = s.replace(/\u0008\s*(\d{9,11})\s*\u0007/g, (_m, t: string) => fmtDate(Number(t))).replace(/[\u0007\u0008]/g, '');
   return tidy(p.restore(s));
 }
 
-// ---------- phpBB ----------
-
 const isS9e = (s: string) => /^<[rt][ >]/.test(s);
 
-/** phpBB 3.0/3.1 eski biçim (bbcode_uid ile) */
 export function phpbbLegacyDecode(text: string, uid: string): string {
   let t = text.split('<br />').join('\n');
   if (uid) {
@@ -136,7 +119,6 @@ export function phpbbLegacyDecode(text: string, uid: string): string {
   return decodeEntities(t);
 }
 
-/** phpBB yüzde boyutu → 1–7 ölçeği */
 function phpbbSize(v: string): string {
   const n = Number(v);
   if (!Number.isFinite(n) || n <= 0) return '3';
@@ -149,10 +131,6 @@ function phpbbSize(v: string): string {
   return '7';
 }
 
-/**
- * phpBB metni → BBCode. `attachmentAt(i)` satır içi `[attachment=i]` dizinini eklenti kimliğine çevirir
- * (dizin, mesajın eklentilerinin attach_id azalan sırasıdır).
- */
 export function phpbbToBBCode(raw: string, uid: string, attachmentAt: (index: number) => string | null = () => null): string {
   let s = cleanText(raw);
   s = isS9e(s) ? decodeEntities(s.replace(/<br\s*\/?>/g, '').replace(/<[^>]*>/g, '')) : phpbbLegacyDecode(s, uid);
@@ -179,8 +157,6 @@ export function phpbbToBBCode(raw: string, uid: string, attachmentAt: (index: nu
   return tidy(p.restore(s));
 }
 
-// ---------- MyBB ----------
-
 const MYBB_SIZES: Record<string, string> = { 'xx-small': '1', 'x-small': '1', small: '2', medium: '3', large: '5', 'x-large': '6', 'xx-large': '7' };
 
 export function mybbToBBCode(raw: string): string {
@@ -206,14 +182,10 @@ export function mybbToBBCode(raw: string): string {
     }
     return null;
   });
-  // [align=x]…[/align] → [x]…[/x]
   s = s.replace(/\u0006(\w*)\u0006([\s\S]*?)\u0005/g, (_m, a: string, body: string) => (a ? `[${a}]${body}[/${a}]` : body));
   return tidy(p.restore(s));
 }
 
-// ---------- XenForo ----------
-
-/** XenForo [MEDIA=site]kimlik[/MEDIA] → tam adres */
 const XF_MEDIA: Record<string, (id: string) => string> = {
   youtube: (id) => `https://www.youtube.com/watch?v=${id.replace(/:(\d+)$/, '&t=$1')}`,
   vimeo: (id) => `https://vimeo.com/${id}`,
@@ -229,13 +201,8 @@ const XF_MEDIA: Record<string, (id: string) => string> = {
   streamable: (id) => `https://streamable.com/${id}`,
 };
 
-/** XenForo SIZE=1..7 → InkForum boyutu (aynı ölçek) */
 const XF_SIZES: Record<string, string> = { '1': '1', '2': '2', '3': '3', '4': '4', '5': '5', '6': '6', '7': '7' };
 
-/**
- * XenForo 2.x BBCode → InkForum BBCode. XenForo mesajları zaten BBCode'dur; farklı olanlar alıntı öznitelikleri,
- * [ATTACH], [USER], [MEDIA], [ISPOILER], [PLAIN], [HEADING], [INDENT] ve [URL unfurl] etiketleridir.
- */
 export function xenforoToBBCode(raw: string): string {
   let s = cleanText(raw);
   const p = protect(s, ['code', 'php', 'html', 'plain', 'icode'], (tag, value, body) => {
@@ -245,7 +212,6 @@ export function xenforoToBBCode(raw: string): string {
     return `[code${lang && lang !== 'rich' && /^[a-z0-9+#-]{1,20}$/.test(lang) ? `=${lang}` : ''}]${body}[/code]`;
   });
   s = p.text
-    // [ATTACH type="full" alt="…"]123[/ATTACH], [ATTACH=full]123[/ATTACH]
     .replace(/\[attach(?:=[^\]]*|\s[^\]]*)?\]\s*(\d+)\s*\[\/attach\]/gi, (_m, id: string) => mark('a', id))
     .replace(/\[media=([a-z0-9_]+)\]([\s\S]*?)\[\/media\]/gi, (_m, site: string, id: string) => {
       const make = XF_MEDIA[site.toLowerCase()];
@@ -257,7 +223,6 @@ export function xenforoToBBCode(raw: string): string {
     switch (name) {
       case 'quote': {
         if (closing) return '[/quote]';
-        // [QUOTE="Ad, post: 123, member: 45"] ya da [QUOTE=Ad]
         const v = mainValue(rest) ?? '';
         const [who, ...meta] = v.split(',');
         const post = meta.map((m) => /post:\s*(\d+)/.exec(m)?.[1]).find(Boolean) ?? null;
@@ -299,12 +264,9 @@ export function xenforoToBBCode(raw: string): string {
         return null;
     }
   });
-  // [HEADING=n]…[/HEADING] → [h2..h4]
   s = s.replace(/\u0007(\d)\u0007([\s\S]*?)\u0007/g, (_m, l: string, body: string) => `[h${l}]${body.trim()}[/h${l}]`).replace(/\u0007\d?\u0007?/g, '');
   return tidy(p.restore(s));
 }
-
-// ---------- IPS (HTML) ----------
 
 interface HNode {
   tag: string;
@@ -314,7 +276,6 @@ interface HNode {
 
 const VOID = new Set(['br', 'img', 'hr', 'input', 'meta', 'link', 'source', 'wbr', 'col', 'embed', 'param', 'track', 'area']);
 
-/** Hoşgörülü küçük HTML ayrıştırıcı (editör çıktısı için yeterli) */
 export function parseHtml(html: string): HNode {
   const root: HNode = { tag: '#root', attrs: {}, children: [] };
   const stack: HNode[] = [root];
@@ -355,11 +316,9 @@ function textContent(n: HNode | string): string {
 
 export interface IpsContext {
   baseUrl: string;
-  /** Depolama yolu (monthly_…/x.jpg) veya kimlikten eklenti kimliği */
   attachment: (ref: { id?: string; path?: string }) => string | null;
 }
 
-/** IPS yer tutucuları → gerçek adresler */
 export function ipsPlaceholders(s: string, baseUrl: string): string {
   return s
     .replace(/<___base_url___>/g, baseUrl)
@@ -522,7 +481,6 @@ function rgbToHex(v: string): string {
   return `#${[m[1], m[2], m[3]].map((x) => Number(x).toString(16).padStart(2, '0')).join('')}`;
 }
 
-/** IPB 3 döneminden kalan BBCode benzeri içerik */
 function ipbLegacyTags(s: string): string {
   return s
     .replace(/\[quote\s+([^\]]*\bname=[^\]]*)\]/gi, (_m, rest: string) => quoteTag(attr(` ${rest}`, 'name'), attr(` ${rest}`, 'post')))
@@ -532,7 +490,6 @@ function ipbLegacyTags(s: string): string {
 
 export function ipsToBBCode(html: string, ctx: IpsContext): string {
   const src = ipsPlaceholders(cleanText(html), ctx.baseUrl);
-  // HTML değilse (çok eski içerik) satır sonları korunur
   const out = /<[a-z][\s\S]*>/i.test(src) ? ipsNode(parseHtml(src), ctx) : decodeEntities(src);
   return tidy(ipbLegacyTags(out).replace(/\u00a0/g, ' ').replace(/[ \t]{2,}/g, ' ').replace(/\n /g, '\n'));
 }

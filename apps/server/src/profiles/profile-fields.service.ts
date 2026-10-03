@@ -96,7 +96,6 @@ export class ProfileFieldsService {
     return (await this.active()).filter((f) => f.showOnRegister);
   }
 
-  /** Alan değerini tipine göre doğrular ve normalleştirir. Boş değer '' döner. */
   validateValue(field: ProfileFieldDto, raw: unknown): string {
     const value = typeof raw === 'boolean' ? (raw ? '1' : '') : String(raw ?? '').trim();
     if (!value) {
@@ -139,7 +138,6 @@ export class ProfileFieldsService {
     return value;
   }
 
-  /** Verilen alanlar için girdiyi doğrular; alan anahtarı -> hata biçiminde toplu hata fırlatır. */
   validateAll(fields: ProfileFieldDto[], input: Record<string, unknown>): Map<number, string> {
     const out = new Map<number, string>();
     const errors: Record<string, string> = {};
@@ -185,7 +183,6 @@ export class ProfileFieldsService {
     }
   }
 
-  /** Kullanıcının alan değerleri (hedef kitleye göre filtrelenmiş). */
   async valuesFor(userId: number, audience: FieldAudience, onlyProfile = true) {
     const fields = (await this.active()).filter((f) => (!onlyProfile || f.showInProfile) && this.canSee(f, audience));
     if (!fields.length) return [];
@@ -201,7 +198,6 @@ export class ProfileFieldsService {
       .filter((v) => v.value !== '');
   }
 
-  /** Düzenleme formu için: alanlar + mevcut değerler. */
   async editableFor(userId: number, isStaff: boolean) {
     const fields = (await this.active()).filter((f) => f.editableBy === 'owner' || isStaff);
     const rows = await this.db.q
@@ -212,8 +208,6 @@ export class ProfileFieldsService {
     const map = new Map(rows.map((r) => [r.field_id, r.value]));
     return fields.map((f) => ({ ...f, value: map.get(f.id) ?? '' }));
   }
-
-  // ---------- Yönetim ----------
 
   async create(input: ProfileFieldInput): Promise<number> {
     this.checkInput(input);

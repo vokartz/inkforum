@@ -94,8 +94,6 @@ export class AchievementsService implements OnModuleInit {
     this.jobs.schedule('achievements.daily', DAY, () => this.runDaily());
   }
 
-  // ---------- Okuma ----------
-
   async all(): Promise<CachedAchievement[]> {
     return this.cache.wrap(NS, 'all', async () => {
       const rows = await this.db.q
@@ -140,7 +138,6 @@ export class AchievementsService implements OnModuleInit {
     return CRITERIA.map((c) => ({ type: c.type, label: c.label, description: c.description, fields: c.fields }));
   }
 
-  /** Herkese açık katalog: gizli başarılar yalnızca kazananlara ayrıntılı görünür. */
   async catalog(viewerUserId: number | null) {
     const all = (await this.all()).filter((a) => bool(a.is_active));
     const earned = viewerUserId ? await this.earnedMap(viewerUserId) : new Map<number, number>();
@@ -192,7 +189,6 @@ export class AchievementsService implements OnModuleInit {
     return out;
   }
 
-  /** Bir üyenin kazandığı başarılar (profil). Gizli başarılar da kazanıldığı için görünür. */
   async forUser(userId: number) {
     const rows = await this.db.q
       .selectFrom('user_achievements')
@@ -259,8 +255,6 @@ export class AchievementsService implements OnModuleInit {
     };
   }
 
-  // ---------- Verme / geri alma ----------
-
   async award(
     userId: number,
     achievementId: number,
@@ -323,7 +317,6 @@ export class AchievementsService implements OnModuleInit {
     });
   }
 
-  /** Bir üyeyi tetikleyiciye uyan (veya tüm) otomatik başarılar için değerlendirir. */
   async evaluateUser(userId: number, trigger: string | 'all'): Promise<number[]> {
     if (!this.settings.get('achievements.enabled')) return [];
     const user = await this.db.q.selectFrom('users').select(['id', 'status']).where('id', '=', userId).executeTakeFirst();
@@ -342,7 +335,6 @@ export class AchievementsService implements OnModuleInit {
     return awarded;
   }
 
-  /** Günlük görev: zamana bağlı kriterleri toplu değerlendirir. */
   async runDaily(): Promise<void> {
     if (!this.settings.get('achievements.enabled')) return;
     for (const a of await this.all()) {
@@ -352,7 +344,6 @@ export class AchievementsService implements OnModuleInit {
     }
   }
 
-  /** Geriye dönük dağıtımı başlatır (kriteri sağlayan tüm üyelere verir). */
   async startBackfill(achievementId: number): Promise<void> {
     const a = (await this.all()).find((x) => x.id === achievementId);
     if (!a) throw Errors.notFound('Başarı bulunamadı.');
@@ -360,7 +351,6 @@ export class AchievementsService implements OnModuleInit {
     await this.jobs.enqueue(BACKFILL_JOB, { achievementId, afterId: 0, source: 'backfill' });
   }
 
-  /** Üyeleri kimlik sırasıyla 500'lük partiler halinde tarar; her parti ayrı bir iştir (bellek sınırlı). */
   private async backfillBatch(achievementId: number, afterId: number, source: 'auto' | 'backfill'): Promise<void> {
     const a = (await this.all()).find((x) => x.id === achievementId);
     if (!a || !bool(a.is_active) || !a.criteria_type) return;
@@ -408,8 +398,6 @@ export class AchievementsService implements OnModuleInit {
     }
     if (more) await this.jobs.enqueue(BACKFILL_JOB, { achievementId, afterId: lastScanned, source });
   }
-
-  // ---------- Yönetim ----------
 
   private validateCriteria(input: AchievementInput): string | null {
     if (!input.criteriaType) return null;
@@ -477,7 +465,6 @@ export class AchievementsService implements OnModuleInit {
         })
         .where('id', '=', id)
         .execute();
-      // Puan değiştiyse sahiplerin toplamlarını düzelt.
       const diff = input.points - existing.points;
       if (diff !== 0) {
         await this.db.q

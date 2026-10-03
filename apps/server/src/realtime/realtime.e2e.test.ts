@@ -11,7 +11,6 @@ let ali: Agent;
 let ayse: Agent;
 let ayseId: number;
 
-/** Olay akışını açar; gelen olayları biriktirir */
 function openStream(
   agent: Agent,
 ): Promise<{
@@ -107,7 +106,6 @@ describe('realtime stream', () => {
     });
     expect((msg as Extract<RealtimeEvent, { type: 'message' }>).excerpt).toBe('Merhaba Ayşe, nasılsın?');
 
-    // Ayşe okuyunca Ali'nin açık sekmesi "görüldü" bilgisini alır
     const aliStream = await openStream(ali);
     await aliStream.next('hello');
     expect((await ayse.get(`/api/messages/${created.body.id}`)).status).toBe(200);

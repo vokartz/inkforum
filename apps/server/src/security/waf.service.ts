@@ -13,7 +13,7 @@ import { clientIp, isInternalRequest, parseCookies } from '../common/http.js';
 import { Errors } from '../common/errors.js';
 
 export const WAF_COOKIE = 'forum_waf';
-const POW_DIFFICULTY = 4; // onaltılık sıfır sayısı (~65 bin deneme)
+const POW_DIFFICULTY = 4;
 
 type Decision = { action: 'allow'; setClearance?: boolean } | { action: 'block'; status: number; reason: string } | { action: 'challenge'; reason: string };
 
@@ -21,18 +21,13 @@ export interface WafContext {
   ip: string;
   ua: string;
   method: string;
-  /** Yol + sorgu */
   url: string;
   path: string;
   cookieHeader: string | undefined;
   hasBearer: boolean;
-  /** Geçerli oturum var mı (yalnızca gerekirse sorulur) */
   hasSession: () => Promise<boolean>;
-  /** Sayfaların dili */
   locale?: Locale;
 }
-
-// ---------- Kalıplar ----------
 
 const RULES: Array<{ name: string; re: RegExp }> = [
   { name: 'SQL enjeksiyonu', re: /(\bunion\b[\s\S]{0,30}\bselect\b|\bselect\b[\s\S]{0,60}\bfrom\b[\s\S]{0,60}\bwhere\b|\bsleep\s*\(\s*\d|\bbenchmark\s*\(|\bwaitfor\s+delay\b|information_schema|\bor\s+1\s*=\s*1\b|'\s*or\s*'[^']*'\s*=\s*'|;\s*drop\s+table\b)/i },
@@ -42,12 +37,9 @@ const RULES: Array<{ name: string; re: RegExp }> = [
 ];
 
 const STATIC = /^\/(?:_app\/|emoji\/|uploads\/|favicon|robots\.txt$|sitemap[\w-]*\.xml$|manifest)|\.(?:js|mjs|css|png|jpe?g|gif|webp|avif|svg|ico|woff2?|ttf|map)$/i;
-/** Makine istemcileri ve doğrulama uç noktaları: doğrulama sayfası gösterilmez */
 const API_EXEMPT = /^\/api\/(?:waf\/|health|oauth\/(?:token|revoke|userinfo|metadata)|embed\/|oembed|og\/|seo\/)/;
 const NON_BROWSER = /(curl|wget|python-requests|python-urllib|aiohttp|httpclient|go-http-client|java\/|okhttp|libwww|scrapy|headlesschrome|phantomjs|axios\/|node-fetch)/i;
-/** Bağlantı önizleme botları (Discord, WhatsApp…) — yalnızca sayfa GET isteklerinde */
 const PREVIEW_BOTS = /(facebookexternalhit|facebot|twitterbot|discordbot|slackbot|telegrambot|whatsapp|linkedinbot|embedly|redditbot|skypeuripreview|vkshare|pinterestbot|mastodon)/i;
-/** Arama motorları: ters DNS ile doğrulanır */
 const SEARCH_BOTS: Array<{ ua: RegExp; hosts: string[] }> = [
   { ua: /googlebot|google-inspectiontool|storebot-google|adsbot-google/i, hosts: ['.googlebot.com', '.google.com', '.googleusercontent.com'] },
   { ua: /bingbot|msnbot|bingpreview/i, hosts: ['.search.msn.com'] },
@@ -55,8 +47,6 @@ const SEARCH_BOTS: Array<{ ua: RegExp; hosts: string[] }> = [
   { ua: /applebot/i, hosts: ['.applebot.apple.com'] },
   { ua: /baiduspider/i, hosts: ['.baidu.com', '.baidu.jp'] },
 ];
-
-// ---------- IP aralıkları ----------
 
 function ipToBig(ip: string): { v: bigint; bits: number } | null {
   if (isIP(ip) === 4) return { v: ip.split('.').reduce((n, o) => (n << 8n) + BigInt(Number(o)), 0n), bits: 32 };
@@ -119,8 +109,6 @@ export class WafService {
     }
   }
 
-  // ---------- Kayıt ----------
-
   private record(action: WafEvent['action'], ctx: Pick<WafContext, 'ip' | 'path' | 'ua'>, reason: string): void {
     const now = Date.now();
     this.events.unshift({ at: now, ip: ctx.ip, action, reason, path: ctx.path.slice(0, 200), ua: ctx.ua.slice(0, 200) });
@@ -138,7 +126,6 @@ export class WafService {
     const s = this.strikes.get(ip);
     const cur = s && now - s.start < 10 * 60_000 ? { n: s.n + 1, start: s.start } : { n: 1, start: now };
     this.strikes.set(ip, cur);
-    // 10 dakikada 3 kural ihlali: 1 saat engel
     if (cur.n >= 3) this.tempBlocks.set(ip, { until: now + 3_600_000, reason: `Tekrarlanan saldırı denemesi (${reason})` });
   }
 
@@ -147,8 +134,6 @@ export class WafService {
     const h = this.hits.get(ip);
     return (!!s && Date.now() - s.start < 10 * 60_000) || (!!h && h.n > limit * 0.5) || !ua || NON_BROWSER.test(ua);
   }
-
-  // ---------- Doğrulama çerezi ----------
 
   private uaHash(ua: string): string {
     return createHash('sha256').update(ua).digest('base64url').slice(0, 16);
@@ -171,8 +156,6 @@ export class WafService {
     return expect.length === sig.length && timingSafeEqual(Buffer.from(expect), Buffer.from(sig));
   }
 
-  // ---------- Botlar ----------
-
   private async verifiedSearchBot(ip: string, ua: string): Promise<boolean> {
     const bot = SEARCH_BOTS.find((b) => b.ua.test(ua));
     if (!bot) return false;
@@ -191,8 +174,6 @@ export class WafService {
     return ok;
   }
 
-  // ---------- Karar ----------
-
   async evaluate(ctx: WafContext): Promise<Decision> {
     const cfg = this.cfg();
     const { ip, ua, path } = ctx;
@@ -200,24 +181,20 @@ export class WafService {
     const isStatic = !isApi && STATIC.test(path);
     if (cfg.allowIps.some((r) => ipMatches(ip, r))) return { action: 'allow' };
 
-    // Engelli IP ve geçici engeller
     if (cfg.blockIps.some((r) => ipMatches(ip, r))) return this.deny(ctx, 403, 'Engellenmiş IP adresi');
     const tb = this.tempBlocks.get(ip);
     if (tb && tb.until > Date.now()) return { action: 'block', status: 403, reason: tb.reason };
     if (tb) this.tempBlocks.delete(ip);
 
-    // Kötü araçlar
     const lowUa = ua.toLowerCase();
     const badUa = cfg.blockUserAgents.find((b) => lowUa.includes(b.toLowerCase()));
     if (badUa) return this.deny(ctx, 403, `Engellenmiş istemci (${badUa})`);
 
-    // Saldırı kalıpları (yalnızca adres ve sorgu; mesaj gövdeleri serbest)
     if (cfg.blockPatterns) {
       let decoded = ctx.url;
       try {
         decoded = decodeURIComponent(ctx.url.replace(/\+/g, ' '));
       } catch {
-        /* bozuk kodlama: ham adres denetlenir */
       }
       const hit = RULES.find((r) => r.re.test(ctx.url) || r.re.test(decoded));
       if (hit) {
@@ -228,7 +205,6 @@ export class WafService {
 
     if (isStatic) return { action: 'allow' };
 
-    // Hız sınırı
     const now = Date.now();
     const h = this.hits.get(ip);
     const cur = h && now - h.start < 60_000 ? { n: h.n + 1, start: h.start } : { n: 1, start: now };
@@ -240,13 +216,11 @@ export class WafService {
       return { action: 'block', status: 429, reason: 'Çok fazla istek gönderildi. Lütfen biraz bekleyin.' };
     }
 
-    // Doğrulama sayfası
     if (cfg.mode === 'off') return { action: 'allow' };
     if (isApi && (API_EXEMPT.test(path) || ctx.hasBearer)) return { action: 'allow' };
     if (this.validClearance(ctx.cookieHeader, ua)) return { action: 'allow' };
     if (cfg.mode === 'suspicious' && !this.suspicious(ip, ua, cfg.rateLimitPerMinute)) return { action: 'allow' };
     if (!isApi && ctx.method === 'GET' && cfg.allowSearchBots && (PREVIEW_BOTS.test(ua) || (await this.verifiedSearchBot(ip, ua)))) return { action: 'allow' };
-    // Giriş yapmış üyeler doğrulama sayfası görmez (bu cihaz için doğrulama çerezi de verilir)
     if (parseCookies(ctx.cookieHeader)[this.config.sessionCookieName] && (await ctx.hasSession())) return { action: 'allow', setClearance: true };
     this.record('challenge', ctx, cfg.mode === 'all' ? 'Herkese doğrulama açık' : 'Şüpheli ziyaretçi');
     return { action: 'challenge', reason: 'Doğrulama gerekli' };
@@ -265,8 +239,6 @@ export class WafService {
     for (const [k, v] of this.usedPow) if (v < now) this.usedPow.delete(k);
   }
 
-  // ---------- Hesaplama doğrulaması (yerleşik) ----------
-
   issuePow(ua: string): { c: string; d: number; exp: number; sig: string } {
     const c = randomBytes(16).toString('hex');
     const exp = Date.now() + 10 * 60_000;
@@ -284,7 +256,6 @@ export class WafService {
     return true;
   }
 
-  /** Turnstile / hCaptcha belirteci (sağlayıcının sabit doğrulama adresine) */
   async verifyCaptcha(token: string, ip: string): Promise<boolean> {
     const cfg = this.cfg();
     const secret = this.secret();
@@ -311,16 +282,10 @@ export class WafService {
     this.record('pass', ctx, 'Doğrulamayı geçti');
   }
 
-  // ---------- Sayfalar ----------
-
   private esc(s: string): string {
     return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
   }
 
-  /**
-   * Sade doğrulama / engel sayfası (Cloudflare tarzı): beyaz ya da koyu düz zemin, alan adı başlığı,
-   * tek bir doğrulama kutusu ve altta istek kimliği. Görsel, animasyonlu yükleme ya da yapay bekleme yok.
-   */
   private shell(nonce: string, title: string, inner: string, reqId: string, locale: Locale, script = ''): string {
     const s = this.settings;
     const host = this.esc(new URL(this.config.appUrl).host);
@@ -382,7 +347,6 @@ async function send(body){try{const r=await fetch('/api/waf/verify',{method:'POS
         ? `<div class="cap"><div class="${cfg.captcha === 'turnstile' ? 'cf-turnstile' : 'h-captcha'}" data-sitekey="${this.esc(cfg.siteKey)}" data-callback="forumWafPass"></div></div><div class="box" id="box" hidden><span class="st" id="st"></span><span id="msg"></span></div>`
         : `<div class="box run" id="box" role="status" aria-live="polite"><span class="st" id="st"><span class="ring"></span></span><span id="msg">${this.esc(tr('Doğrulanıyor…'))}</span></div>`
     }<noscript><p>${this.esc(tr("Devam etmek için tarayıcınızda JavaScript'i etkinleştirin."))}</p></noscript><p>${this.esc(tr('Devam etmeden önce {host} bağlantınızın güvenliğini gözden geçiriyor.', { host: new URL(this.config.appUrl).host }))}</p>`;
-    // Yerleşik doğrulama: SHA-256 eşzamanlı (hızlı) hesaplanır; yapay bekleme yoktur
     const sha = `function H(m){const K=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
 const b=[];for(let i=0;i<m.length;i++)b.push(m.charCodeAt(i)&255);const l=b.length*8;b.push(128);while(b.length%64!==56)b.push(0);for(let i=7;i>=0;i--)b.push(i>3?0:(l>>>(i*8))&255);
 let h0=0x6a09e667,h1=0xbb67ae85,h2=0x3c6ef372,h3=0xa54ff53a,h4=0x510e527f,h5=0x9b05688c,h6=0x1f83d9ab,h7=0x5be0cd19;const w=new Array(64);const R=(x,n)=>(x>>>n)|(x<<(32-n));
@@ -405,8 +369,6 @@ setTimeout(function(){const lim=16**(8-P.d);let n=0;while(H(P.c+':'+n)>=lim)n++;
     return { html: this.shell(nonce, title, inner, reqId, locale), nonce };
   }
 
-  // ---------- Express ara katmanı ----------
-
   context(req: Request, hasSession: () => Promise<boolean>): WafContext {
     const auth = req.headers.authorization;
     return {
@@ -427,7 +389,6 @@ setTimeout(function(){const lim=16**(8-P.d);let n=0;while(H(P.c+':'+n)>=lim)n++;
     res.cookie(WAF_COOKIE, c.value, { httpOnly: true, sameSite: 'lax', secure: this.config.secureCookies, path: '/', maxAge: c.maxAge });
   }
 
-  /** Tüm isteklerden (sayfa + API) önce çalışır */
   async middleware(req: Request, res: Response, next: NextFunction, hasSession: () => Promise<boolean>): Promise<void> {
     if (!this.active() || isInternalRequest(req)) return next();
     const ctx = this.context(req, hasSession);
@@ -457,8 +418,6 @@ setTimeout(function(){const lim=16**(8-P.d);let n=0;while(H(P.c+':'+n)>=lim)n++;
     res.setHeader('Content-Security-Policy', this.csp(p.nonce));
     res.status(403).type('html').send(p.html);
   }
-
-  // ---------- Yönetim ----------
 
   admin(): AdminWaf {
     const cfg = this.cfg();

@@ -58,11 +58,9 @@
   let errors = $state<Record<string, string>>({});
   let done = $state(false);
 
-  // Adım 1
   let env = $state<InstallEnvironment | null>(null);
   let envError = $state('');
 
-  // Adım 3
   let site = $state({ name: '', description: '', theme: 'modern' as ThemeStyle, accent: '#9c9c9c', mode: 'dark' as 'dark' | 'light' });
   const ACCENTS = ['#9c9c9c', '#7b61ff', '#3b82f6', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
   const THEMES = [
@@ -70,13 +68,11 @@
     { key: 'community', label: 'Topluluk', hint: 'Bannerlı üst alan, altında menü çubuğu; geniş kartlar' },
   ] as const;
 
-  // Adım 4
   let admin = $state({ username: '', email: '', password: '', confirm: '' });
   let showPw = $state(false);
   const strength = $derived(passwordStrength(admin.password));
   const STRENGTH = ['Çok zayıf', 'Zayıf', 'Orta', 'İyi', 'Güçlü'];
 
-  // Adım 5
   let registration = $state<RegistrationMode>('email');
   const REG_INFO: Record<RegistrationMode, { label: string; hint: string }> = {
     open: { label: 'Anında kayıt', hint: 'Üyeler kaydolur olmaz yazmaya başlar.' },
@@ -89,7 +85,6 @@
   let plugins = $state<PluginKey[]>(['wiki']);
   const PLUGIN_ICONS: Record<PluginKey, typeof HouseIcon> = { landing: HouseIcon, wiki: BookIcon, applications: ClipboardIcon, tickets: LifebuoyIcon, discord: DiscordIcon };
 
-  // Adım 6
   let mailOn = $state(false);
   let mail = $state({ host: '', port: 587, security: 'starttls' as 'starttls' | 'tls' | 'none', user: '', password: '' });
   let mailFrom = $state('');
@@ -528,7 +523,6 @@
 </div>
 
 <style>
-  /* Mürekkep lekesi ve kontur çizgileri: sade, koyu, markaya uygun arka plan */
   .install-bg {
     background:
       radial-gradient(60rem 40rem at -10% -10%, rgb(255 255 255 / 0.07), transparent 60%),

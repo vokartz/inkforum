@@ -1,0 +1,48 @@
+{
+  "name": "@inkforum/sdk",
+  "version": "1.0.0",
+  "private": true,
+  "description": "InkForum eklenti geliştirme kiti: türler, defineExtension, html yardımcısı ve inkforum-ext komut satırı aracı",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vokartz/inkforum.git",
+    "directory": "packages/sdk"
+  },
+  "keywords": ["inkforum", "forum", "extension", "plugin", "eklenti"],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js"
+    }
+  },
+  "bin": {
+    "inkforum-ext": "bin/inkforum-ext.mjs"
+  },
+  "files": ["dist", "bin", "README.md"],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "kysely": ">=0.27"
+  },
+  "peerDependenciesMeta": {
+    "kysely": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "kysely": "^0.29.6",
+    "tsup": "^8.5.1",
+    "typescript": "~5.9.3"
+  }
+}

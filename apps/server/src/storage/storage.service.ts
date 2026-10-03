@@ -14,7 +14,6 @@ export interface SaveImageOptions {
   ownerUserId: number | null;
   maxBytes: number;
   maxDimension?: number;
-  /** Kare küçültme hedefi (sharp varsa uygulanır). */
   resizeTo?: number;
   allowGif?: boolean;
 }
@@ -27,7 +26,6 @@ type SharpFactory = (input: Buffer, opts?: object) => {
   toBuffer(): Promise<Buffer>;
 };
 
-/** Yerel disk depolaması (S3 sürücüsü ileride aynı arayüzle eklenecek). */
 @Injectable()
 export class StorageService {
   private readonly logger = new Logger('Storage');
@@ -43,10 +41,6 @@ export class StorageService {
     return file ? `/uploads/${file.path}` : null;
   }
 
-  /**
-   * SVG'deki metinler (paylaşım görselleri) fontconfig ile çizilir. Docker (Alpine) imajında sistem fontu yoktur;
-   * yazılar kutucuk olarak görünmesin diye uygulamayla gelen DejaVu Sans fontları da taranır.
-   */
   private configureFonts(): void {
     if (process.env.FONTCONFIG_FILE) return;
     const fontsDir = [join(this.config.root, 'fonts'), join(this.config.root, 'apps/server/assets/fonts')].find((d) => existsSync(d));
@@ -140,7 +134,6 @@ export class StorageService {
       .executeTakeFirstOrThrow();
   }
 
-  /** Dosya kaydını siler; aynı içeriği kullanan başka kayıt yoksa diskten de kaldırır. */
   async delete(fileId: number | null | undefined): Promise<void> {
     if (!fileId) return;
     const file = await this.db.q.selectFrom('files').selectAll().where('id', '=', fileId).executeTakeFirst();
@@ -152,7 +145,6 @@ export class StorageService {
         try {
           unlinkSync(join(this.config.uploadsDir, file.path));
         } catch {
-          /* dosya zaten yok */
         }
       });
     }

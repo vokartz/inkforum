@@ -3,7 +3,6 @@ import { previewDraft } from '$lib/theme-preview';
 import { loadCatalog } from '$lib/i18n.svelte';
 import type { LayoutLoad } from './$types';
 
-/** Uyum engelleri varken bile açık kalan sayfalar. */
 const OPEN = [
   /^\/login/,
   /^\/register/,
@@ -32,7 +31,6 @@ export const load: LayoutLoad = async ({ data: serverData, url, depends }) => {
     };
   }
   const { viewer } = data;
-  // Seçili dilin kataloğu çizimden önce hazır olmalı (t() eşzamanlıdır)
   await loadCatalog(viewer.locale, viewer.settings['i18n.defaultLocale']);
   const path = url.pathname;
   const open = OPEN.some((re) => re.test(path));

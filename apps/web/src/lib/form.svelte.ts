@@ -2,11 +2,6 @@ import { tick } from 'svelte';
 import { toast } from 'svelte-sonner';
 import { ApiError, errorMessage } from './api';
 
-/**
- * Basit form durumu: gönderim, alan hataları ve genel hata mesajı.
- *   const form = createForm();
- *   await form.submit(() => api.post(...), { success: 'Kaydedildi' });
- */
 export function createForm() {
   let submitting = $state(false);
   let errors = $state<Record<string, string>>({});
@@ -50,7 +45,6 @@ export function createForm() {
           errors = e.fields;
           message = Object.keys(e.fields).length ? (e.message ?? null) : e.message;
           const first = Object.values(e.fields)[0];
-          // Hatalı alan ekranın dışında kalabilir: ilk hata bildirilir ve o alana kaydırılır
           if (opts.toastErrors || first) toast.error(first ?? e.message);
           if (first && typeof document !== 'undefined') {
             void tick().then(() => document.querySelector('[aria-invalid="true"], p[role="alert"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' }));

@@ -78,7 +78,6 @@ describe('discord plugin', () => {
         allowed_mentions: { parse: [] },
       });
 
-      // Yanıtlar kapalı: gönderilmez
       expect((await ali.post(`/api/topics/${topic.body.topicId}/posts`, { body: 'yanıt' })).status).toBe(201);
       await h.jobs.drain();
       expect(calls).toHaveLength(1);

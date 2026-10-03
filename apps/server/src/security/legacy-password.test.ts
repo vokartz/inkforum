@@ -18,13 +18,11 @@ describe('legacy passwords', () => {
   });
 
   it('verifies phpass ($H$) hashes from phpBB 3.0', () => {
-    // WordPress/phpass test vektörü: "test12345"
     expect(phpassVerify('test12345', '$P$9IQRaTwmfeRo7ud9Fh4E2PdI0S3r.L0')).toBe(true);
     expect(phpassVerify('test1234', '$P$9IQRaTwmfeRo7ud9Fh4E2PdI0S3r.L0')).toBe(false);
   });
 
   it('verifies bcrypt ($2y$) hashes', async () => {
-    // PHP password_hash('parola', PASSWORD_BCRYPT) çıktısı biçiminde
     const { bcrypt } = await import('hash-wasm');
     const hash = await bcrypt({ password: 'parola', salt: Buffer.alloc(16, 7), costFactor: 4, outputType: 'encoded' });
     const php = hash.replace(/^\$2b\$/, '$2y$');
@@ -36,7 +34,6 @@ describe('legacy passwords', () => {
 describe('legacy passwords (forum specifics)', () => {
   it('verifies phpBB hashes with the input transform', async () => {
     const { bcrypt } = await import('hash-wasm');
-    // phpBB, şifreyi htmlspecialchars ile saklar: a&b → a&amp;b
     const stored = (await bcrypt({ password: 'a&amp;b', salt: Buffer.alloc(16, 3), costFactor: 4, outputType: 'encoded' })).replace(/^\$2b\$/, '$2y$');
     const { legacyHash: lh } = await import('./legacy-password.js');
     expect(await verifyLegacy(lh.phpbb(stored), 'a&b')).toBe(true);
@@ -47,7 +44,6 @@ describe('legacy passwords (forum specifics)', () => {
     const { bcrypt } = await import('hash-wasm');
     const stored = await bcrypt({ password: 'ali' + 'Parola1', salt: Buffer.alloc(16, 9), costFactor: 4, outputType: 'encoded' });
     expect(await verifyLegacy(legacyHash.smf2('Ali', stored), 'Parola1')).toBe(true);
-    // Yükseltilmiş kurulumda kalan 2.0 sha1 özeti
     expect(await verifyLegacy(legacyHash.smf2('Ali', sha1('ali' + 'Parola1')), 'Parola1')).toBe(true);
   });
 });

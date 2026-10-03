@@ -1,13 +1,6 @@
 import { parseBBCode, rawContent, type BBNode, type BBTag } from './parser.js';
 import { BB_SIZES, BB_TAGS, safeColor, safeFont, safeSize } from './tags.js';
 
-/**
- * BBCode ⇄ TipTap (ProseMirror JSON) köprüsü. Editör içeriği her zaman BBCode olarak saklanır;
- * görsel editör açılırken BBCode → belge, kaydederken belge → BBCode dönüştürülür.
- *
- * Model: her satır bir paragraftır ("\n" = yeni paragraf). Bloklar (alıntı, kod, liste…) kendi düğümleridir.
- */
-
 export interface PMMark {
   type: string;
   attrs?: Record<string, any>;
@@ -22,8 +15,6 @@ export interface PMNode {
 }
 
 type Align = 'left' | 'center' | 'right' | 'justify' | null;
-
-// ---------- BBCode → belge ----------
 
 const MARK_TAGS: Record<string, string> = {
   b: 'bold',
@@ -226,13 +217,11 @@ function rawText(nodes: BBNode[]): string {
 }
 
 export interface DocOptions {
-  /** Özel emojiler: `:kisaad:` metni görsel düğüme (customEmoji) dönüşür. */
   customEmoji?: (shortcode: string) => { url: string; name: string } | undefined;
 }
 
 const SHORTCODE_SPLIT = /:([a-z0-9_-]{2,32}):/g;
 
-/** Metin düğümlerindeki bilinen `:kisaad:` emojilerini customEmoji düğümüne ayırır (kod içinde dokunmaz). */
 function splitEmojis(nodes: PMNode[] | undefined, find: NonNullable<DocOptions['customEmoji']>): PMNode[] | undefined {
   if (!nodes) return nodes;
   const out: PMNode[] = [];
@@ -267,8 +256,6 @@ export function bbcodeToDoc(input: string, opts: DocOptions = {}): PMNode {
   return { type: 'doc', content: opts.customEmoji ? splitEmojis(content, opts.customEmoji) : content };
 }
 
-// ---------- Belge → BBCode ----------
-
 interface VMark {
   key: string;
   open: string;
@@ -292,7 +279,6 @@ function quoteAttr(v: string): string {
   return /[\s=]/.test(clean) || clean === '' ? `"${clean}"` : clean;
 }
 
-/** Bir metin düğümünün işaretlerini sabit sırada BBCode etiketlerine çevirir. */
 function vmarks(marks: PMMark[] | undefined): VMark[] {
   const out: VMark[] = [];
   const byType = new Map((marks ?? []).map((m) => [m.type, m]));
@@ -324,7 +310,6 @@ function vmarks(marks: PMMark[] | undefined): VMark[] {
 
 const TAG_LIKE = new RegExp(`\\[/?(?:${[...BB_TAGS.keys()].map((k) => k.replace('*', '\\*')).join('|')})(?:[=\\s][^\\]]*)?\\]`, 'gi');
 
-/** Metinde etiket gibi görünen parçaları [noparse] içine alır (yazılan "[b]" kalın olmasın). */
 function escapeText(text: string): string {
   return text.replace(TAG_LIKE, (m) => `[noparse]${m}[/noparse]`);
 }
@@ -406,7 +391,6 @@ function blocksToBB(blocks: PMNode[] | undefined): string {
         parts.push(inlineToBB(n.content));
         continue;
       }
-      // Aynı hizalamadaki ardışık paragraflar tek etikette birleştirilir.
       const group = [inlineToBB(n.content)];
       while (k + 1 < list.length && list[k + 1]!.type === 'paragraph' && alignOf(list[k + 1]!) === align) {
         group.push(inlineToBB(list[++k]!.content));

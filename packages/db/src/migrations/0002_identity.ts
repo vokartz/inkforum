@@ -4,7 +4,6 @@ import { flag, helpers, intDefault, notNull, ref, textDefault } from './_helpers
 export async function up(db: Kysely<any>): Promise<void> {
   const h = helpers(db);
 
-  // ---------- Gruplar ----------
   await h
     .table('member_groups')
     .addColumn('system_key', 'text', (c) => c.unique())
@@ -27,7 +26,6 @@ export async function up(db: Kysely<any>): Promise<void> {
     .execute();
   await db.schema.createIndex('member_groups_kind_idx').on('member_groups').columns(['kind', 'min_posts']).execute();
 
-  // ---------- Kullanıcılar ----------
   await h
     .table('users')
     .addColumn('username', 'text', notNull)
@@ -181,7 +179,6 @@ export async function up(db: Kysely<any>): Promise<void> {
     .execute();
   await db.schema.createIndex('user_recovery_codes_user_idx').on('user_recovery_codes').column('user_id').execute();
 
-  // ---------- Grup üyelikleri ----------
   await db.schema
     .createTable('group_members')
     .addColumn('user_id', 'integer', ref('users.id'))
@@ -232,7 +229,6 @@ export async function up(db: Kysely<any>): Promise<void> {
     .columns(['status', 'group_id'])
     .execute();
 
-  // ---------- Yetkiler ----------
   await db.schema
     .createTable('group_permissions')
     .addColumn('group_id', 'integer', ref('member_groups.id'))
@@ -257,7 +253,6 @@ export async function up(db: Kysely<any>): Promise<void> {
     .addPrimaryKeyConstraint('permission_profile_entries_pk', ['profile_id', 'group_id', 'permission'])
     .execute();
 
-  // ---------- Politikalar ----------
   await h
     .table('policies')
     .addColumn('key', 'text', (c) => c.notNull().unique())
@@ -305,7 +300,6 @@ export async function up(db: Kysely<any>): Promise<void> {
     .column('policy_version_id')
     .execute();
 
-  // ---------- Özel profil alanları ----------
   await h
     .table('profile_fields')
     .addColumn('key', 'text', (c) => c.notNull().unique())

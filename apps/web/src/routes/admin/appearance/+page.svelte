@@ -55,7 +55,6 @@
     auth: 'Giriş, kayıt ve şifre sıfırlama sayfalarının sol yarısında görünür. Dikey ya da kare, en az 1200×1400 piksel.',
   };
 
-  // ---------- Marka ----------
   let accent = $state('#7b61ff');
   let showName = $state(true);
   let bannerHeight = $state(160);
@@ -149,7 +148,6 @@
     }
   }
 
-  // ---------- Menü ----------
   interface NavNode {
     uid: string;
     id?: number;
@@ -208,7 +206,6 @@
   const builtinUsed = $derived(new Set(navTree.flatMap((n) => [n, ...n.children]).filter((n) => n.kind === 'builtin').map((n) => n.builtinKey)));
   const hrefOf = (n: NavNode) => (n.kind === 'builtin' ? (a?.builtins.find((b) => b.key === n.builtinKey)?.url ?? '') : (n.url ?? ''));
 
-  // Düzenleme penceresi
   let editOpen = $state(false);
   let edit = $state<NavNode | null>(null);
   let editIsNew = $state(false);
@@ -278,7 +275,6 @@
     }
   }
 
-  // ---------- Alt bilgi ----------
   let savingFooter = $state(false);
   async function saveFooter() {
     savingFooter = true;

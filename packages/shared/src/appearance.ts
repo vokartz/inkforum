@@ -2,10 +2,8 @@ import { z } from 'zod';
 import type { IconNode } from './forum.js';
 import { ICON_NAME } from './forum.js';
 
-/** Sistemin sağladığı menü öğeleri (adres sabit; ad, ikon, sıra ve görünürlük düzenlenebilir). */
 export const NAV_BUILTINS = {
   home: { label: 'Ana sayfa', url: '/', icon: 'house', permission: null, visibility: 'all' },
-  /** Açılış sayfası seçiliyse adres otomatik /forum olur */
   forum: { label: 'Forum', url: '/', icon: 'chats-circle', permission: null, visibility: 'all' },
   wiki: { label: 'Wiki', url: '/wiki', icon: 'book-open-text', permission: 'wiki.view', visibility: 'all' },
   applications: { label: 'Başvurular', url: '/applications', icon: 'clipboard-text', permission: 'applications.apply', visibility: 'members' },
@@ -19,19 +17,16 @@ export const NAV_BUILTINS = {
 } as const;
 export type NavBuiltinKey = keyof typeof NAV_BUILTINS;
 
-/** Ziyaretçiye gösterilen menü öğesi. */
 export interface NavEntry {
   id: number;
   label: string;
   href: string | null;
   icon: IconNode | null;
   newTab: boolean;
-  /** Vurgulu buton olarak göster */
   style: 'link' | 'button';
   children: NavEntry[];
 }
 
-/** Yönetim panelindeki ham menü öğesi. */
 export interface AdminNavItem {
   id: number;
   parentId: number | null;
@@ -49,7 +44,6 @@ export interface AdminNavItem {
 }
 
 const navItemInput = z.object({
-  /** Mevcut öğe kimliği (yeni öğelerde yok). */
   id: z.number().int().positive().optional(),
   kind: z.enum(['builtin', 'link', 'dropdown']),
   builtinKey: z.string().max(40).nullable().default(null),
@@ -82,7 +76,6 @@ export const BRANDING_ASSETS: Record<BrandingAsset, { setting: string; maxKb: nu
   defaultAvatar: { setting: 'appearance.defaultAvatarUrl', maxKb: 512, label: 'Varsayılan avatar' },
 };
 
-/** Arama sonucu */
 export interface SearchResults {
   query: string;
   type: 'topics' | 'posts';
@@ -99,7 +92,6 @@ export interface SearchResults {
     authorName: string;
     prefix: import('./forum.js').TopicPrefix | null;
     tags: import('./topics-extra.js').TopicTag[];
-    /** İlk mesajdan kısa özet (eşleşen kısım etrafında) */
     excerpt: string;
     hasPoll: boolean;
   }>;
@@ -124,11 +116,9 @@ export interface SearchResults {
 export const SEARCH_SINCE = ['day', 'week', 'month', 'year'] as const;
 export const SEARCH_SORTS = ['relevance', 'newest', 'oldest', 'replies', 'views'] as const;
 
-/** Gelişmiş arama sorgusu (`GET /api/search`). */
 export const searchQuerySchema = z.object({
   q: z.string().max(100).default(''),
   type: z.enum(['topics', 'posts']).default('topics'),
-  /** Yalnızca başlıklarda ara (konu aramasında) */
   titleOnly: z
     .union([z.boolean(), z.enum(['1', '0', 'true', 'false'])])
     .transform((v) => v === true || v === '1' || v === 'true')
@@ -142,13 +132,11 @@ export const searchQuerySchema = z.object({
 });
 export type SearchQuery = z.output<typeof searchQuerySchema>;
 
-/** Görünüm → Varsayılana sıfırla: hangi bölümlerin sıfırlanacağı */
-export const APPEARANCE_RESET_PARTS = ['theme', 'branding', 'nav', 'footer', 'css'] as const;
+export const APPEARANCE_RESET_PARTS = ['theme', 'branding', 'nav', 'footer'] as const;
 export type AppearanceResetPart = (typeof APPEARANCE_RESET_PARTS)[number];
 export const APPEARANCE_RESET_INFO: Record<AppearanceResetPart, { label: string; description: string }> = {
   theme: { label: 'Tema ve renkler', description: 'Tema stili, vurgu rengi, yazı tipi, köşeler, banner ve karşılama ayarları.' },
   branding: { label: 'Logo ve görseller', description: 'Logo, site simgesi, banner, arka plan ve varsayılan avatar kaldırılır.' },
   nav: { label: 'Üst menü', description: 'Menü öğeleri ilk kurulumdaki hâline döner.' },
   footer: { label: 'Alt bilgi', description: 'Alt bilgi metni, bağlantılar ve sosyal medya hesapları.' },
-  css: { label: 'Özel CSS', description: 'Özel kod ekranındaki CSS temizlenir (betikler etkilenmez).' },
 };

@@ -100,7 +100,6 @@
     return res.items.map((i) => userOption(i.user));
   }
 
-  /** Bölüm ve alt bölümleri (üst bölüm seçiminde döngüyü önlemek için hariç tutulur) */
   const excluded = $derived.by(() => {
     if (!b || !tree) return new Set<number>();
     const all = tree.categories.flatMap((c) => c.boards);
@@ -125,7 +124,6 @@
   );
 
   $effect(() => {
-    // Kategori değişince geçersiz üst bölüm seçimini temizle.
     if (parentId && !parentOptions.some((o) => o.value === parentId)) parentId = null;
   });
 
@@ -149,7 +147,6 @@
       requireApprovalPosts: approvalPosts,
       isHidden,
       privateTopics,
-      // Boş bırakılan (soru yazılmamış) satırlar kaydedilmez
       topicTemplate: { ...$state.snapshot(template), fields: $state.snapshot(template).fields.filter((f) => f.label.trim() || f.options.length) },
       about,
     };

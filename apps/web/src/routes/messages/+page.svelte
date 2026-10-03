@@ -13,7 +13,6 @@
   import { cn } from '$lib/utils';
   import { t } from '$lib/i18n.svelte';
 
-  /** Özel mesajlar: forumdaki konu listesi gibi; her yazışma bir "konu" */
   let { data } = $props();
   let filter = $state('');
   let only = $state<'all' | 'unread'>('all');

@@ -5,7 +5,6 @@ import { isLegacyHash, verifyLegacy } from './legacy-password.js';
 
 const scrypt = promisify(scryptCb) as (pw: string, salt: Buffer, len: number, opts: object) => Promise<Buffer>;
 
-/** OWASP önerisi: argon2id m=19 MiB, t=2, p=1 */
 const ARGON = { memoryCost: 19456, timeCost: 2, parallelism: 1 };
 const SCRYPT = { N: 2 ** 15, r: 8, p: 1, maxmem: 64 * 1024 * 1024 };
 
@@ -32,11 +31,6 @@ class Semaphore {
   }
 }
 
-/**
- * Şifre özetleme: argon2id (@node-rs/argon2 → hash-wasm) → scrypt yedek zinciri.
- * PHC biçimi sayesinde algoritmalar arası geçiş şeffaftır; girişte eski özetler yenilenir.
- * Aynı anda en fazla 2 özetleme (bellek sınırı için).
- */
 @Injectable()
 export class PasswordHasher {
   private readonly logger = new Logger('PasswordHasher');
@@ -49,7 +43,7 @@ export class PasswordHasher {
       const mod = await import('@node-rs/argon2');
       this.backend = {
         name: '@node-rs/argon2',
-        hash: (pw) => mod.hash(pw, { ...ARGON, algorithm: 2 /* Argon2id */ }),
+        hash: (pw) => mod.hash(pw, { ...ARGON, algorithm: 2 }),
         verify: (h, pw) => mod.verify(h, pw),
       };
     } catch {
@@ -98,7 +92,6 @@ export class PasswordHasher {
           return false;
         }
       }
-      // Başka forumlardan taşınan özetler (bcrypt, phpass, SMF, MyBB/IPS) — girişte argon2id'ye yenilenir
       if (isLegacyHash(hash)) return verifyLegacy(hash, password);
       if (hash.startsWith('$scrypt$')) {
         const [, , params, saltB64, keyB64] = hash.split('$');
@@ -118,7 +111,6 @@ export class PasswordHasher {
     });
   }
 
-  /** Özet güncel algoritma/parametrelerle üretilmemişse true. */
   async needsRehash(hash: string): Promise<boolean> {
     const argon = await this.argon();
     if (!argon) return !hash.startsWith('$scrypt$');

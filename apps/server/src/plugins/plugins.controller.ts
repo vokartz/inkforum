@@ -17,7 +17,6 @@ import { HomeService } from '../home/home.service.js';
 const keyParam = z.enum(PLUGIN_KEYS);
 const toggleSchema = z.object({ enabled: z.boolean() });
 
-/** Yönetim → Eklentiler: yerleşik eklentileri açma / kapatma */
 @Controller('admin/plugins')
 export class PluginsController {
   constructor(
@@ -72,12 +71,9 @@ export class PluginsController {
   async toggle(@Param('key', new ZodPipe(keyParam)) key: PluginKey, @Body(new ZodPipe(toggleSchema)) body: z.output<typeof toggleSchema>, @CurrentViewer() v: RequestViewer) {
     const next = { ...this.settings.get('plugins.enabled'), [key]: body.enabled };
     await this.settings.update({ 'plugins.enabled': next }, v.user!.id, { allowHidden: true });
-    // İlk açılışta varsayılan destek kategorileri oluşturulur
     if (key === 'tickets' && body.enabled) await this.tickets.ensureDefaults(v.user!.id);
-    // Menüde yoksa eklentinin sayfası üst menüye eklenir
     const nav = ({ wiki: 'wiki', applications: 'applications', tickets: 'tickets' } as const)[key as 'wiki'];
     if (nav && body.enabled) await this.appearance.ensureBuiltin(nav);
-    // Bloğu olan eklentiler açılınca ana sayfaya (yoksa) eklenir
     const block = ({ discord: 'sidebar' } as const)[key as 'discord'];
     if (block && body.enabled) await this.home.ensureBlock(key as 'discord', block, v.user!.id);
     await this.audit.log({ type: 'admin', action: body.enabled ? 'plugin.enable' : 'plugin.disable', actorId: v.user!.id, ip: v.ip, data: { key } });

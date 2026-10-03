@@ -12,12 +12,10 @@ export class CryptoService {
     this.macKey = Buffer.from(hkdfSync('sha256', config.secret, 'forum-salt', 'forum:hmac:v1', 32));
   }
 
-  /** Sunucunun imzası (HMAC-SHA256, base64url) */
   sign(value: string): string {
     return createHmac('sha256', this.macKey).update(value).digest('base64url');
   }
 
-  /** URL-güvenli rastgele belirteç. */
   token(bytes = 32): string {
     return randomBytes(bytes).toString('base64url');
   }
@@ -48,7 +46,6 @@ export class CryptoService {
     return Buffer.concat([decipher.update(Buffer.from(enc, 'base64url')), decipher.final()]).toString('utf8');
   }
 
-  /** Okunması kolay kurtarma kodu: xxxxx-xxxxx */
   recoveryCode(): string {
     const alphabet = 'abcdefghjkmnpqrstuvwxyz23456789';
     const bytes = randomBytes(10);
@@ -60,7 +57,6 @@ export class CryptoService {
     return out;
   }
 
-  /** Rastgele okunabilir şifre (ilk admin için). */
   password(length = 16): string {
     const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
     const bytes = randomBytes(length);

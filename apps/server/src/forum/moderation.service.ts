@@ -15,7 +15,6 @@ import { NotificationsService } from '../notifications/notifications.service.js'
 
 export type TopicFlag = 'pin' | 'unpin' | 'lock' | 'unlock' | 'feature' | 'unfeature' | 'hide' | 'unhide';
 
-/** Konu moderasyonu: sabitleme, kilitleme, öne çıkarma, taşıma, birleştirme, silme, onay. */
 @Injectable()
 export class ModerationService {
   constructor(
@@ -60,7 +59,6 @@ export class ModerationService {
             ? { is_locked: flag === 'lock' ? 1 : 0 }
             : { is_featured: flag === 'feature' ? 1 : 0 };
     await this.db.q.updateTable('topics').set(patch).where('id', '=', topicId).execute();
-    // Gizlilik değişince bölümün "son mesaj" bilgisi yeniden hesaplanır
     if (flag === 'hide' || flag === 'unhide') await this.counters.recountBoard(topic.board_id);
     await this.log(viewer, `topic.${flag}`, topicId);
   }
@@ -73,7 +71,6 @@ export class ModerationService {
       patch.title = input.title;
       patch.slug = topicSlug(input.title);
     }
-    // Önek bölüme ve grup kısıtına göre doğrulanır
     if (input.prefixId !== undefined) patch.prefix_id = await this.posts.checkPrefix(topic.board_id, input.prefixId);
     await this.db.q.updateTable('topics').set(patch).where('id', '=', topicId).execute();
     await this.log(viewer, 'topic.edit', topicId, { from: topic.title, to: input.title ?? topic.title });
@@ -86,11 +83,9 @@ export class ModerationService {
     if (targetBoardId === topic.board_id) throw Errors.field('boardId', 'Konu zaten bu bölümde.');
     const target = await this.access.access(viewer, targetBoardId);
     if (!target || target.board.type !== 'forum') throw Errors.field('boardId', 'Hedef bölüm bulunamadı.');
-    // Hedef bölümde konu açma ya da taşıma (moderasyon) yetkisi olmalı: duyuru bölümlerine izinsiz konu itilemez
     if (!target.can.createTopic && !target.can.move) throw Errors.forbidden('Hedef bölüme konu taşıma yetkiniz yok.');
     const now = this.clock.now();
     await this.db.tx(async () => {
-      // Mesaj sayısı politikası farklı bölümler arasında yazar sayaçlarını düzelt.
       if (topic.is_approved && !topic.deleted_at && access.board.count_posts !== target.board.count_posts) {
         await this.posts.adjustTopicAuthors(topic.id, access.board, -1);
         await this.posts.adjustTopicAuthors(topic.id, target.board, 1);
@@ -123,7 +118,6 @@ export class ModerationService {
     await this.log(viewer, 'topic.move', topicId, { from: topic.board_id, to: targetBoardId });
   }
 
-  /** Bu konunun mesajlarını hedef konuya taşır; bu konu hedefe yönlendiren bir bağlantıya dönüşür. */
   async merge(viewer: RequestViewer, topicId: number, targetTopicId: number): Promise<void> {
     if (topicId === targetTopicId) throw Errors.field('targetTopicId', 'Bir konu kendisiyle birleştirilemez.');
     const { topic, access } = await this.load(viewer, topicId);
@@ -178,9 +172,6 @@ export class ModerationService {
     await this.posts.approve(viewer, topic.first_post_id);
   }
 
-  // ---------- Gizli konu üyeleri ----------
-
-  /** Yetkililerin gizli konuya eklediği üyeler */
   async members(viewer: RequestViewer, topicId: number): Promise<TopicMember[]> {
     const { access } = await this.load(viewer, topicId);
     if (!access.can.approve) throw Errors.forbidden();
@@ -191,7 +182,6 @@ export class ModerationService {
       .map((r) => ({ user: users.get(r.user_id)!, addedBy: r.added_by ? (users.get(r.added_by) ?? null) : null, addedAt: r.created_at }));
   }
 
-  /** Üyeyi gizli konuya ekler: konuyu görür, takibe alınır ve bildirim alır. */
   async addMember(viewer: RequestViewer, topicId: number, userId: number): Promise<void> {
     const { topic, access } = await this.load(viewer, topicId);
     if (!access.can.approve) throw Errors.forbidden();
@@ -202,7 +192,6 @@ export class ModerationService {
     if (exists) return;
     await this.db.q.insertInto('topic_members').values({ topic_id: topicId, user_id: userId, added_by: viewer.user!.id, created_at: this.clock.now() }).execute();
     if (!(await this.posts.userCanSeeTopic(userId, access.board, topicId))) {
-      // Bölümü göremeyen üye eklenemez (bölüm yetkisi gizli konudan önce gelir)
       await this.db.q.deleteFrom('topic_members').where('topic_id', '=', topicId).where('user_id', '=', userId).execute();
       throw Errors.field('userId', 'Bu üye konunun bulunduğu bölümü göremiyor.');
     }

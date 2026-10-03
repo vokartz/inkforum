@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 
-/** Tüm zaman okumaları buradan yapılır; testlerde ileri sarılabilir. */
 @Injectable()
 export class Clock {
   private offsetMs = 0;
@@ -13,7 +12,6 @@ export class Clock {
     return new Date(this.now());
   }
 
-  /** Yalnızca test ortamında kullanılır. */
   advance(ms: number): void {
     this.offsetMs += ms;
   }

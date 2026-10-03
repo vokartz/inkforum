@@ -11,7 +11,6 @@ export interface CachedGroup extends Row<'member_groups'> {
 
 export const GROUPS_NS = 'groups';
 
-/** Grup tablosu küçüktür; tamamı bellekte tutulur. */
 @Injectable()
 export class GroupCacheService {
   constructor(
@@ -49,7 +48,6 @@ export class GroupCacheService {
     return g;
   }
 
-  /** Mesaj sayısına uyan mesaj grubu (en yüksek eşik). */
   async postGroupFor(postCount: number): Promise<CachedGroup | undefined> {
     let best: CachedGroup | undefined;
     for (const g of await this.all()) {
@@ -63,7 +61,6 @@ export class GroupCacheService {
     return { id: g.id, name: g.name, color: g.color, iconUrl: g.iconUrl, iconCount: g.icon_count };
   }
 
-  /** Grup değişiklikleri (miras, sistem anahtarı) yetki çözümlemesini de etkiler. */
   async invalidate(): Promise<void> {
     await this.cache.invalidate(GROUPS_NS);
     await this.cache.invalidate('permissions');

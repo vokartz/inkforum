@@ -45,7 +45,6 @@
   let require2fa = $state(false);
   let sortOrder = $state(0);
 
-  // SSR sırasında da dolu gelmesi için hemen çalıştırılır; veri değişince yeniden eşitlenir.
   function syncState1() {
     if (!g) return;
     name = g.name;
@@ -114,12 +113,10 @@
     }
   }
 
-  // Liderler
   async function setModerators(ids: number[]) {
     await run(() => api.put(`/api/admin/groups/${g!.id}/moderators`, { userIds: ids }), t('Grup liderleri güncellendi.'));
   }
 
-  // Üye ekleme
   let picked = $state<UserSummary | null>(null);
   let asPrimary = $state(false);
   let expires = $state('');

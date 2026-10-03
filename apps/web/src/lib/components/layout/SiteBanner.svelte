@@ -8,14 +8,10 @@
   import { themeOptions } from '$lib/theme-options';
 
   interface Props {
-    /** Yükseklik (px); boşsa yönetimdeki "Banner yüksekliği" */
     height?: number;
     class?: string;
-    /** İçerik alanının genişlik sınıfı (temaya göre) */
     inner?: string;
-    /** Sağ taraf (hesap düğmeleri vb.) */
     aside?: Snippet;
-    /** Logo ve slogan ortada (ortalanmış başlık düzeni) */
     center?: boolean;
   }
   let { height, class: className, inner = 'mx-auto max-w-[var(--page-width,80rem)] px-4 sm:px-6', aside, center = false }: Props = $props();
@@ -26,9 +22,7 @@
   const tagline = $derived(String(s['appearance.bannerTagline'] ?? '').trim());
   const h = $derived(height ?? Number(s['appearance.bannerHeight'] ?? 160));
   const logoSize = $derived(Math.max(32, Math.min(84, Math.round(h * 0.4))));
-  // Görsel yoksa düz renk; yazı ve logo rengi zeminin açıklığına göre
   const color = $derived(/^#[0-9a-fA-F]{6}$/.test(String(s['appearance.bannerColor'] ?? '')) ? String(s['appearance.bannerColor']) : '#16171b');
-  // Tema stüdyosundaki temada görsel yoksa üst alan paletin "Üst alan" rengini kullanır
   const themed = $derived(!!themeOptions(s));
   const lightSurface = $derived(!image && !themed && readableOn(color) !== '#ffffff');
 </script>

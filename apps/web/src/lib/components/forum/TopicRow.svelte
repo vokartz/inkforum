@@ -22,7 +22,6 @@
   interface Props {
     topic: TopicListItem;
     board?: { id: number; name: string; slug: string } | null;
-    /** Okunmamış listesinde doğrudan ilk okunmamış mesaja git. */
     unreadPostId?: number | null;
   }
   let { topic, board = null, unreadPostId = null }: Props = $props();

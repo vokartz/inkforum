@@ -15,9 +15,6 @@ describe('i18n', () => {
     expect(format(en, { n: 0 }, 'en')).toBe('no topics');
     expect(format(en, { n: 1 }, 'en')).toBe('1 topic');
     expect(format(en, { n: 1200 }, 'en')).toBe('1,200 topics');
-    const ru = '{n, plural, one {# тема} few {# темы} many {# тем} other {# темы}}';
-    expect(format(ru, { n: 3 }, 'ru')).toBe('3 темы');
-    expect(format(ru, { n: 5 }, 'ru')).toBe('5 тем');
     expect(format('Merhaba {name}, {n, plural, one {# mesaj} other {# mesaj}}', { name: 'Ali', n: 2 }, 'tr')).toBe('Merhaba Ali, 2 mesaj');
   });
 
@@ -29,8 +26,9 @@ describe('i18n', () => {
   });
 
   it('detects the best language', () => {
-    expect(normalizeLocale('zh-Hans-CN')).toBe('zh');
-    expect(matchAcceptLanguage('de-CH,de;q=0.9,en;q=0.8', ['tr', 'en', 'de'])).toBe('de');
+    expect(normalizeLocale('en-US')).toBe('en');
+    expect(normalizeLocale('zh-Hans-CN')).toBeNull();
+    expect(matchAcceptLanguage('de-CH,en-GB;q=0.9,tr;q=0.8', ['tr', 'en'])).toBe('en');
     expect(matchAcceptLanguage('ja,fr;q=0.5', ['tr', 'en'])).toBeNull();
   });
 });
