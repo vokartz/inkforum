@@ -8,6 +8,8 @@ Each version section becomes the GitHub release note and the update note in the 
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-10-03
+
 ### Added
 
 - **Extension system.** Extensions are installed from *Admin → Extensions* as a `.zip` / `.tgz` upload, an npm package

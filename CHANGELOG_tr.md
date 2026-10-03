@@ -9,6 +9,8 @@ güncelleme notuna dönüşür (panel yöneticinin diline uygun olanı gösterir
 
 ## [Yayımlanmamış]
 
+## [1.6.0] - 2026-10-03
+
 ### Eklendi
 
 - **Eklenti sistemi.** Eklentiler *Yönetim → Eklentiler* ekranından `.zip` / `.tgz` yükleyerek, npm paket adıyla ya
