@@ -134,6 +134,8 @@ export async function transferDatabase(
     if (target.driver !== 'sqlite') {
       for (const t of order) {
         if (!targetColumns.get(t)!.has('id')) continue;
+        const seq = await sql<{ seq: string | null }>`select pg_get_serial_sequence(${t}, 'id') as seq`.execute(db);
+        if (!seq.rows[0]?.seq) continue;
         await sql`select setval(pg_get_serial_sequence(${t}, 'id'), coalesce((select max(id) from ${sql.table(t)}), 1), (select max(id) from ${sql.table(t)}) is not null)`.execute(db);
       }
     }
