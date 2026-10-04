@@ -63,7 +63,7 @@
 
 <svelte:head><title>{t('Gruplar sayfası')}</title></svelte:head>
 
-<PageHeader icon={PageHeaderIcon} title={t('Gruplar sayfası')} description={t('Herkese açık gruplar sayfasında hangi rollerin, hangi sırayla, üyeleri ve yetkileriyle görüneceğini belirleyin.')}>
+<PageHeader icon={PageHeaderIcon} title={t('Gruplar sayfası')} description={t('Herkese açık gruplar sayfasında hangi rollerin, hangi sırayla ve üyeleriyle görüneceğini belirleyin.')}>
   {#snippet actions()}<Button href="/groups" target="_blank" variant="outline" size="sm"><ArrowSquareOutIcon />{t('Sayfayı aç')}</Button>{/snippet}
 </PageHeader>
 
@@ -85,13 +85,6 @@
             <span class="text-xs text-muted-foreground">{t('Her grubun üyeleri aynı sayfada listelenir; ayrı üye sayfası yoktur.')}</span>
           </span>
           <Switch bind:checked={cfg.showMembers} />
-        </label>
-        <label class="flex items-center justify-between gap-4 text-sm">
-          <span class="grid gap-0.5">
-            <span class="font-medium">{t('Yetkileri göster')}</span>
-            <span class="text-xs text-muted-foreground">{t('Her rolün sahip olduğu yetkiler kategorilere ayrılarak gösterilir.')}</span>
-          </span>
-          <Switch bind:checked={cfg.showPermissions} />
         </label>
         {#if cfg.showMembers}
           <Field label={t('İlk açılışta gösterilecek üye sayısı')} for="gp-limit" error={form.error('memberLimit')} hint={t('Fazlası "Daha fazla göster" ile aynı sayfada açılır.')}>

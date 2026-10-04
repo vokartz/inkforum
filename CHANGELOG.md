@@ -8,6 +8,12 @@ Each version section becomes the GitHub release note and the update note in the 
 
 ## [Unreleased]
 
+## [1.6.2] - 2026-10-04
+
+### Changed
+
+- Groups page: cleaner team layout with member cards; the permission list was removed from the page.
+
 ## [1.6.1] - 2026-10-04
 
 ### Changed

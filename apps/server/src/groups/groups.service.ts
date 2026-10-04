@@ -1,6 +1,6 @@
 import { Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import { sql } from 'kysely';
-import { PERMISSION_CATEGORIES, EXTENSION_PERMISSION_CATEGORY, allGlobalPermissions, type GroupsPageData, type GroupsPageGroup, type UserSummary } from '@forum/shared';
+import { type GroupsPageData, type GroupsPageGroup, type UserSummary } from '@forum/shared';
 import { Db } from '../database/db.service.js';
 import { Clock, HOUR } from '../common/clock.js';
 import { Errors } from '../common/errors.js';
@@ -14,7 +14,6 @@ import { can, type RequestViewer } from '../common/request-context.js';
 import type { GroupInput } from './groups.schemas.js';
 import { bool } from '../database/json.js';
 import { SettingsService } from '../settings/settings.service.js';
-import { PermissionsService } from '../permissions/permissions.service.js';
 
 export interface GroupDto {
   id: number;
@@ -50,7 +49,6 @@ export class GroupsService implements OnModuleInit, OnModuleDestroy {
     private readonly events: EventsService,
     private readonly jobs: JobsService,
     private readonly settings: SettingsService,
-    private readonly permissions: PermissionsService,
   ) {}
 
   onModuleInit(): void {
@@ -159,11 +157,6 @@ export class GroupsService implements OnModuleInit, OnModuleDestroy {
       if (!set) leaders.set(r.group_id, (set = new Set()));
       set.add(r.user_id);
     }
-    const table = cfg.showPermissions ? await this.permissions.table() : new Map();
-    const catOrder = [...PERMISSION_CATEGORIES, EXTENSION_PERMISSION_CATEGORY].map((c) => c.key);
-    const defs = allGlobalPermissions()
-      .filter((d) => d.scope === 'global')
-      .sort((a, b) => catOrder.indexOf(a.category) - catOrder.indexOf(b.category));
     const memberRows = new Map<number, number[]>();
     if (cfg.showMembers) {
       await Promise.all(
@@ -175,8 +168,6 @@ export class GroupsService implements OnModuleInit, OnModuleDestroy {
     }
     const summaries = await this.users.summaries([...new Set([...memberRows.values()].flat())]);
     const groups: GroupsPageGroup[] = chosen.map((g) => {
-      const isAdmin = g.system_key === 'admin';
-      const entries = table.get(g.parent_id ?? g.id) as Map<string, number> | undefined;
       const lead = leaders.get(g.id) ?? new Set<number>();
       const isMember = viewer.groupIds.includes(g.id);
       return {
@@ -197,16 +188,13 @@ export class GroupsService implements OnModuleInit, OnModuleDestroy {
         canSetPrimary: isMember && g.visibility !== 'additional_only' && this.isAssignable(g) && !bool(g.is_protected),
         hasPendingRequest: pending.has(g.id),
         canManage: !!viewer.user && (manage || lead.has(viewer.user.id)),
-        allPermissions: isAdmin,
-        inheritsFrom: g.parent_id ? (byId.get(g.parent_id)?.name ?? null) : null,
-        permissions: cfg.showPermissions && !isAdmin ? defs.filter((d) => entries?.get(d.key) === 1).map((d) => ({ key: d.key, label: d.label, category: d.category })) : [],
         members: (memberRows.get(g.id) ?? [])
           .map((uid) => summaries.get(uid))
           .filter((u): u is UserSummary => !!u)
           .map((user) => ({ user, isLeader: lead.has(user.id) })),
       };
     });
-    return { showPermissions: cfg.showPermissions, showMembers: cfg.showMembers, memberLimit: cfg.memberLimit, groups };
+    return { showMembers: cfg.showMembers, memberLimit: cfg.memberLimit, groups };
   }
 
   async getVisible(viewer: RequestViewer, id: number) {

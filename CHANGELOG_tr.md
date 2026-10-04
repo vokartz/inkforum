@@ -9,6 +9,12 @@ güncelleme notuna dönüşür (panel yöneticinin diline uygun olanı gösterir
 
 ## [Yayımlanmamış]
 
+## [1.6.2] - 2026-10-04
+
+### Değişti
+
+- Gruplar sayfası: üye kartlarıyla daha sade ekip düzeni; yetki listesi sayfadan kaldırıldı.
+
 ## [1.6.1] - 2026-10-04
 
 ### Değişti

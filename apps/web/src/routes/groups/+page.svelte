@@ -1,20 +1,14 @@
 <script lang="ts">
   import { invalidateAll } from '$app/navigation';
   import { toast } from 'svelte-sonner';
-  import { EXTENSION_PERMISSION_CATEGORY, PERMISSION_CATEGORIES, type GroupsPageGroup, type GroupsPageMember, type Paginated } from '@forum/shared';
-  import UsersIcon from 'phosphor-svelte/lib/Users';
-  import LockIcon from 'phosphor-svelte/lib/Lock';
-  import DoorOpenIcon from 'phosphor-svelte/lib/DoorOpen';
-  import SendIcon from 'phosphor-svelte/lib/PaperPlaneRight';
+  import type { GroupsPageGroup, GroupsPageMember, Paginated } from '@forum/shared';
   import CrownIcon from 'phosphor-svelte/lib/Crown';
   import CheckIcon from 'phosphor-svelte/lib/Check';
   import SettingsIcon from 'phosphor-svelte/lib/GearSix';
-  import KeyIcon from 'phosphor-svelte/lib/Key';
   import * as Dialog from '$lib/components/ui/dialog';
   import { Button } from '$lib/components/ui/button';
   import { Textarea } from '$lib/components/ui/textarea';
   import PageHeader from '$lib/components/PageHeader.svelte';
-  import GroupBadge from '$lib/components/GroupBadge.svelte';
   import UserName from '$lib/components/UserName.svelte';
   import UserAvatar from '$lib/components/UserAvatar.svelte';
   import EmptyState from '$lib/components/EmptyState.svelte';
@@ -28,7 +22,6 @@
   let { data } = $props();
   const p = $derived(data.page);
 
-  const CATEGORIES = [...PERMISSION_CATEGORIES, EXTENSION_PERMISSION_CATEGORY];
   const joinLabel: Record<string, string> = { free: 'Herkes katılabilir', requestable: 'İstekle katılım', closed: 'Kapalı grup' };
 
   let extra = $state<Record<number, GroupsPageMember[]>>({});
@@ -41,8 +34,10 @@
     return [...g.members, ...(extra[g.id] ?? [])];
   }
 
-  function permissionGroups(g: GroupsPageGroup) {
-    return CATEGORIES.map((c) => ({ ...c, items: g.permissions.filter((x) => x.category === c.key) })).filter((c) => c.items.length);
+  function meta(g: GroupsPageGroup): string | null {
+    if (g.kind === 'post_count') return t('{n} mesajda otomatik', { n: formatNumber(g.minPosts) });
+    if (g.kind === 'regular' && !g.isProtected && joinLabel[g.joinType]) return t(joinLabel[g.joinType]!);
+    return null;
   }
 
   async function loadMore(g: GroupsPageGroup) {
@@ -104,43 +99,31 @@
   }
 </script>
 
-<PageHeader title={t('Gruplar')} description={t('Topluluktaki roller, üyeleri ve sahip oldukları yetkiler.')} />
+<PageHeader title={t('Gruplar')} description={t('Topluluğu yöneten ekip ve üye grupları.')} />
 
 {#if !p.groups.length}
   <EmptyState title={t('Gösterilecek grup yok')} />
 {:else}
-  <nav class="mb-6 flex flex-wrap gap-2" aria-label={t('Gruplar')}>
-    {#each p.groups as g (g.id)}
-      <a href="#group-{g.id}" class="rounded-full border bg-card px-3 py-1 text-sm transition-colors hover:border-primary/40" style:color={g.color ?? undefined}>{tc(g.name)}</a>
-    {/each}
-  </nav>
-
-  <div class="grid gap-6">
+  <div class="grid gap-12">
     {#each p.groups as g (g.id)}
       {@const members = membersOf(g)}
-      {@const perms = permissionGroups(g)}
-      <section id="group-{g.id}" class="scroll-mt-24 overflow-hidden rounded-2xl border bg-card" style:border-top-color={g.color ?? undefined} style:border-top-width={g.color ? '3px' : undefined}>
-        <header class="flex flex-wrap items-start justify-between gap-3 border-b p-4 sm:p-5">
-          <div class="grid min-w-0 gap-1.5">
-            <div class="flex flex-wrap items-center gap-2">
-              <GroupBadge group={{ id: g.id, name: g.name, color: g.color, iconUrl: g.iconUrl, iconCount: g.iconCount }} />
-              {#if g.isMember}<span class="inline-flex items-center gap-1 text-xs font-medium text-success"><CheckIcon class="size-3.5" />{t('Üyesiniz')}</span>{/if}
-            </div>
-            {#if g.description}<p class="text-sm text-muted-foreground">{tc(g.description)}</p>{/if}
-            <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-              <span class="inline-flex items-center gap-1"><UsersIcon class="size-3.5" />{t('{n} üye', { n: formatNumber(g.memberCount) })}</span>
-              {#if g.kind === 'post_count'}
-                <span>{t('{n} mesajda otomatik', { n: formatNumber(g.minPosts) })}</span>
-              {:else if g.kind === 'regular' && !g.isProtected}
-                <span class="inline-flex items-center gap-1">
-                  {#if g.joinType === 'free'}<DoorOpenIcon class="size-3.5" />{:else if g.joinType === 'requestable'}<SendIcon class="size-3.5" />{:else}<LockIcon
-                      class="size-3.5"
-                    />{/if}
-                  {t(joinLabel[g.joinType] ?? '')}
-                </span>
+      {@const info = meta(g)}
+      <section id="group-{g.id}" class="scroll-mt-24">
+        <div class="mb-4 flex flex-wrap items-end justify-between gap-x-6 gap-y-3 border-b pb-4">
+          <div class="grid min-w-0 gap-1">
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <h2 class="text-lg font-semibold tracking-tight">{tc(g.name)}</h2>
+              <span class="text-sm text-muted-foreground tabular-nums">{t('{n} üye', { n: formatNumber(g.memberCount) })}</span>
+              {#if g.isMember}
+                <span class="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium"><CheckIcon class="size-3" />{t('Üyesiniz')}</span>
               {/if}
-              {#if g.hasPendingRequest}<span class="text-warning">{t('İsteğiniz bekliyor')}</span>{/if}
             </div>
+            {#if g.description}<p class="max-w-2xl text-sm text-muted-foreground">{tc(g.description)}</p>{/if}
+            {#if info || g.hasPendingRequest}
+              <p class="text-xs text-muted-foreground">
+                {[info, g.hasPendingRequest ? t('İsteğiniz bekliyor') : null].filter(Boolean).join(' · ')}
+              </p>
+            {/if}
           </div>
           <div class="flex flex-wrap gap-2">
             {#if g.canManage && g.kind === 'regular'}
@@ -165,60 +148,35 @@
               <Button variant="ghost" size="sm" disabled={busy} onclick={() => leave(g)}>{t('Ayrıl')}</Button>
             {/if}
           </div>
-        </header>
+        </div>
 
-        {#if p.showMembers || p.showPermissions}
-          <div class="grid lg:grid-cols-5">
-            {#if p.showMembers}
-              <div class="p-4 sm:p-5 {p.showPermissions ? 'lg:col-span-3' : 'lg:col-span-5'}">
-                <h3 class="mb-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">{t('Üyeler')}</h3>
-                {#if !members.length}
-                  <p class="text-sm text-muted-foreground">{t('Bu grupta henüz üye yok')}</p>
-                {:else}
-                  <ul class="grid gap-2 sm:grid-cols-2 {p.showPermissions ? '' : 'lg:grid-cols-4'}">
-                    {#each members as m (m.user.id)}
-                      <li class="flex min-w-0 items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-muted/50">
-                        <UserAvatar user={m.user} size={32} />
-                        <div class="min-w-0 truncate"><UserName user={m.user} /></div>
-                        {#if m.isLeader}<span title={t('Grup lideri')} class="ml-auto text-warning"><CrownIcon class="size-4" weight="fill" /></span>{/if}
-                      </li>
-                    {/each}
-                  </ul>
-                  {#if members.length < g.memberCount}
-                    <Button variant="ghost" size="sm" class="mt-2" disabled={loadingMore === g.id} onclick={() => loadMore(g)}
-                      >{t('Daha fazla göster ({n} kaldı)', { n: formatNumber(g.memberCount - members.length) })}</Button
-                    >
-                  {/if}
-                {/if}
-              </div>
-            {/if}
-            {#if p.showPermissions}
-              <div class="border-t bg-muted/20 p-4 sm:p-5 lg:border-t-0 {p.showMembers ? 'lg:col-span-2 lg:border-l' : 'lg:col-span-5'}">
-                <h3 class="mb-3 inline-flex items-center gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                  <KeyIcon class="size-3.5" />{t('Yetkiler')}
-                </h3>
-                {#if g.allPermissions}
-                  <p class="text-sm">{t('Bu grup tüm yetkilere sahiptir.')}</p>
-                {:else if !perms.length}
-                  <p class="text-sm text-muted-foreground">{t('Bu grup ek bir yetki vermiyor.')}</p>
-                {:else}
-                  {#if g.inheritsFrom}<p class="mb-2 text-xs text-muted-foreground">{t('{name} grubundan miras', { name: tc(g.inheritsFrom) })}</p>{/if}
-                  <div class="grid gap-3">
-                    {#each perms as c (c.key)}
-                      <div>
-                        <div class="mb-1.5 text-xs font-medium">{t(c.label)}</div>
-                        <div class="flex flex-wrap gap-1.5">
-                          {#each c.items as perm (perm.key)}
-                            <span class="rounded-md border bg-background px-2 py-0.5 text-xs">{t(perm.label)}</span>
-                          {/each}
-                        </div>
-                      </div>
-                    {/each}
+        {#if p.showMembers}
+          {#if !members.length}
+            <p class="rounded-xl border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">{t('Bu grupta henüz üye yok')}</p>
+          {:else}
+            <ul class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+              {#each members as m (m.user.id)}
+                <li class="flex min-w-0 flex-col items-center gap-2.5 rounded-xl border bg-card px-3 py-5 text-center">
+                  <UserAvatar user={m.user} size={56} />
+                  <div class="grid w-full min-w-0 gap-0.5">
+                    <div class="flex min-w-0 justify-center"><UserName user={m.user} class="max-w-full text-sm" /></div>
+                    {#if m.isLeader}
+                      <span class="inline-flex items-center justify-center gap-1 text-xs text-muted-foreground"><CrownIcon class="size-3" weight="fill" />{t('Grup lideri')}</span>
+                    {:else if m.user.customTitle}
+                      <span class="truncate text-xs text-muted-foreground">{m.user.customTitle}</span>
+                    {/if}
                   </div>
-                {/if}
+                </li>
+              {/each}
+            </ul>
+            {#if members.length < g.memberCount}
+              <div class="mt-4 flex justify-center">
+                <Button variant="outline" size="sm" disabled={loadingMore === g.id} onclick={() => loadMore(g)}
+                  >{t('Daha fazla göster ({n} kaldı)', { n: formatNumber(g.memberCount - members.length) })}</Button
+                >
               </div>
             {/if}
-          </div>
+          {/if}
         {/if}
       </section>
     {/each}
