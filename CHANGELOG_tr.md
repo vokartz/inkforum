@@ -9,6 +9,18 @@ güncelleme notuna dönüşür (panel yöneticinin diline uygun olanı gösterir
 
 ## [Yayımlanmamış]
 
+## [1.6.1] - 2026-10-04
+
+### Değişti
+
+- **Gruplar sayfası yeniden tasarlandı.** Her rol, üyeleri ve sahip olduğu yetkilerle (kategorilere ayrılmış olarak)
+  tek sayfada görünüyor; ayrı üye sayfası artık yok (eski `/groups/<id>` bağlantıları sayfadaki gruba gider, kalabalık
+  grupların geri kalanı *Daha fazla göster* ile yerinde açılır). Üyeler gruba katılma, ayrılma, katılım isteği ve
+  ana grup seçimini aynı sayfadan yapıyor.
+- Yeni *Yönetim → Gruplar → Gruplar sayfası* ekranı: sayfayı açıp kapatın (menü bağlantısı da gizlenir), üyelerin ve
+  yetkilerin gösterilip gösterilmeyeceğini, ilk açılışta kaç üye görüneceğini seçin; hangi grupların hangi sırayla
+  listeleneceğini sürükleyerek ya da oklarla ayarlayın.
+
 ## [1.6.0] - 2026-10-03
 
 ### Eklendi

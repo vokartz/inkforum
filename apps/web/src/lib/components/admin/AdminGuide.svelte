@@ -16,6 +16,7 @@
   import CodeIcon from 'phosphor-svelte/lib/Code';
   import SquaresIcon from 'phosphor-svelte/lib/SquaresFour';
   import BrushIcon from 'phosphor-svelte/lib/PaintBrushBroad';
+  import UsersThreeIcon from 'phosphor-svelte/lib/UsersThree';
   import RocketIcon from 'phosphor-svelte/lib/RocketLaunch';
   import { Button } from '$lib/components/ui/button';
   import { api } from '$lib/api';
@@ -37,6 +38,7 @@
     code: CodeIcon,
     'squares-four': SquaresIcon,
     'paint-brush-broad': BrushIcon,
+    'users-three': UsersThreeIcon,
   };
   const name = $derived(page.data.viewer?.user?.displayName ?? '');
   const forumName = $derived(String(page.data.viewer?.settings['general.forumName'] ?? ''));

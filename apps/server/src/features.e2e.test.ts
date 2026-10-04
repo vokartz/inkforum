@@ -125,6 +125,35 @@ describe('groups and permissions', () => {
     expect((await applicant.get('/api/auth/me')).body.user.primaryGroup.name).toBe('Yeni Üye');
   });
 
+  it('builds the groups page with order, members and permissions', async () => {
+    const cache = h.app.get(GroupCacheService);
+    const adminGroup = (await cache.bySystemKey('admin')).id;
+    const g = await admin.post('/api/admin/groups', { name: 'Ekip', color: '#22c55e' });
+    const groupId = g.body.id as number;
+    await registerActive(h, 'EkipUye');
+    await admin.post(`/api/admin/groups/${groupId}/members`, { userId: await userId('EkipUye') });
+    await admin.put(`/api/admin/groups/${groupId}/moderators`, { userIds: [await userId('EkipUye')] });
+    await admin.put(`/api/admin/permissions/${groupId}`, { values: { 'members.list': 1 } });
+
+    const save = await admin.put('/api/admin/groups-page', { enabled: true, showPermissions: true, showMembers: true, memberLimit: 10, groups: [groupId, adminGroup, 999999] });
+    expect(save.status).toBe(200);
+    expect((await admin.get('/api/admin/groups-page')).body.groups).toEqual([groupId, adminGroup]);
+
+    const guest = h.agent();
+    const pageRes = await guest.get('/api/groups/page');
+    expect(pageRes.status).toBe(200);
+    expect(pageRes.body.groups.map((x: { id: number }) => x.id)).toEqual([groupId, adminGroup]);
+    const ekip = pageRes.body.groups[0];
+    expect(ekip.members[0]).toMatchObject({ isLeader: true, user: { username: 'EkipUye' } });
+    expect(ekip.permissions.map((p: { key: string }) => p.key)).toContain('members.list');
+    expect(pageRes.body.groups[1].allPermissions).toBe(true);
+
+    await admin.put('/api/admin/groups-page', { enabled: false, showPermissions: false, showMembers: false, memberLimit: 10, groups: [] });
+    expect((await guest.get('/api/groups/page')).status).toBe(404);
+    expect((await admin.get('/api/groups/page')).status).toBe(200);
+    await admin.put('/api/admin/groups-page', { enabled: true, showPermissions: true, showMembers: true, memberLimit: 24, groups: [] });
+  });
+
   it('expires temporary memberships', async () => {
     const g = await admin.post('/api/admin/groups', { name: 'Süreli', color: '#f59e0b' });
     const groupId = g.body.id as number;

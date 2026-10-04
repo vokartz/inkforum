@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, Query, UploadedFile } from '@nestjs/common';
 import { z } from 'zod';
-import { EXTENSION_PERMISSION_CATEGORY, PERMISSION_CATEGORIES, allGlobalPermissions, idParam, pagination } from '@forum/shared';
+import { EXTENSION_PERMISSION_CATEGORY, PERMISSION_CATEGORIES, allGlobalPermissions, groupsPageConfigSchema, idParam, pagination } from '@forum/shared';
 import { ZodPipe, parse } from '../common/validation.js';
 import { AdminEndpoint } from '../common/decorators.js';
 import { CurrentViewer, type RequestViewer } from '../common/request-context.js';
@@ -12,6 +12,7 @@ import { GroupCacheService } from '../groups/group-cache.service.js';
 import { AuditService } from '../audit/audit.service.js';
 import { UsersService } from '../users/users.service.js';
 import { Errors } from '../common/errors.js';
+import { SettingsService } from '../settings/settings.service.js';
 
 const permissionValuesSchema = z.object({
   values: z.record(z.string(), z.union([z.literal(0), z.literal(1), z.literal(-1)])),
@@ -26,6 +27,7 @@ export class AdminGroupsController {
     private readonly permissions: PermissionsService,
     private readonly audit: AuditService,
     private readonly users: UsersService,
+    private readonly settings: SettingsService,
   ) {}
 
   @Get('groups')
@@ -33,6 +35,22 @@ export class AdminGroupsController {
   async list() {
     const all = await this.cache.all();
     return all.map((g) => this.groups.toDto(g));
+  }
+
+  @Get('groups-page')
+  @AdminEndpoint('admin.groups.manage')
+  async pageConfig() {
+    return this.settings.get('groups.page');
+  }
+
+  @Put('groups-page')
+  @AdminEndpoint('admin.groups.manage')
+  async savePageConfig(@Body(new ZodPipe(groupsPageConfigSchema)) body: z.output<typeof groupsPageConfigSchema>, @CurrentViewer() v: RequestViewer) {
+    const known = new Set((await this.cache.all()).map((g) => g.id));
+    const groups = [...new Set(body.groups)].filter((id) => known.has(id));
+    await this.settings.set('groups.page', { ...body, groups }, v.user!.id);
+    await this.audit.log({ type: 'admin', action: 'groups.page', actorId: v.user!.id, ip: v.ip, data: { enabled: body.enabled, groups: groups.length } });
+    return { ok: true };
   }
 
   @Get('groups/:id')

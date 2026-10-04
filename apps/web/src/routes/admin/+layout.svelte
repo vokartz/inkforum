@@ -112,7 +112,7 @@
           items: [
             { href: '/admin/users', label: t('Üyeler'), icon: UsersIcon, show: can(v, 'admin.users.view') },
             { href: '/admin/users?status=pending_approval', label: t('Onay bekleyenler'), icon: UserCheckIcon, show: can(v, 'admin.users.approve'), badge: data.access.badges?.pendingUsers },
-            { href: '/admin/groups', label: t('Gruplar'), icon: ShieldIcon, show: can(v, 'admin.groups.manage') },
+            { href: '/admin/groups', label: t('Gruplar'), icon: ShieldIcon, show: can(v, 'admin.groups.manage'), also: ['/admin/groups-page'] },
             { href: '/admin/group-requests', label: t('Katılım istekleri'), icon: InboxIcon, show: can(v, 'admin.groups.manage'), badge: data.access.badges?.groupRequests },
             { href: '/admin/permissions', label: t('Yetkiler'), icon: KeyRoundIcon, show: can(v, 'admin.permissions.manage') },
             { href: '/admin/profile-fields', label: t('Profil alanları'), icon: ListChecksIcon, show: can(v, 'admin.profileFields.manage') },
@@ -170,6 +170,10 @@
       [
         { href: '/admin/security', label: t('Güvenlik duvarı'), show: can(v, 'admin.settings') },
         { href: '/admin/captcha', label: t('Bot doğrulama (captcha)'), show: can(v, 'admin.settings') },
+      ],
+      [
+        { href: '/admin/groups', label: t('Gruplar'), show: can(v, 'admin.groups.manage') },
+        { href: '/admin/groups-page', label: t('Gruplar sayfası'), show: can(v, 'admin.groups.manage') },
       ],
       [
         { href: '/admin/emojis', label: t('Özel emojiler'), show: can(v, 'admin.forum.manage') },

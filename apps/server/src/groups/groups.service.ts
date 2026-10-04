@@ -1,6 +1,6 @@
 import { Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import { sql } from 'kysely';
-import type { UserSummary } from '@forum/shared';
+import { PERMISSION_CATEGORIES, EXTENSION_PERMISSION_CATEGORY, allGlobalPermissions, type GroupsPageData, type GroupsPageGroup, type UserSummary } from '@forum/shared';
 import { Db } from '../database/db.service.js';
 import { Clock, HOUR } from '../common/clock.js';
 import { Errors } from '../common/errors.js';
@@ -13,6 +13,8 @@ import { JobsService } from '../jobs/jobs.service.js';
 import { can, type RequestViewer } from '../common/request-context.js';
 import type { GroupInput } from './groups.schemas.js';
 import { bool } from '../database/json.js';
+import { SettingsService } from '../settings/settings.service.js';
+import { PermissionsService } from '../permissions/permissions.service.js';
 
 export interface GroupDto {
   id: number;
@@ -47,6 +49,8 @@ export class GroupsService implements OnModuleInit, OnModuleDestroy {
     private readonly notifications: NotificationsService,
     private readonly events: EventsService,
     private readonly jobs: JobsService,
+    private readonly settings: SettingsService,
+    private readonly permissions: PermissionsService,
   ) {}
 
   onModuleInit(): void {
@@ -121,6 +125,88 @@ export class GroupsService implements OnModuleInit, OnModuleDestroy {
       .filter((g) => g.system_key !== 'guest' && g.system_key !== 'member')
       .filter((g) => manage || g.visibility !== 'hidden' || viewer.groupIds.includes(g.id))
       .map((g) => ({ ...this.toDto(g), isMember: viewer.groupIds.includes(g.id), hasPendingRequest: pending.has(g.id) }));
+  }
+
+  async pageEnabled(): Promise<boolean> {
+    return this.settings.get('groups.page').enabled;
+  }
+
+  async pageData(viewer: RequestViewer): Promise<GroupsPageData> {
+    const cfg = this.settings.get('groups.page');
+    const all = (await this.cache.all()).filter((g) => g.system_key !== 'guest' && g.system_key !== 'member');
+    const byId = new Map(all.map((g) => [g.id, g]));
+    const manage = can(viewer, 'admin.groups.manage');
+    const chosen = (cfg.groups.length ? cfg.groups.map((id) => byId.get(id)).filter((g): g is CachedGroup => !!g) : all).filter(
+      (g) => g.visibility !== 'hidden' || manage || viewer.groupIds.includes(g.id),
+    );
+    const ids = chosen.map((g) => g.id);
+    const pending = viewer.user && ids.length
+      ? new Set(
+          (
+            await this.db.q
+              .selectFrom('group_join_requests')
+              .select('group_id')
+              .where('user_id', '=', viewer.user.id)
+              .where('status', '=', 'pending')
+              .execute()
+          ).map((r) => r.group_id),
+        )
+      : new Set<number>();
+    const leaderRows = ids.length ? await this.db.q.selectFrom('group_moderators').select(['group_id', 'user_id']).where('group_id', 'in', ids).execute() : [];
+    const leaders = new Map<number, Set<number>>();
+    for (const r of leaderRows) {
+      let set = leaders.get(r.group_id);
+      if (!set) leaders.set(r.group_id, (set = new Set()));
+      set.add(r.user_id);
+    }
+    const table = cfg.showPermissions ? await this.permissions.table() : new Map();
+    const catOrder = [...PERMISSION_CATEGORIES, EXTENSION_PERMISSION_CATEGORY].map((c) => c.key);
+    const defs = allGlobalPermissions()
+      .filter((d) => d.scope === 'global')
+      .sort((a, b) => catOrder.indexOf(a.category) - catOrder.indexOf(b.category));
+    const memberRows = new Map<number, number[]>();
+    if (cfg.showMembers) {
+      await Promise.all(
+        chosen.map(async (g) => {
+          const rows = await this.memberQuery(g.id).select('users.id').distinct().orderBy('users.id').limit(cfg.memberLimit).execute();
+          memberRows.set(g.id, rows.map((r) => r.id));
+        }),
+      );
+    }
+    const summaries = await this.users.summaries([...new Set([...memberRows.values()].flat())]);
+    const groups: GroupsPageGroup[] = chosen.map((g) => {
+      const isAdmin = g.system_key === 'admin';
+      const entries = table.get(g.parent_id ?? g.id) as Map<string, number> | undefined;
+      const lead = leaders.get(g.id) ?? new Set<number>();
+      const isMember = viewer.groupIds.includes(g.id);
+      return {
+        id: g.id,
+        name: g.name,
+        description: g.description,
+        color: g.color,
+        iconUrl: g.iconUrl,
+        iconCount: g.icon_count,
+        kind: g.kind,
+        minPosts: g.min_posts,
+        joinType: g.join_type,
+        visibility: g.visibility,
+        memberCount: g.member_count,
+        isProtected: bool(g.is_protected),
+        isMember,
+        isPrimary: viewer.user?.primary_group_id === g.id,
+        canSetPrimary: isMember && g.visibility !== 'additional_only' && this.isAssignable(g) && !bool(g.is_protected),
+        hasPendingRequest: pending.has(g.id),
+        canManage: !!viewer.user && (manage || lead.has(viewer.user.id)),
+        allPermissions: isAdmin,
+        inheritsFrom: g.parent_id ? (byId.get(g.parent_id)?.name ?? null) : null,
+        permissions: cfg.showPermissions && !isAdmin ? defs.filter((d) => entries?.get(d.key) === 1).map((d) => ({ key: d.key, label: d.label, category: d.category })) : [],
+        members: (memberRows.get(g.id) ?? [])
+          .map((uid) => summaries.get(uid))
+          .filter((u): u is UserSummary => !!u)
+          .map((user) => ({ user, isLeader: lead.has(user.id) })),
+      };
+    });
+    return { showPermissions: cfg.showPermissions, showMembers: cfg.showMembers, memberLimit: cfg.memberLimit, groups };
   }
 
   async getVisible(viewer: RequestViewer, id: number) {

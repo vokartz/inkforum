@@ -3,6 +3,7 @@ import { LOCALES, LOCALE_INFO, type Locale } from './i18n.js';
 import { DEFAULT_OG_CARD, ogCardSchema, type OgCard } from './og-card.js';
 import { DEFAULT_CAPTCHA_CONFIG, captchaConfigSchema, type CaptchaConfig } from './captcha.js';
 import { DEFAULT_MAINTENANCE_PAGE, maintenancePageSchema, type MaintenancePage } from './maintenance-page.js';
+import { DEFAULT_GROUPS_PAGE, groupsPageConfigSchema, type GroupsPageConfig } from './groups-page.js';
 
 export type SettingInput = 'text' | 'textarea' | 'number' | 'boolean' | 'select' | 'list';
 
@@ -759,6 +760,14 @@ export const SETTINGS = {
     public: true,
   }),
 
+  'groups.page': def({
+    section: 'forum',
+    schema: groupsPageConfigSchema,
+    default: DEFAULT_GROUPS_PAGE as GroupsPageConfig,
+    label: 'Gruplar sayfası',
+    input: 'list',
+    hidden: true,
+  }),
   'forum.topicsPerPage': def({
     section: 'forum',
     schema: z.number().int().min(5).max(100),

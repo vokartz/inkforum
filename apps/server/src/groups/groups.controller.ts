@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { idParam, pagination } from '@forum/shared';
 import { ZodPipe, parse } from '../common/validation.js';
 import { RequireAuth, RequirePermission } from '../common/decorators.js';
-import { CurrentViewer, type RequestViewer } from '../common/request-context.js';
+import { CurrentViewer, can, type RequestViewer } from '../common/request-context.js';
 import { Errors } from '../common/errors.js';
 import { GroupsService } from './groups.service.js';
 import { addMemberSchema, handleRequestSchema, joinRequestSchema } from './groups.schemas.js';
@@ -16,6 +16,13 @@ export class GroupsController {
   @RequirePermission('groups.view')
   async list(@CurrentViewer() viewer: RequestViewer) {
     return this.groups.listVisible(viewer);
+  }
+
+  @Get('page')
+  @RequirePermission('groups.view')
+  async page(@CurrentViewer() viewer: RequestViewer) {
+    if (!(await this.groups.pageEnabled()) && !can(viewer, 'admin.groups.manage')) throw Errors.notFound('Gruplar sayfası kapalı.');
+    return this.groups.pageData(viewer);
   }
 
   @Get(':id')

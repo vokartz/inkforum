@@ -25,6 +25,7 @@ export * from './onboarding.js';
 export * from './themes.js';
 export * from './maintenance-page.js';
 export * from './captcha.js';
+export * from './groups-page.js';
 export * from './og-card.js';
 export * from './tickets.js';
 export * from './waf.js';

@@ -90,6 +90,18 @@ export interface WhatsNewEntry {
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    version: '1.6.1',
+    title: 'Yeni gruplar sayfası',
+    items: [
+      {
+        icon: 'users-three',
+        title: 'Roller, üyeler ve yetkiler tek sayfada',
+        body: 'Gruplar sayfası yeniden tasarlandı: her rol üyeleriyle ve sahip olduğu yetkilerle birlikte aynı sayfada görünüyor, ayrı üye sayfası yok. Hangi grupların hangi sırayla görüneceğini, üyelerin ve yetkilerin gösterilip gösterilmeyeceğini ya da sayfanın tamamen kapatılmasını Gruplar → Gruplar sayfası ekranından ayarlayın.',
+        href: '/admin/groups-page',
+      },
+    ],
+  },
+  {
     version: '1.6.0',
     title: 'Yepyeni eklenti sistemi',
     items: [

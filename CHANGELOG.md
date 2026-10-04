@@ -8,6 +8,18 @@ Each version section becomes the GitHub release note and the update note in the 
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-10-04
+
+### Changed
+
+- **Groups page redesigned.** Every role is shown on a single page together with its members and the permissions it
+  holds, grouped by category; there is no separate member page any more (old `/groups/<id>` links jump to the group
+  on the page, and the rest of a large group opens in place with *Show more*). Members can join, leave, request to
+  join and pick their primary group right there.
+- New *Admin → Groups → Groups page* screen: turn the page on or off (the menu link follows), choose whether members
+  and permissions are shown and how many members appear at first, and pick which groups are listed and in what
+  order by dragging or with the arrows.
+
 ## [1.6.0] - 2026-10-03
 
 ### Added

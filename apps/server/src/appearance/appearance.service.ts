@@ -104,6 +104,7 @@ export class AppearanceService {
     const perm = row.permission ?? builtin?.permission ?? null;
     if (perm && !can(viewer, perm)) return false;
     if (row.builtin_key === 'achievements' && !this.settings.get('achievements.enabled')) return false;
+    if (row.builtin_key === 'groups' && !this.settings.get('groups.page').enabled) return false;
     if (row.builtin_key === 'wiki' && !this.settings.get('wiki.enabled') && !can(viewer, 'wiki.edit')) return false;
     const plugin = ({ wiki: 'wiki', applications: 'applications', tickets: 'tickets', home: 'landing' } as const)[row.builtin_key as 'wiki'];
     if (plugin && !this.settings.plugin(plugin)) return false;
